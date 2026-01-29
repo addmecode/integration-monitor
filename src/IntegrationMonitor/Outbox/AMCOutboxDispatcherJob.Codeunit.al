@@ -22,8 +22,7 @@ codeunit 50108 "AMC Outbox Dispatcher Job"
     var
         Setup: Record "AMC Int. Message Setup";
         Handler: Interface "AMC IMessageHandler";
-        Transport: Codeunit "AMC Http Transport";
-        TransportInt: Interface "AMC IHttpTransport";
+        Transport: Interface "AMC IHttpTransport";
         Request: HttpRequestMessage;
         Response: HttpResponseMessage;
         ResponseBody: InStream;
@@ -63,14 +62,11 @@ codeunit 50108 "AMC Outbox Dispatcher Job"
             exit;
         end;
 
-        // todo: transport codeunit should be taken from setup
-        Transport.SetTimeout(Setup."Timeout (ms)");
-        Transport.SetAuthProfileCode(Setup."Auth Profile Code");
-        TransportInt := Transport;
+        Transport := Setup.Transport;
 
         SendOk := false;
         TransportErrorText := '';
-        if not TrySend(TransportInt, Request, Response, ResponseBody, SendOk) then
+        if not TrySend(Transport, Setup, Request, Response, ResponseBody, SendOk) then
             TransportErrorText := GetLastErrorText();
 
         if SendOk then
@@ -186,9 +182,9 @@ codeunit 50108 "AMC Outbox Dispatcher Job"
     end;
 
     [TryFunction]
-    local procedure TrySend(Transport: Interface "AMC IHttpTransport"; Request: HttpRequestMessage; var Response: HttpResponseMessage; var ResponseBody: InStream; var SendOk: Boolean)
+    local procedure TrySend(Transport: Interface "AMC IHttpTransport"; Setup: Record "AMC Int. Message Setup"; Request: HttpRequestMessage; var Response: HttpResponseMessage; var ResponseBody: InStream; var SendOk: Boolean)
     begin
-        SendOk := Transport.Send(Request, Response, ResponseBody);
+        SendOk := Transport.Send(Request, Setup, Response, ResponseBody);
     end;
 
     [TryFunction]
@@ -255,4 +251,3 @@ codeunit 50108 "AMC Outbox Dispatcher Job"
         MaxAttemptsExceededErr: Label 'Max attempts exceeded.', Locked = true;
         SendFailedErr: Label 'HTTP send failed.', Locked = true;
 }
-

@@ -40,6 +40,10 @@ page 50114 "AMC Int. Message Setup"
         {
           ApplicationArea = All;
         }
+        field(Transport; Rec.Transport)
+        {
+          ApplicationArea = All;
+        }
         field("Process Response"; Rec."Process Response")
         {
           ApplicationArea = All;

@@ -4,45 +4,25 @@ codeunit 50107 "AMC Http Transport" implements "AMC IHttpTransport"
   /// Sends an HTTP request and returns the response and response body.
   /// </summary>
   /// <param name="Request">HTTP request message to send.</param>
+  /// <param name="Setup">Message setup for the entry.</param>
   /// <param name="Response">HTTP response message.</param>
   /// <param name="ResponseBody">Response body stream, if available.</param>
   /// <returns>True if the request was sent, otherwise false.</returns>
-  procedure Send(Request: HttpRequestMessage; var Response: HttpResponseMessage; var ResponseBody: InStream): Boolean
+  procedure Send(Request: HttpRequestMessage; Setup: Record "AMC Int. Message Setup"; var Response: HttpResponseMessage; var ResponseBody: InStream): Boolean
   var
     Client: HttpClient;
   begin
-    if Timeout > 0 then
-      Client.Timeout := Timeout;
+    if Setup."Timeout (ms)" > 0 then
+      Client.Timeout := Setup."Timeout (ms)";
 
-    if AuthProfileCode <> '' then
-      ApplyAuth(Client, Request, AuthProfileCode);
+    if Setup."Auth Profile Code" <> '' then
+      ApplyAuth(Client, Request, Setup."Auth Profile Code");
 
     if not Client.Send(Request, Response) then
       exit(false);
 
     TryReadResponseBody(Response, ResponseBody);
     exit(true);
-  end;
-
-  /// <summary>
-  /// Sets the timeout (in milliseconds) for HTTP requests.
-  /// </summary>
-  /// <param name="TimeoutMs">Timeout in milliseconds.</param>
-  procedure SetTimeout(TimeoutMs: Integer)
-  begin
-    if TimeoutMs <= 0 then
-      Timeout := 0
-    else
-      Timeout := TimeoutMs;
-  end;
-
-  /// <summary>
-  /// Sets the authentication profile code used by the transport.
-  /// </summary>
-  /// <param name="NewAuthProfileCode">Auth profile code.</param>
-  procedure SetAuthProfileCode(NewAuthProfileCode: Code[20])
-  begin
-    AuthProfileCode := NewAuthProfileCode;
   end;
 
   local procedure ApplyAuth(var Client: HttpClient; var Request: HttpRequestMessage; AuthProfile: Code[20])
@@ -61,8 +41,5 @@ codeunit 50107 "AMC Http Transport" implements "AMC IHttpTransport"
   begin
   end;
 
-  var
-    Timeout: Duration;
-    AuthProfileCode: Code[20];
 }
 
