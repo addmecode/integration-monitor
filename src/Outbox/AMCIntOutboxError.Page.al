@@ -36,8 +36,11 @@ page 50117 "AMC Int. Outbox Error"
   end;
 
   local procedure LoadDetails()
+  var
+    OutboxRef: RecordRef;
   begin
-    ErrorDetailsText := BlobHelper.ReadBlobAsText(Rec, Rec.FieldNo("Error Details"));
+    OutboxRef.GetTable(Rec);
+    ErrorDetailsText := BlobHelper.ReadBlobAsText(OutboxRef, Rec.FieldNo("Error Details"));
   end;
 
   var

@@ -53,16 +53,19 @@ page 50116 "AMC Int. Inbox Payload"
     end;
 
     local procedure LoadPayload()
+    var
+        InboxRef: RecordRef;
     begin
-        PayloadText := BlobHelper.ReadBlobAsText(Rec, Rec.FieldNo("Response Payload"));
+        InboxRef.GetTable(Rec);
+        PayloadText := BlobHelper.ReadBlobAsText(InboxRef, Rec.FieldNo("Response Payload"));
     end;
 
     local procedure SavePayload()
     var
-        RecVar: Variant;
+        InboxRef: RecordRef;
     begin
-        RecVar := Rec;
-        BlobHelper.WriteTextToBlob(RecVar, Rec.FieldNo("Response Payload"), PayloadText);
+        InboxRef.GetTable(Rec);
+        BlobHelper.WriteTextToBlob(InboxRef, Rec.FieldNo("Response Payload"), PayloadText);
     end;
 
     var
@@ -70,4 +73,3 @@ page 50116 "AMC Int. Inbox Payload"
         PayloadText: Text;
         ReadOnly: Boolean;
 }
-

@@ -28,7 +28,7 @@ codeunit 50108 "AMC Outbox Dispatcher Job"
         ResponseBody: InStream;
         HandlerResponseStream: InStream;
         InboxResponseStream: InStream;
-        ErrorDetailsStream: InStream;
+        ErrorDetail: Text;
         TempBlob: Codeunit "Temp Blob";
         CreateInbox: Boolean;
         ErrorText: Text;
@@ -58,7 +58,7 @@ codeunit 50108 "AMC Outbox Dispatcher Job"
         if not TryBuildRequest(Handler, Outbox, Setup, Request) then begin
             ErrorText := GetLastErrorText();
             EnsureEmptyTempBlob(TempBlob);
-            FailOutbox(Outbox, Setup, ErrorText, ErrorDetailsStream, TempBlob, Now);
+            FailOutbox(Outbox, Setup, ErrorText, ErrorDetail, TempBlob, Now);
             exit;
         end;
 
@@ -78,9 +78,9 @@ codeunit 50108 "AMC Outbox Dispatcher Job"
 
         CreateInbox := false;
         HandlerErrorText := '';
-        Clear(ErrorDetailsStream);
+        ErrorDetail := '';
 
-        if not TryHandleSendResult(Handler, Outbox, Setup, SendOk, Response, HandlerResponseStream, CreateInbox, HandlerErrorText, ErrorDetailsStream) then
+        if not TryHandleSendResult(Handler, Outbox, Setup, SendOk, Response, HandlerResponseStream, CreateInbox, HandlerErrorText, ErrorDetail) then
             HandlerErrorText := GetLastErrorText();
 
         if HandlerErrorText <> '' then
@@ -93,7 +93,7 @@ codeunit 50108 "AMC Outbox Dispatcher Job"
                     ErrorText := SendFailedErr;
 
         if ErrorText <> '' then begin
-            FailOutbox(Outbox, Setup, ErrorText, ErrorDetailsStream, TempBlob, Now);
+            FailOutbox(Outbox, Setup, ErrorText, ErrorDetail, TempBlob, Now);
             exit;
         end;
 
@@ -140,10 +140,9 @@ codeunit 50108 "AMC Outbox Dispatcher Job"
         Outbox.Modify(true);
     end;
 
-    local procedure FailOutbox(var Outbox: Record "AMC Int. Outbox Entry"; Setup: Record "AMC Int. Message Setup"; ErrorText: Text; var ErrorDetailsStream: InStream; var TempBlob: Codeunit "Temp Blob"; Now: DateTime)
+    local procedure FailOutbox(var Outbox: Record "AMC Int. Outbox Entry"; Setup: Record "AMC Int. Message Setup"; ErrorText: Text; ErrorDetail: Text; var TempBlob: Codeunit "Temp Blob"; Now: DateTime)
     var
-        VariantOutbox: Variant;
-        TempInStream: InStream;
+        OutboxRef: RecordRef;
     begin
         Outbox.Status := Outbox.Status::Failed;
         Outbox."Last Error" := CopyStr(ErrorText, 1, MaxStrLen(Outbox."Last Error"));
@@ -151,11 +150,8 @@ codeunit 50108 "AMC Outbox Dispatcher Job"
         Outbox."Sent At" := 0DT;
         Outbox.Modify(true);
 
-        VariantOutbox := Outbox;
-        if not BlobHelper.TryCopyInStreamToBlob(VariantOutbox, Outbox.FieldNo("Error Details"), ErrorDetailsStream) then begin
-            TempBlob.CreateInStream(TempInStream);
-            BlobHelper.TryCopyInStreamToBlob(VariantOutbox, Outbox.FieldNo("Error Details"), TempInStream);
-        end;
+        OutboxRef.GetTable(Outbox);
+        BlobHelper.WriteTextToBlob(OutboxRef, Outbox.FieldNo("Error Details"), ErrorDetail);
     end;
 
     local procedure GetNextAttemptAt(Setup: Record "AMC Int. Message Setup"; Now: DateTime): DateTime
@@ -176,9 +172,9 @@ codeunit 50108 "AMC Outbox Dispatcher Job"
     end;
 
     [TryFunction]
-    local procedure TryHandleSendResult(Handler: Interface "AMC IMessageHandler"; Outbox: Record "AMC Int. Outbox Entry"; Setup: Record "AMC Int. Message Setup"; SendOk: Boolean; Response: HttpResponseMessage; ResponseBody: InStream; var CreateInbox: Boolean; var ErrorText: Text; var ErrorDetailsStream: InStream)
+    local procedure TryHandleSendResult(Handler: Interface "AMC IMessageHandler"; Outbox: Record "AMC Int. Outbox Entry"; Setup: Record "AMC Int. Message Setup"; SendOk: Boolean; Response: HttpResponseMessage; ResponseBody: InStream; var CreateInbox: Boolean; var ErrorText: Text; var ErrorDetail: Text)
     begin
-        Handler.HandleSendResult(Outbox, Setup, SendOk, Response, ResponseBody, CreateInbox, ErrorText, ErrorDetailsStream);
+        Handler.HandleSendResult(Outbox, Setup, SendOk, Response, ResponseBody, CreateInbox, ErrorText, ErrorDetail);
     end;
 
     [TryFunction]

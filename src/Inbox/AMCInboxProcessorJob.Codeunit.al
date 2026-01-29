@@ -22,7 +22,7 @@ codeunit 50109 "AMC Inbox Processor Job"
     var
         Setup: Record "AMC Int. Message Setup";
         Handler: Interface "AMC IMessageHandler";
-        ErrorDetailsStream: InStream;
+        ErrorDetail: Text;
         ErrorText: Text;
         Success: Boolean;
         Now: DateTime;
@@ -46,16 +46,16 @@ codeunit 50109 "AMC Inbox Processor Job"
         Handler := Inbox."Message Type";
         Success := false;
         ErrorText := '';
-        Clear(ErrorDetailsStream);
+        ErrorDetail := '';
 
-        if not TryProcessResponse(Handler, Inbox, Setup, Success, ErrorText, ErrorDetailsStream) then
+        if not TryProcessResponse(Handler, Inbox, Setup, Success, ErrorText, ErrorDetail) then
             ErrorText := GetLastErrorText();
 
         if (not Success) or (ErrorText <> '') then begin
             if ErrorText = '' then
                 ErrorText := ProcessingFailedErr;
 
-            FailInbox(Inbox, Setup, ErrorText, ErrorDetailsStream, Now);
+            FailInbox(Inbox, Setup, ErrorText, ErrorDetail, Now);
             exit;
         end;
 
@@ -78,9 +78,9 @@ codeunit 50109 "AMC Inbox Processor Job"
         Inbox.Modify(true);
     end;
 
-    local procedure FailInbox(var Inbox: Record "AMC Int. Inbox Entry"; Setup: Record "AMC Int. Message Setup"; ErrorText: Text; var ErrorDetailsStream: InStream; Now: DateTime)
+    local procedure FailInbox(var Inbox: Record "AMC Int. Inbox Entry"; Setup: Record "AMC Int. Message Setup"; ErrorText: Text; ErrorDetail: Text; Now: DateTime)
     var
-        VariantInbox: Variant;
+        InboxRef: RecordRef;
     begin
         Inbox.Status := Inbox.Status::Failed;
         Inbox."Last Error" := CopyStr(ErrorText, 1, MaxStrLen(Inbox."Last Error"));
@@ -88,8 +88,8 @@ codeunit 50109 "AMC Inbox Processor Job"
         Inbox."Processed At" := 0DT;
         Inbox.Modify(true);
 
-        VariantInbox := Inbox;
-        BlobHelper.TryCopyInStreamToBlob(VariantInbox, Inbox.FieldNo("Error Details"), ErrorDetailsStream);
+        InboxRef.GetTable(Inbox);
+        BlobHelper.WriteTextToBlob(InboxRef, Inbox.FieldNo("Error Details"), ErrorDetail);
     end;
 
     local procedure GetNextAttemptAt(Setup: Record "AMC Int. Message Setup"; Now: DateTime): DateTime
@@ -104,9 +104,9 @@ codeunit 50109 "AMC Inbox Processor Job"
     end;
 
     [TryFunction]
-    local procedure TryProcessResponse(Handler: Interface "AMC IMessageHandler"; Inbox: Record "AMC Int. Inbox Entry"; Setup: Record "AMC Int. Message Setup"; var Success: Boolean; var ErrorText: Text; var ErrorDetailsStream: InStream)
+    local procedure TryProcessResponse(Handler: Interface "AMC IMessageHandler"; Inbox: Record "AMC Int. Inbox Entry"; Setup: Record "AMC Int. Message Setup"; var Success: Boolean; var ErrorText: Text; var ErrorDetail: Text)
     begin
-        Handler.ProcessResponse(Inbox, Setup, Success, ErrorText, ErrorDetailsStream);
+        Handler.ProcessResponse(Inbox, Setup, Success, ErrorText, ErrorDetail);
     end;
 
     [TryFunction]
@@ -145,4 +145,3 @@ codeunit 50109 "AMC Inbox Processor Job"
         MaxAttemptsExceededErr: Label 'Max attempts exceeded.', Locked = true;
         ProcessingFailedErr: Label 'Processing failed.', Locked = true;
 }
-

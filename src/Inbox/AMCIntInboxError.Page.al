@@ -36,8 +36,11 @@ page 50118 "AMC Int. Inbox Error"
   end;
 
   local procedure LoadDetails()
+  var
+    InboxRef: RecordRef;
   begin
-    ErrorDetailsText := BlobHelper.ReadBlobAsText(Rec, Rec.FieldNo("Error Details"));
+    InboxRef.GetTable(Rec);
+    ErrorDetailsText := BlobHelper.ReadBlobAsText(InboxRef, Rec.FieldNo("Error Details"));
   end;
 
   var

@@ -11,6 +11,7 @@ codeunit 50110 "AMC Message Handler Default" implements "AMC IMessageHandler"
         Content: HttpContent;
         ContentHeaders: HttpHeaders;
         PayloadText: Text;
+        OutboxRef: RecordRef;
     begin
         if Setup."Endpoint URL" = '' then
             Error(EndpointUrlMissingErr, Format(Setup."Message Type"));
@@ -18,7 +19,8 @@ codeunit 50110 "AMC Message Handler Default" implements "AMC IMessageHandler"
         Request.Method := 'POST';
         Request.SetRequestUri(Setup."Endpoint URL");
 
-        PayloadText := BlobHelper.ReadBlobAsText(Outbox, Outbox.FieldNo("Request Payload"));
+        OutboxRef.GetTable(Outbox);
+        PayloadText := BlobHelper.ReadBlobAsText(OutboxRef, Outbox.FieldNo("Request Payload"));
         if PayloadText <> '' then begin
             Content.WriteFrom(PayloadText);
             Content.GetHeaders(ContentHeaders);
@@ -38,12 +40,12 @@ codeunit 50110 "AMC Message Handler Default" implements "AMC IMessageHandler"
     /// <param name="ResponseBody">Response body stream.</param>
     /// <param name="CreateInbox">Set to true to create an inbox entry.</param>
     /// <param name="ErrorText">Error text if processing failed.</param>
-    /// <param name="ErrorDetailsStream">Optional error details stream.</param>
-    procedure HandleSendResult(Outbox: Record "AMC Int. Outbox Entry"; Setup: Record "AMC Int. Message Setup"; SendOk: Boolean; Response: HttpResponseMessage; ResponseBody: InStream; var CreateInbox: Boolean; var ErrorText: Text; var ErrorDetailsStream: InStream)
+    /// <param name="ErrorDetail">Optional error details text.</param>
+    procedure HandleSendResult(Outbox: Record "AMC Int. Outbox Entry"; Setup: Record "AMC Int. Message Setup"; SendOk: Boolean; Response: HttpResponseMessage; ResponseBody: InStream; var CreateInbox: Boolean; var ErrorText: Text; var ErrorDetail: Text)
     begin
         CreateInbox := false;
         ErrorText := '';
-        Clear(ErrorDetailsStream);
+        ErrorDetail := '';
 
         if not SendOk then begin
             ErrorText := SendFailedErr;
@@ -52,7 +54,7 @@ codeunit 50110 "AMC Message Handler Default" implements "AMC IMessageHandler"
 
         if not Response.IsSuccessStatusCode then begin
             ErrorText := StrSubstNo(HttpStatusErr, Format(Response.HttpStatusCode));
-            ErrorDetailsStream := ResponseBody;
+            ResponseBody.Read(ErrorDetail);
             exit;
         end;
 
@@ -67,12 +69,12 @@ codeunit 50110 "AMC Message Handler Default" implements "AMC IMessageHandler"
     /// <param name="Setup">Message setup for the entry.</param>
     /// <param name="Success">Set to true if processing succeeded.</param>
     /// <param name="ErrorText">Error text if processing failed.</param>
-    /// <param name="ErrorDetailsStream">Optional error details stream.</param>
-    procedure ProcessResponse(Inbox: Record "AMC Int. Inbox Entry"; Setup: Record "AMC Int. Message Setup"; var Success: Boolean; var ErrorText: Text; var ErrorDetailsStream: InStream)
+    /// <param name="ErrorDetail">Optional error details text.</param>
+    procedure ProcessResponse(Inbox: Record "AMC Int. Inbox Entry"; Setup: Record "AMC Int. Message Setup"; var Success: Boolean; var ErrorText: Text; var ErrorDetail: Text)
     begin
         Success := true;
         ErrorText := '';
-        Clear(ErrorDetailsStream);
+        ErrorDetail := '';
     end;
 
     var
