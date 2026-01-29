@@ -48,7 +48,7 @@ codeunit 50109 "AMC Inbox Processor Job"
         ErrorText := '';
         ErrorDetail := '';
 
-        if not TryProcessResponse(Handler, Inbox, Setup, Success, ErrorText, ErrorDetail) then
+        if not TryProcessResponse(Handler, Inbox, Success, ErrorText, ErrorDetail) then
             ErrorText := GetLastErrorText();
 
         if (not Success) or (ErrorText <> '') then begin
@@ -104,9 +104,9 @@ codeunit 50109 "AMC Inbox Processor Job"
     end;
 
     [TryFunction]
-    local procedure TryProcessResponse(Handler: Interface "AMC IMessageHandler"; Inbox: Record "AMC Int. Inbox Entry"; Setup: Record "AMC Int. Message Setup"; var Success: Boolean; var ErrorText: Text; var ErrorDetail: Text)
+    local procedure TryProcessResponse(Handler: Interface "AMC IMessageHandler"; Inbox: Record "AMC Int. Inbox Entry"; var Success: Boolean; var ErrorText: Text; var ErrorDetail: Text)
     begin
-        Handler.ProcessResponse(Inbox, Setup, Success, ErrorText, ErrorDetail);
+        Handler.ProcessResponse(Inbox, Success, ErrorText, ErrorDetail);
     end;
 
     [TryFunction]

@@ -36,6 +36,8 @@ codeunit 50108 "AMC Outbox Dispatcher Job"
         TransportErrorText: Text;
         SendOk: Boolean;
         Now: DateTime;
+        EndpointUrlMissingErr: Label 'Endpoint URL is required for message type %1.', Comment = '%1 = Message Type';
+
     begin
         Now := CurrentDateTime();
 
@@ -44,6 +46,9 @@ codeunit 50108 "AMC Outbox Dispatcher Job"
 
         if not Setup.Enabled then
             exit;
+
+        if Setup."Endpoint URL" = '' then
+            Error(EndpointUrlMissingErr, Format(Setup."Message Type"));
 
         if not TryClaimOutbox(Outbox, Setup, Now) then
             exit;
@@ -55,7 +60,7 @@ codeunit 50108 "AMC Outbox Dispatcher Job"
 
         Handler := Outbox."Message Type";
 
-        if not TryBuildRequest(Handler, Outbox, Setup, Request) then begin
+        if not TryBuildRequest(Handler, Outbox, Request) then begin
             ErrorText := GetLastErrorText();
             EnsureEmptyTempBlob(TempBlob);
             FailOutbox(Outbox, Setup, ErrorText, ErrorDetail, TempBlob, Now);
@@ -80,7 +85,7 @@ codeunit 50108 "AMC Outbox Dispatcher Job"
         HandlerErrorText := '';
         ErrorDetail := '';
 
-        if not TryHandleSendResult(Handler, Outbox, Setup, SendOk, Response, HandlerResponseStream, CreateInbox, HandlerErrorText, ErrorDetail) then
+        if not TryHandleSendResult(Handler, Outbox, SendOk, Response, HandlerResponseStream, CreateInbox, HandlerErrorText, ErrorDetail) then
             HandlerErrorText := GetLastErrorText();
 
         if HandlerErrorText <> '' then
@@ -166,15 +171,15 @@ codeunit 50108 "AMC Outbox Dispatcher Job"
     end;
 
     [TryFunction]
-    local procedure TryBuildRequest(Handler: Interface "AMC IMessageHandler"; Outbox: Record "AMC Int. Outbox Entry"; Setup: Record "AMC Int. Message Setup"; var Request: HttpRequestMessage)
+    local procedure TryBuildRequest(Handler: Interface "AMC IMessageHandler"; Outbox: Record "AMC Int. Outbox Entry"; var Request: HttpRequestMessage)
     begin
-        Handler.BuildRequest(Outbox, Setup, Request);
+        Handler.BuildRequest(Outbox, Request);
     end;
 
     [TryFunction]
-    local procedure TryHandleSendResult(Handler: Interface "AMC IMessageHandler"; Outbox: Record "AMC Int. Outbox Entry"; Setup: Record "AMC Int. Message Setup"; SendOk: Boolean; Response: HttpResponseMessage; ResponseBody: InStream; var CreateInbox: Boolean; var ErrorText: Text; var ErrorDetail: Text)
+    local procedure TryHandleSendResult(Handler: Interface "AMC IMessageHandler"; Outbox: Record "AMC Int. Outbox Entry"; SendOk: Boolean; Response: HttpResponseMessage; ResponseBody: InStream; var CreateInbox: Boolean; var ErrorText: Text; var ErrorDetail: Text)
     begin
-        Handler.HandleSendResult(Outbox, Setup, SendOk, Response, ResponseBody, CreateInbox, ErrorText, ErrorDetail);
+        Handler.HandleSendResult(Outbox, SendOk, Response, ResponseBody, CreateInbox, ErrorText, ErrorDetail);
     end;
 
     [TryFunction]

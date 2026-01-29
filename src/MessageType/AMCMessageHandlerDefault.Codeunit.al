@@ -6,18 +6,19 @@ codeunit 50110 "AMC Message Handler Default" implements "AMC IMessageHandler"
     /// <param name="Outbox">Outbox entry to send.</param>
     /// <param name="Setup">Message setup for the entry.</param>
     /// <param name="Request">HTTP request message to populate.</param>
-    procedure BuildRequest(Outbox: Record "AMC Int. Outbox Entry"; Setup: Record "AMC Int. Message Setup"; var Request: HttpRequestMessage)
+    procedure BuildRequest(Outbox: Record "AMC Int. Outbox Entry"; var Request: HttpRequestMessage)
     var
+        IntMessageSetup: Record "AMC Int. Message Setup";
+        BlobHelper: Codeunit "AMC Int. Blob Helper";
+        OutboxRef: RecordRef;
         Content: HttpContent;
         ContentHeaders: HttpHeaders;
         PayloadText: Text;
-        OutboxRef: RecordRef;
     begin
-        if Setup."Endpoint URL" = '' then
-            Error(EndpointUrlMissingErr, Format(Setup."Message Type"));
+        IntMessageSetup.Get(Outbox."Message Type");
 
         Request.Method := 'POST';
-        Request.SetRequestUri(Setup."Endpoint URL");
+        Request.SetRequestUri(IntMessageSetup."Endpoint URL");
 
         OutboxRef.GetTable(Outbox);
         PayloadText := BlobHelper.ReadBlobAsText(OutboxRef, Outbox.FieldNo("Request Payload"));
@@ -41,7 +42,11 @@ codeunit 50110 "AMC Message Handler Default" implements "AMC IMessageHandler"
     /// <param name="CreateInbox">Set to true to create an inbox entry.</param>
     /// <param name="ErrorText">Error text if processing failed.</param>
     /// <param name="ErrorDetail">Optional error details text.</param>
-    procedure HandleSendResult(Outbox: Record "AMC Int. Outbox Entry"; Setup: Record "AMC Int. Message Setup"; SendOk: Boolean; Response: HttpResponseMessage; ResponseBody: InStream; var CreateInbox: Boolean; var ErrorText: Text; var ErrorDetail: Text)
+    procedure HandleSendResult(Outbox: Record "AMC Int. Outbox Entry"; SendOk: Boolean; Response: HttpResponseMessage; ResponseBody: InStream; var CreateInbox: Boolean; var ErrorText: Text; var ErrorDetail: Text)
+    var
+        IntMessageSetup: Record "AMC Int. Message Setup";
+        SendFailedErr: Label 'HTTP send failed.', Locked = true;
+        HttpStatusErr: Label 'HTTP request failed with status %1.', Comment = '%1 = HTTP status code';
     begin
         CreateInbox := false;
         ErrorText := '';
@@ -58,7 +63,7 @@ codeunit 50110 "AMC Message Handler Default" implements "AMC IMessageHandler"
             exit;
         end;
 
-        if Setup."Process Response" then
+        if IntMessageSetup."Process Response" then
             CreateInbox := true;
     end;
 
@@ -70,16 +75,12 @@ codeunit 50110 "AMC Message Handler Default" implements "AMC IMessageHandler"
     /// <param name="Success">Set to true if processing succeeded.</param>
     /// <param name="ErrorText">Error text if processing failed.</param>
     /// <param name="ErrorDetail">Optional error details text.</param>
-    procedure ProcessResponse(Inbox: Record "AMC Int. Inbox Entry"; Setup: Record "AMC Int. Message Setup"; var Success: Boolean; var ErrorText: Text; var ErrorDetail: Text)
+    procedure ProcessResponse(Inbox: Record "AMC Int. Inbox Entry"; var Success: Boolean; var ErrorText: Text; var ErrorDetail: Text)
+    var
+        IntMessageSetup: Record "AMC Int. Message Setup";
     begin
         Success := true;
         ErrorText := '';
         ErrorDetail := '';
     end;
-
-    var
-        BlobHelper: Codeunit "AMC Int. Blob Helper";
-        EndpointUrlMissingErr: Label 'Endpoint URL is required for message type %1.', Comment = '%1 = Message Type';
-        HttpStatusErr: Label 'HTTP request failed with status %1.', Comment = '%1 = HTTP status code';
-        SendFailedErr: Label 'HTTP send failed.', Locked = true;
 }
