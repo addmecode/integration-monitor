@@ -38,7 +38,7 @@ table 50102 "AMC Int. Message Setup"
         {
             DataClassification = SystemMetadata;
         }
-        field(9; Transport; Enum "AMC Int. Transport")
+        field(9; Transport; Enum "AMC Int. Transport Type")
         {
             DataClassification = SystemMetadata;
         }

@@ -5,6 +5,6 @@ enum 50104 "AMC Int. Message Type" implements "AMC IMessageHandler"
     value(0; Generic)
     {
         Caption = 'Generic';
-        Implementation = "AMC IMessageHandler" = "AMC Int. Handler Default";
+        Implementation = "AMC IMessageHandler" = "AMC Message Handler Default";
     }
 }

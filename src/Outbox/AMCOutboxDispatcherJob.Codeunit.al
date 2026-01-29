@@ -22,7 +22,7 @@ codeunit 50108 "AMC Outbox Dispatcher Job"
     var
         Setup: Record "AMC Int. Message Setup";
         Handler: Interface "AMC IMessageHandler";
-        Transport: Interface "AMC IHttpTransport";
+        Transport: Interface "AMC IHttpTransportHandler";
         Request: HttpRequestMessage;
         Response: HttpResponseMessage;
         ResponseBody: InStream;
@@ -182,7 +182,7 @@ codeunit 50108 "AMC Outbox Dispatcher Job"
     end;
 
     [TryFunction]
-    local procedure TrySend(Transport: Interface "AMC IHttpTransport"; Setup: Record "AMC Int. Message Setup"; Request: HttpRequestMessage; var Response: HttpResponseMessage; var ResponseBody: InStream; var SendOk: Boolean)
+    local procedure TrySend(Transport: Interface "AMC IHttpTransportHandler"; Setup: Record "AMC Int. Message Setup"; Request: HttpRequestMessage; var Response: HttpResponseMessage; var ResponseBody: InStream; var SendOk: Boolean)
     begin
         SendOk := Transport.Send(Request, Setup, Response, ResponseBody);
     end;
