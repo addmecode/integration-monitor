@@ -9,7 +9,6 @@ codeunit 50108 "AMC Outbox Dispatcher Job"
     var
         Outbox: Record "AMC Int. Outbox Entry";
     begin
-        Outbox.SetLoadFields("Entry No.", "Message Type", Status, "Next Attempt At");
         Outbox.SetFilter(Status, '%1|%2|%3', Outbox.Status::New, Outbox.Status::Ready, Outbox.Status::Failed);
         Outbox.SetFilter("Next Attempt At", '<=%1', CurrentDateTime());
         if Outbox.FindSet() then
@@ -21,6 +20,7 @@ codeunit 50108 "AMC Outbox Dispatcher Job"
     local procedure ProcessEntry(var Outbox: Record "AMC Int. Outbox Entry")
     var
         Setup: Record "AMC Int. Message Setup";
+        TempBlob: Codeunit "Temp Blob";
         Handler: Interface "AMC IMessageHandler";
         Transport: Interface "AMC IHttpTransportHandler";
         Request: HttpRequestMessage;
@@ -29,26 +29,21 @@ codeunit 50108 "AMC Outbox Dispatcher Job"
         HandlerResponseStream: InStream;
         InboxResponseStream: InStream;
         ErrorDetail: Text;
-        TempBlob: Codeunit "Temp Blob";
         CreateInbox: Boolean;
         ErrorText: Text;
         HandlerErrorText: Text;
         TransportErrorText: Text;
         SendOk: Boolean;
         Now: DateTime;
-        EndpointUrlMissingErr: Label 'Endpoint URL is required for message type %1.', Comment = '%1 = Message Type';
-
+        SendFailedErr: Label 'HTTP send failed.', Locked = true;
     begin
         Now := CurrentDateTime();
-
-        if not Setup.Get(Outbox."Message Type") then
+        if not TryValidateSetupBeforeProcessingEntry(Outbox."Message Type") then begin
+            MarkEntryAsFailed(Outbox, GetLastErrorText, GetLastErrorCallStack); //todo: test GetLastErrorCallStack 
             exit;
+        end;
 
-        if not Setup.Enabled then
-            exit;
 
-        if Setup."Endpoint URL" = '' then
-            Error(EndpointUrlMissingErr, Format(Setup."Message Type"));
 
         if not TryClaimOutbox(Outbox, Setup, Now) then
             exit;
@@ -114,6 +109,40 @@ codeunit 50108 "AMC Outbox Dispatcher Job"
         Outbox.Modify(true);
     end;
 
+    [TryFunction]
+    local procedure TryValidateSetupBeforeProcessingEntry(MessageType: Enum "AMC Int. Message Type")
+    begin
+        ValidateSetupBeforeProcessingEntry(MessageType);
+    end;
+
+    local procedure ValidateSetupBeforeProcessingEntry(MessageType: Enum "AMC Int. Message Type"): Boolean
+    var
+        IntMessageSetup: Record "AMC Int. Message Setup";
+        EndpointUrlMissingErr: Label '%1 with %2 must have %3 configured', Comment = '%1 = Int. Message Setup table caption, %2 = Message Type, %3 = Endpoint URL field caption';
+        IntMessageSetupMissingErr: Label '%1 is required with message type %2.', Comment = '%1 = Int. Message Setup table caption, %2 = Message Type';
+        IntMessageSetupIsNotEnabledErr: Label '%1 with %2 must have %3 equal true.', Comment = '%1 = Int. Message Setup table caption, %2 = Message Type, %3 = Enabled field caption';
+    begin
+        if not IntMessageSetup.Get(MessageType) then
+            Error(IntMessageSetupMissingErr, IntMessageSetup.TableCaption, Format(MessageType));
+
+        if not IntMessageSetup.Enabled then
+            Error(IntMessageSetupIsNotEnabledErr, IntMessageSetup.TableCaption, Format(MessageType), IntMessageSetup.FieldCaption(IntMessageSetup.Enabled));
+
+        if IntMessageSetup."Endpoint URL" = '' then
+            Error(EndpointUrlMissingErr, IntMessageSetup.TableCaption, Format(MessageType), IntMessageSetup.FieldCaption(IntMessageSetup."Endpoint URL"));
+    end;
+
+    local procedure MarkEntryAsFailed(var Outbox: Record "AMC Int. Outbox Entry"; LastError: Text; ErrorDetails: Text)
+    var
+        BlobHelper: Codeunit "AMC Int. Blob Helper";
+        OutboxRecRef: RecordRef;
+    begin
+        Outbox.Status := Outbox.Status::Failed;
+        Outbox."Last Error" := CopyStr(LastError, 1, MaxStrLen(Outbox."Last Error"));
+        OutboxRecRef.GetTable(Outbox);
+        BlobHelper.WriteTextToBlob(OutboxRecRef, Outbox.FieldNo(Outbox."Error Details"), ErrorDetails);
+    end;
+
     local procedure CreateInboxEntry(Outbox: Record "AMC Int. Outbox Entry"; var ResponseStream: InStream; Now: DateTime)
     var
         Inbox: Record "AMC Int. Inbox Entry";
@@ -139,6 +168,8 @@ codeunit 50108 "AMC Outbox Dispatcher Job"
     end;
 
     local procedure MarkMaxAttemptsExceeded(var Outbox: Record "AMC Int. Outbox Entry")
+    var
+        MaxAttemptsExceededErr: Label 'Max attempts exceeded.', Locked = true;
     begin
         Outbox.Status := Outbox.Status::Failed;
         Outbox."Last Error" := MaxAttemptsExceededErr;
@@ -147,6 +178,7 @@ codeunit 50108 "AMC Outbox Dispatcher Job"
 
     local procedure FailOutbox(var Outbox: Record "AMC Int. Outbox Entry"; Setup: Record "AMC Int. Message Setup"; ErrorText: Text; ErrorDetail: Text; var TempBlob: Codeunit "Temp Blob"; Now: DateTime)
     var
+        BlobHelper: Codeunit "AMC Int. Blob Helper";
         OutboxRef: RecordRef;
     begin
         Outbox.Status := Outbox.Status::Failed;
@@ -246,9 +278,4 @@ codeunit 50108 "AMC Outbox Dispatcher Job"
         TempBlob.CreateOutStream(TempOutStream);
         CopyStream(TempOutStream, ResponseBody);
     end;
-
-    var
-        BlobHelper: Codeunit "AMC Int. Blob Helper";
-        MaxAttemptsExceededErr: Label 'Max attempts exceeded.', Locked = true;
-        SendFailedErr: Label 'HTTP send failed.', Locked = true;
 }
