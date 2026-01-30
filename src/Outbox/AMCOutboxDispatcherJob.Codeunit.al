@@ -9,7 +9,7 @@ codeunit 50108 "AMC Outbox Dispatcher Job"
     var
         Outbox: Record "AMC Int. Outbox Entry";
     begin
-        Outbox.SetFilter(Status, '%1|%2|%3', Outbox.Status::New, Outbox.Status::Ready, Outbox.Status::Failed);
+        Outbox.SetFilter(Status, '%1|%2', Outbox.Status::ReadyToProcess, Outbox.Status::Failed);
         Outbox.SetFilter("Next Attempt At", '<=%1', CurrentDateTime());
         if Outbox.FindSet() then
             repeat
@@ -19,109 +19,93 @@ codeunit 50108 "AMC Outbox Dispatcher Job"
 
     local procedure ProcessEntry(var Outbox: Record "AMC Int. Outbox Entry")
     var
-        Setup: Record "AMC Int. Message Setup";
-        TempBlob: Codeunit "Temp Blob";
-        Handler: Interface "AMC IMessageHandler";
-        Transport: Interface "AMC IHttpTransportHandler";
+        IntMessageSetup: Record "AMC Int. Message Setup";
+        MessageHandler: Interface "AMC IMessageHandler";
+        TransportHandler: Interface "AMC IHttpTransportHandler";
         Request: HttpRequestMessage;
         Response: HttpResponseMessage;
-        ResponseBody: InStream;
-        HandlerResponseStream: InStream;
-        InboxResponseStream: InStream;
-        ErrorDetail: Text;
         CreateInbox: Boolean;
-        ErrorText: Text;
-        HandlerErrorText: Text;
-        TransportErrorText: Text;
-        SendOk: Boolean;
         Now: DateTime;
-        SendFailedErr: Label 'HTTP send failed.', Locked = true;
     begin
+        //todo delete the try functions and move the whole code to separate codeunit
+        // how to handle status = failed or canceled, lastError and Error detail - global var? - leave only one field - error message as blob and add action that display its content
+
         Now := CurrentDateTime();
-        if not TryValidateSetupBeforeProcessingEntry(Outbox."Message Type") then begin
-            MarkEntryAsFailed(Outbox, GetLastErrorText, GetLastErrorCallStack); //todo: test GetLastErrorCallStack 
+        IntMessageSetup.get(Outbox."Message Type");
+        if not ShouldProcessEntry(Outbox, Now) then
             exit;
-        end;
+        ValidateSetupBeforeProcessingEntry(Outbox."Message Type");
 
+        MessageHandler := Outbox."Message Type";
+        TransportHandler := IntMessageSetup.Transport;
+        MessageHandler.BuildRequest(Outbox, Request);
+        TransportHandler.Send(Request, IntMessageSetup, Response); //todo move it for now to the message interface
+        ValidateResponse(Response);
 
+        if IntMessageSetup."Process Response" then
+            CreateInboxEntry(Outbox, Response);
 
-        if not TryClaimOutbox(Outbox, Setup, Now) then
-            exit;
-
-        if Outbox."Attempt Count" > Setup."Max Attempts" then begin
-            MarkMaxAttemptsExceeded(Outbox);
-            exit;
-        end;
-
-        Handler := Outbox."Message Type";
-
-        if not TryBuildRequest(Handler, Outbox, Request) then begin
-            ErrorText := GetLastErrorText();
-            EnsureEmptyTempBlob(TempBlob);
-            FailOutbox(Outbox, Setup, ErrorText, ErrorDetail, TempBlob, Now);
-            exit;
-        end;
-
-        Transport := Setup.Transport;
-
-        SendOk := false;
-        TransportErrorText := '';
-        if not TrySend(Transport, Setup, Request, Response, ResponseBody, SendOk) then
-            TransportErrorText := GetLastErrorText();
-
-        if SendOk then
-            EnsureTempBlob(ResponseBody, TempBlob)
-        else
-            EnsureEmptyTempBlob(TempBlob);
-
-        TempBlob.CreateInStream(HandlerResponseStream);
-
-        CreateInbox := false;
-        HandlerErrorText := '';
-        ErrorDetail := '';
-
-        if not TryHandleSendResult(Handler, Outbox, SendOk, Response, HandlerResponseStream, CreateInbox, HandlerErrorText, ErrorDetail) then
-            HandlerErrorText := GetLastErrorText();
-
-        if HandlerErrorText <> '' then
-            ErrorText := HandlerErrorText
-        else
-            if not SendOk then
-                if TransportErrorText <> '' then
-                    ErrorText := TransportErrorText
-                else
-                    ErrorText := SendFailedErr;
-
-        if ErrorText <> '' then begin
-            FailOutbox(Outbox, Setup, ErrorText, ErrorDetail, TempBlob, Now);
-            exit;
-        end;
-
-        if CreateInbox then begin
-            TempBlob.CreateInStream(InboxResponseStream);
-            CreateInboxEntry(Outbox, InboxResponseStream, Now);
-            Outbox.Status := Outbox.Status::WaitingResponse;
-        end else
-            Outbox.Status := Outbox.Status::Sent;
-
+        Outbox.Status := Outbox.Status::Sent;
         Outbox."Sent At" := Now;
-        ClearErrorInfo(Outbox);
+        Outbox."Last Error" := '';
         Outbox.Modify(true);
     end;
 
-    [TryFunction]
-    local procedure TryValidateSetupBeforeProcessingEntry(MessageType: Enum "AMC Int. Message Type")
+    local procedure ShouldProcessEntry(Outbox: Record "AMC Int. Outbox Entry"; TryToProcessOn: DateTime): Boolean
+    var
+        IsHandled: Boolean;
+        ShouldProcess: Boolean;
     begin
-        ValidateSetupBeforeProcessingEntry(MessageType);
+        ShouldProcess := true;
+        OnBeforeShouldProcessEntry(Outbox, TryToProcessOn, ShouldProcess, IsHandled);
+        DoShouldProcessEntry(Outbox, TryToProcessOn, ShouldProcess, IsHandled);
+        OnAfterShouldProcessEntry(Outbox, TryToProcessOn, ShouldProcess, IsHandled);
+        exit(ShouldProcess);
+    end;
+
+    local procedure DoShouldProcessEntry(Outbox: Record "AMC Int. Outbox Entry"; TryToProcessOn: DateTime; var ShouldProcess: Boolean; IsHandled: Boolean)
+    var
+        IntMessageSetup: Record "AMC Int. Message Setup";
+    begin
+        if IsHandled or (not ShouldProcess) then
+            exit;
+
+        if not (Outbox.Status in [Outbox.Status::ReadyToProcess, Outbox.Status::Failed]) then begin
+            ShouldProcess := false;
+            exit;
+        end;
+
+        if Outbox."Next Attempt At" < TryToProcessOn then begin
+            ShouldProcess := false;
+            exit;
+        end;
+
+        IntMessageSetup.Get(Outbox."Message Type");
+        if Outbox."Attempt Count" > IntMessageSetup."Max Attempts" then begin
+            ShouldProcess := false;
+            exit;
+        end;
     end;
 
     local procedure ValidateSetupBeforeProcessingEntry(MessageType: Enum "AMC Int. Message Type"): Boolean
+    var
+        IsHandled: Boolean;
+    begin
+        OnBeforeValidateSetupBeforeProcessingEntry(MessageType, IsHandled);
+        DoValidateSetupBeforeProcessingEntry(MessageType, IsHandled);
+        OnAfterValidateSetupBeforeProcessingEntry(MessageType, IsHandled);
+    end;
+
+    local procedure DoValidateSetupBeforeProcessingEntry(MessageType: Enum "AMC Int. Message Type"; IsHandled: Boolean)
     var
         IntMessageSetup: Record "AMC Int. Message Setup";
         EndpointUrlMissingErr: Label '%1 with %2 must have %3 configured', Comment = '%1 = Int. Message Setup table caption, %2 = Message Type, %3 = Endpoint URL field caption';
         IntMessageSetupMissingErr: Label '%1 is required with message type %2.', Comment = '%1 = Int. Message Setup table caption, %2 = Message Type';
         IntMessageSetupIsNotEnabledErr: Label '%1 with %2 must have %3 equal true.', Comment = '%1 = Int. Message Setup table caption, %2 = Message Type, %3 = Enabled field caption';
     begin
+        if IsHandled then
+            exit;
+
         if not IntMessageSetup.Get(MessageType) then
             Error(IntMessageSetupMissingErr, IntMessageSetup.TableCaption, Format(MessageType));
 
@@ -132,49 +116,52 @@ codeunit 50108 "AMC Outbox Dispatcher Job"
             Error(EndpointUrlMissingErr, IntMessageSetup.TableCaption, Format(MessageType), IntMessageSetup.FieldCaption(IntMessageSetup."Endpoint URL"));
     end;
 
+    procedure ValidateResponse(Response: HttpResponseMessage)
+    var
+        ResponseBody: Text;
+        HttpStatusErr: Label 'HTTP request failed with status %1. Full response: \ %2', Comment = '%1 = HTTP status code, %2 = Response body';
+    begin
+        if not Response.IsSuccessStatusCode then begin
+            Response.Content.ReadAs(ResponseBody);
+            Error(HttpStatusErr, Format(Response.HttpStatusCode), ResponseBody);
+        end;
+    end;
+
+    local procedure CreateInboxEntry(Outbox: Record "AMC Int. Outbox Entry"; Response: HttpResponseMessage)
+    var
+        Inbox: Record "AMC Int. Inbox Entry";
+        ResponseBody: Text;
+        ResponseOutStream: OutStream;
+    begin
+        Inbox.Init();
+        Inbox."Outbox Entry No." := Outbox."Entry No.";
+        Inbox."Message Type" := Outbox."Message Type";
+        Inbox.Status := Inbox.Status::ReadyToProcess;
+        Inbox."Correlation ID" := Outbox."Correlation ID"; //todo why? Outbox Entry No. is the relation
+        Inbox."Received At" := CurrentDateTime;
+        Inbox."Next Attempt At" := Inbox."Received At";
+        Inbox."Attempt Count" := 0;
+
+        Response.Content.ReadAs(ResponseBody);
+        Inbox."Response Payload".CreateOutStream(ResponseOutStream);
+        ResponseOutStream.Write(ResponseBody);
+
+        Inbox.Insert(true);
+    end;
+
+
     local procedure MarkEntryAsFailed(var Outbox: Record "AMC Int. Outbox Entry"; LastError: Text; ErrorDetails: Text)
     var
         BlobHelper: Codeunit "AMC Int. Blob Helper";
         OutboxRecRef: RecordRef;
     begin
+        // todo: should be calles somewhere
         Outbox.Status := Outbox.Status::Failed;
         Outbox."Last Error" := CopyStr(LastError, 1, MaxStrLen(Outbox."Last Error"));
         OutboxRecRef.GetTable(Outbox);
         BlobHelper.WriteTextToBlob(OutboxRecRef, Outbox.FieldNo(Outbox."Error Details"), ErrorDetails);
     end;
 
-    local procedure CreateInboxEntry(Outbox: Record "AMC Int. Outbox Entry"; var ResponseStream: InStream; Now: DateTime)
-    var
-        Inbox: Record "AMC Int. Inbox Entry";
-        ResponseOutStream: OutStream;
-    begin
-        Inbox.Init();
-        Inbox."Outbox Entry No." := Outbox."Entry No.";
-        Inbox."Message Type" := Outbox."Message Type";
-        Inbox.Status := Inbox.Status::New;
-        Inbox."Correlation ID" := Outbox."Correlation ID";
-        Inbox."Received At" := Now;
-        Inbox."Next Attempt At" := Now;
-        Inbox."Attempt Count" := 0;
-        Inbox."Response Payload".CreateOutStream(ResponseOutStream);
-        CopyStream(ResponseOutStream, ResponseStream);
-        Inbox.Insert(true);
-    end;
-
-    local procedure ClearErrorInfo(var Outbox: Record "AMC Int. Outbox Entry")
-    begin
-        Outbox."Last Error" := '';
-        Clear(Outbox."Error Details");
-    end;
-
-    local procedure MarkMaxAttemptsExceeded(var Outbox: Record "AMC Int. Outbox Entry")
-    var
-        MaxAttemptsExceededErr: Label 'Max attempts exceeded.', Locked = true;
-    begin
-        Outbox.Status := Outbox.Status::Failed;
-        Outbox."Last Error" := MaxAttemptsExceededErr;
-        Outbox.Modify(true);
-    end;
 
     local procedure FailOutbox(var Outbox: Record "AMC Int. Outbox Entry"; Setup: Record "AMC Int. Message Setup"; ErrorText: Text; ErrorDetail: Text; var TempBlob: Codeunit "Temp Blob"; Now: DateTime)
     var
@@ -202,39 +189,11 @@ codeunit 50108 "AMC Outbox Dispatcher Job"
         exit(Now + Delay);
     end;
 
-    [TryFunction]
-    local procedure TryBuildRequest(Handler: Interface "AMC IMessageHandler"; Outbox: Record "AMC Int. Outbox Entry"; var Request: HttpRequestMessage)
-    begin
-        Handler.BuildRequest(Outbox, Request);
-    end;
-
-    [TryFunction]
-    local procedure TryHandleSendResult(Handler: Interface "AMC IMessageHandler"; Outbox: Record "AMC Int. Outbox Entry"; SendOk: Boolean; Response: HttpResponseMessage; ResponseBody: InStream; var CreateInbox: Boolean; var ErrorText: Text; var ErrorDetail: Text)
-    begin
-        Handler.HandleSendResult(Outbox, SendOk, Response, ResponseBody, CreateInbox, ErrorText, ErrorDetail);
-    end;
-
-    [TryFunction]
-    local procedure TrySend(Transport: Interface "AMC IHttpTransportHandler"; Setup: Record "AMC Int. Message Setup"; Request: HttpRequestMessage; var Response: HttpResponseMessage; var ResponseBody: InStream; var SendOk: Boolean)
-    begin
-        SendOk := Transport.Send(Request, Setup, Response, ResponseBody);
-    end;
-
-    [TryFunction]
     local procedure TryClaimOutbox(var Outbox: Record "AMC Int. Outbox Entry"; Setup: Record "AMC Int. Message Setup"; Now: DateTime): Boolean
     var
         CurrentOutbox: Record "AMC Int. Outbox Entry";
     begin
-        if not CurrentOutbox.Get(Outbox."Entry No.") then
-            exit(false);
-
-        if not IsEligible(CurrentOutbox, Now) then
-            exit(false);
-
-        if CurrentOutbox."Attempt Count" > Setup."Max Attempts" then
-            exit(false);
-
-        CurrentOutbox.Status := CurrentOutbox.Status::Sending;
+        // todo set these somewhere
         CurrentOutbox."Attempt Count" := CurrentOutbox."Attempt Count" + 1;
         CurrentOutbox."Last Attempt At" := Now;
         CurrentOutbox.Modify(true);
@@ -243,39 +202,23 @@ codeunit 50108 "AMC Outbox Dispatcher Job"
         exit(true);
     end;
 
-    local procedure IsEligible(Outbox: Record "AMC Int. Outbox Entry"; Now: DateTime): Boolean
+    [IntegrationEvent(false, false)]
+    local procedure OnBeforeValidateSetupBeforeProcessingEntry(MessageType: Enum "AMC Int. Message Type"; var IsHandled: Boolean)
     begin
-        if Outbox.Status in [Outbox.Status::New, Outbox.Status::Ready, Outbox.Status::Failed] then
-            exit(Outbox."Next Attempt At" <= Now);
-
-        exit(false);
     end;
 
-    local procedure EnsureTempBlob(var ResponseBody: InStream; var TempBlob: Codeunit "Temp Blob")
-    var
-        TempOutStream: OutStream;
+    [IntegrationEvent(false, false)]
+    local procedure OnAfterValidateSetupBeforeProcessingEntry(MessageType: Enum "AMC Int. Message Type"; var IsHandled: Boolean)
     begin
-        if TryCopyResponse(ResponseBody, TempBlob) then
-            exit;
-
-        TempBlob.CreateOutStream(TempOutStream);
-        TempOutStream.WriteText('');
     end;
 
-    local procedure EnsureEmptyTempBlob(var TempBlob: Codeunit "Temp Blob")
-    var
-        TempOutStream: OutStream;
+    [IntegrationEvent(false, false)]
+    local procedure OnBeforeShouldProcessEntry(Outbox: Record "AMC Int. Outbox Entry"; TryToProcessOn: DateTime; var ShouldProcess: Boolean; var IsHandled: Boolean)
     begin
-        TempBlob.CreateOutStream(TempOutStream);
-        TempOutStream.WriteText('');
     end;
 
-    [TryFunction]
-    local procedure TryCopyResponse(var ResponseBody: InStream; var TempBlob: Codeunit "Temp Blob")
-    var
-        TempOutStream: OutStream;
+    [IntegrationEvent(false, false)]
+    local procedure OnAfterShouldProcessEntry(Outbox: Record "AMC Int. Outbox Entry"; TryToProcessOn: DateTime; var ShouldProcess: Boolean; var IsHandled: Boolean)
     begin
-        TempBlob.CreateOutStream(TempOutStream);
-        CopyStream(TempOutStream, ResponseBody);
     end;
 }

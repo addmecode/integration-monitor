@@ -8,7 +8,7 @@ codeunit 50107 "AMC Http Transport Default" implements "AMC IHttpTransportHandle
     /// <param name="Response">HTTP response message.</param>
     /// <param name="ResponseBody">Response body stream, if available.</param>
     /// <returns>True if the request was sent, otherwise false.</returns>
-    procedure Send(Request: HttpRequestMessage; Setup: Record "AMC Int. Message Setup"; var Response: HttpResponseMessage; var ResponseBody: InStream): Boolean
+    procedure Send(Request: HttpRequestMessage; Setup: Record "AMC Int. Message Setup"; var Response: HttpResponseMessage)
     var
         Client: HttpClient;
     begin
@@ -18,11 +18,7 @@ codeunit 50107 "AMC Http Transport Default" implements "AMC IHttpTransportHandle
         if Setup."Auth Profile Code" <> '' then
             ApplyAuth(Client, Request, Setup."Auth Profile Code");
 
-        if not Client.Send(Request, Response) then
-            exit(false);
-
-        TryReadResponseBody(Response, ResponseBody);
-        exit(true);
+        Client.Send(Request, Response);
     end;
 
     local procedure ApplyAuth(var Client: HttpClient; var Request: HttpRequestMessage; AuthProfile: Code[20])
