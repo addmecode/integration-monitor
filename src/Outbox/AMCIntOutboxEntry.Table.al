@@ -1,4 +1,4 @@
-table 50100 "AMC Int. Outbox Entry"
+table 50107 "AMC Int. Outbox Entry"
 {
     DataClassification = CustomerContent;
     Caption = 'Integration Outbox Entry';

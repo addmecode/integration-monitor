@@ -1,4 +1,4 @@
-table 50101 "AMC Int. Inbox Entry"
+table 50106 "AMC Int. Inbox Entry"
 {
   DataClassification = CustomerContent;
 

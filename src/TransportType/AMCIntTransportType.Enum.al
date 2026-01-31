@@ -1,4 +1,4 @@
-enum 50105 "AMC Int. Transport Type" implements "AMC IHttpTransportHandler"
+enum 50104 "AMC Int. Transport Type" implements "AMC IHttpTransportHandler"
 {
     Extensible = true;
 

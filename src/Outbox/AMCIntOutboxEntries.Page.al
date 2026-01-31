@@ -1,4 +1,4 @@
-page 50112 "AMC Int. Outbox Entries"
+page 50113 "AMC Int. Outbox Entries"
 {
     PageType = List;
     SourceTable = "AMC Int. Outbox Entry";

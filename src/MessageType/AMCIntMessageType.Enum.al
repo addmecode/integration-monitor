@@ -1,4 +1,4 @@
-enum 50104 "AMC Int. Message Type" implements "AMC IMessageHandler"
+enum 50103 "AMC Int. Message Type" implements "AMC IMessageHandler"
 {
     Extensible = true;
 

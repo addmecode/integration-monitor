@@ -1,4 +1,4 @@
-enum 50103 "AMC Int. Queue Status"
+enum 50102 "AMC Int. Queue Status"
 {
     Extensible = false;
 

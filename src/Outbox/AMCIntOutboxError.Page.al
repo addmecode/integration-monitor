@@ -1,4 +1,4 @@
-page 50117 "AMC Int. Outbox Error"
+page 50114 "AMC Int. Outbox Error"
 {
     PageType = Card;
     SourceTable = "AMC Int. Outbox Entry";

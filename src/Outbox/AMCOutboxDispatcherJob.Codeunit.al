@@ -1,4 +1,4 @@
-codeunit 50108 "AMC Outbox Dispatcher Job"
+codeunit 50111 "AMC Outbox Dispatcher Job"
 {
     trigger OnRun()
     begin

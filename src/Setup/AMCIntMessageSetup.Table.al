@@ -1,4 +1,4 @@
-table 50102 "AMC Int. Message Setup"
+table 50108 "AMC Int. Message Setup"
 {
     DataClassification = SystemMetadata;
 
