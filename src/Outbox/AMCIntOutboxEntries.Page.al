@@ -36,14 +36,6 @@ page 50112 "AMC Int. Outbox Entries"
                 {
                     ApplicationArea = All;
                 }
-                field("Correlation ID"; Rec."Correlation ID")
-                {
-                    ApplicationArea = All;
-                }
-                field("Last Error"; Rec."Last Error")
-                {
-                    ApplicationArea = All;
-                }
             }
         }
     }

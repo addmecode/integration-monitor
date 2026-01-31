@@ -1,50 +1,50 @@
 page 50117 "AMC Int. Outbox Error"
 {
-  PageType = Card;
-  SourceTable = "AMC Int. Outbox Entry";
-  ApplicationArea = All;
-  UsageCategory = None;
-  Caption = 'Outbox Error Details';
-  Editable = false;
-  InsertAllowed = false;
-  DeleteAllowed = false;
+    PageType = Card;
+    SourceTable = "AMC Int. Outbox Entry";
+    ApplicationArea = All;
+    UsageCategory = None;
+    Caption = 'Outbox Error Details';
+    Editable = false;
+    InsertAllowed = false;
+    DeleteAllowed = false;
 
-  layout
-  {
-    area(content)
+    layout
     {
-      group(General)
-      {
-        field(ErrorDetailsText; ErrorDetailsText)
+        area(content)
         {
-          ApplicationArea = All;
-          Caption = 'Error Details';
-          MultiLine = true;
+            group(General)
+            {
+                field(ErrorDetailsText; ErrorDetailsText)
+                {
+                    ApplicationArea = All;
+                    Caption = 'Error Details';
+                    MultiLine = true;
+                }
+            }
         }
-      }
     }
-  }
 
-  trigger OnOpenPage()
-  begin
-    LoadDetails();
-  end;
+    trigger OnOpenPage()
+    begin
+        LoadDetails();
+    end;
 
-  trigger OnAfterGetRecord()
-  begin
-    LoadDetails();
-  end;
+    trigger OnAfterGetRecord()
+    begin
+        LoadDetails();
+    end;
 
-  local procedure LoadDetails()
-  var
-    OutboxRef: RecordRef;
-  begin
-    OutboxRef.GetTable(Rec);
-    ErrorDetailsText := BlobHelper.ReadBlobAsText(OutboxRef, Rec.FieldNo("Error Details"));
-  end;
+    local procedure LoadDetails()
+    var
+        OutboxRef: RecordRef;
+    begin
+        OutboxRef.GetTable(Rec);
+        ErrorDetailsText := BlobHelper.ReadBlobAsText(OutboxRef, Rec.FieldNo("Error Message"));
+    end;
 
-  var
-    BlobHelper: Codeunit "AMC Int. Blob Helper";
-    ErrorDetailsText: Text;
+    var
+        BlobHelper: Codeunit "AMC Int. Blob Helper";
+        ErrorDetailsText: Text;
 }
 
