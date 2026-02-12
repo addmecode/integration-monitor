@@ -1,0 +1,20 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/AL-Go-Actions/v8.2/.Modules/settings.schema.json",
+  "country": "us",
+  "appSourceCopMandatoryAffixes": [
+    "AMC"
+  ],
+  "appFolders": [],
+  "testFolders": [],
+  "bcptTestFolders": [],
+  "enableCodeCop": true,
+  "enableUICop": true,
+  "customCodeCops": [
+    "${analyzerFolder}BusinessCentral.LinterCop.dll"
+  ],
+  "rulesetFile": ".AL-Go/algo.ruleset.json",
+  "enableExternalRulesets": true,
+  "alDoc": {
+    "continuousDeployment": true
+  }
+}
