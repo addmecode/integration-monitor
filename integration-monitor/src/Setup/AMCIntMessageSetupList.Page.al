@@ -1,10 +1,15 @@
-page 50116 "AMC Int. Message Setup"
+namespace Addmecode.IntegrationMonitor.Setup;
+
+page 50116 "AMC Int. Message Setup List"
 {
     PageType = List;
     SourceTable = "AMC Int. Message Setup";
     ApplicationArea = All;
     UsageCategory = Administration;
     Caption = 'Integration Message Setup';
+    Editable = false;
+    CardPageId = "AMC Int. Message Setup Card";
+
 
     layout
     {
@@ -52,4 +57,3 @@ page 50116 "AMC Int. Message Setup"
         }
     }
 }
-
