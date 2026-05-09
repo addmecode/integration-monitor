@@ -64,7 +64,7 @@ codeunit 50116 "AMC Outbox Processor"
             exit(false);
     end;
 
-    local procedure ValidateSetupBeforeProcessingEntry(IntMessageSetup: Record "AMC Int. Message Setup"): Boolean
+    local procedure ValidateSetupBeforeProcessingEntry(IntMessageSetup: Record "AMC Int. Message Setup")
     var
         IsHandled: Boolean;
     begin
@@ -75,7 +75,6 @@ codeunit 50116 "AMC Outbox Processor"
 
     local procedure DoValidateSetupBeforeProcessingEntry(IntMessageSetup: Record "AMC Int. Message Setup"; IsHandled: Boolean)
     var
-        EndpointUrlMissingErr: Label '%1 with %2 must have %3 configured', Comment = '%1 = Int. Message Setup table caption, %2 = Message Type, %3 = Endpoint URL field caption';
         IntMessageSetupIsNotEnabledErr: Label '%1 with %2 must have %3 equal true.', Comment = '%1 = Int. Message Setup table caption, %2 = Message Type, %3 = Enabled field caption';
     begin
         if IsHandled then
@@ -83,9 +82,6 @@ codeunit 50116 "AMC Outbox Processor"
 
         if not IntMessageSetup.Enabled then
             Error(IntMessageSetupIsNotEnabledErr, IntMessageSetup.TableCaption, Format(IntMessageSetup."Message Type"), IntMessageSetup.FieldCaption(IntMessageSetup.Enabled));
-
-        if IntMessageSetup."Endpoint URL" = '' then
-            Error(EndpointUrlMissingErr, IntMessageSetup.TableCaption, Format(IntMessageSetup."Message Type"), IntMessageSetup.FieldCaption(IntMessageSetup."Endpoint URL"));
     end;
 
     procedure ValidateResponse(Response: HttpResponseMessage)
