@@ -1,4 +1,4 @@
-codeunit 50112 "AMC Outbox Processor"
+codeunit 50116 "AMC Outbox Processor"
 {
     TableNo = "AMC Int. Outbox Entry";
 

@@ -1,4 +1,4 @@
-codeunit 50110 "AMC Message Handler Default" implements "AMC IMessageHandler"
+codeunit 50114 "AMC Message Handler Default" implements "AMC IMessageHandler"
 {
     /// <summary>
     /// Builds an outbound HTTP request based on the outbox entry and setup.
