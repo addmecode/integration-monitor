@@ -13,16 +13,25 @@ table 50108 "AMC Int. Message Setup"
         {
             DataClassification = SystemMetadata;
             ToolTip = 'Specifies whether entries for this message type can be processed.';
+
+            trigger OnValidate()
+            begin
+                if Enabled then
+                    this.TestRequiredFieldsForEnabled();
+            end;
         }
         field(3; "Max Attempts"; Integer)
         {
             DataClassification = SystemMetadata;
             ToolTip = 'Specifies the maximum number of processing attempts before the entry stops retrying.';
+            InitValue = 1;
+            MinValue = 1;
         }
         field(4; "Base Retry Delay (sec)"; Integer)
         {
             DataClassification = SystemMetadata;
             ToolTip = 'Specifies the retry delay in seconds after a failed processing attempt.';
+            MinValue = 0;
         }
         field(5; "Endpoint URL"; Text[2048])
         {
@@ -34,6 +43,8 @@ table 50108 "AMC Int. Message Setup"
         {
             DataClassification = SystemMetadata;
             ToolTip = 'Specifies the HTTP request timeout in milliseconds. Leave blank or zero to use the default timeout.';
+            InitValue = 10000;
+            MinValue = 1;
         }
         // todo: auth profile table is missing
         field(7; "Auth Profile Code"; Code[20])
@@ -60,4 +71,23 @@ table 50108 "AMC Int. Message Setup"
             Clustered = true;
         }
     }
+
+    local procedure TestRequiredFieldsForEnabled()
+    begin
+        Rec.TestField("Endpoint URL");
+        this.ValidateEndpointURL();
+        Rec.TestField("Timeout (ms)");
+    end;
+
+    local procedure ValidateEndpointURL()
+    var
+        WebRequestHelper: Codeunit "Web Request Helper";
+        InvalidEndpointUrlErr: Label 'The URL in %1 field is not valid', Comment = '%1 is field name';
+    begin
+        if Rec."Endpoint URL" = '' then
+            exit;
+        //todo: this validation should be called from message type codeunit, because there can be http or https
+        if not WebRequestHelper.IsHttpUrl(Rec."Endpoint URL") then
+            Error(InvalidEndpointUrlErr, Rec.FieldCaption("Endpoint URL"));
+    end;
 }
