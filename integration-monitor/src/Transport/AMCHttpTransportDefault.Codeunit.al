@@ -1,5 +1,15 @@
 codeunit 50117 "AMC Http Transport Default" implements "AMC IHttpTransportHandler"
 {
+    procedure ValidateSetup(Setup: Record "AMC Int. Message Setup")
+    var
+        WebRequestHelper: Codeunit "Web Request Helper";
+        InvalidEndpointUrlErr: Label 'The URL in %1 field is not valid.', Comment = '%1 is field name';
+    begin
+        Setup.TestField("Endpoint URL");
+        if not WebRequestHelper.IsHttpUrl(Setup."Endpoint URL") then
+            Error(InvalidEndpointUrlErr, Setup.FieldCaption("Endpoint URL"));
+    end;
+
     /// <summary>
     /// Sends an HTTP request and returns the response and response body.
     /// </summary>
@@ -38,4 +48,3 @@ codeunit 50117 "AMC Http Transport Default" implements "AMC IHttpTransportHandle
     end;
 
 }
-

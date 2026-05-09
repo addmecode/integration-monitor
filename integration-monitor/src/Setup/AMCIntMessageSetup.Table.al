@@ -73,21 +73,10 @@ table 50108 "AMC Int. Message Setup"
     }
 
     local procedure TestRequiredFieldsForEnabled()
-    begin
-        Rec.TestField("Endpoint URL");
-        this.ValidateEndpointURL();
-        Rec.TestField("Timeout (ms)");
-    end;
-
-    local procedure ValidateEndpointURL()
     var
-        WebRequestHelper: Codeunit "Web Request Helper";
-        InvalidEndpointUrlErr: Label 'The URL in %1 field is not valid', Comment = '%1 is field name';
+        TransportHandler: Interface "AMC IHttpTransportHandler";
     begin
-        if Rec."Endpoint URL" = '' then
-            exit;
-        //todo: this validation should be called from message type codeunit, because there can be http or https
-        if not WebRequestHelper.IsHttpUrl(Rec."Endpoint URL") then
-            Error(InvalidEndpointUrlErr, Rec.FieldCaption("Endpoint URL"));
+        TransportHandler := Rec.Transport;
+        TransportHandler.ValidateSetup(Rec);
     end;
 }
