@@ -1,4 +1,5 @@
 namespace Addmecode.IntegrationMonitor.Outbox;
+using Addmecode.IntegrationMonitor.Setup;
 
 table 50107 "AMC Int. Outbox Entry"
 {
@@ -77,7 +78,7 @@ table 50107 "AMC Int. Outbox Entry"
         {
         }
     }
-
+    //todo: move logic of all these functions to separate codeunit
     trigger OnInsert()
     begin
         if "Created At" = 0DT then
@@ -85,5 +86,24 @@ table 50107 "AMC Int. Outbox Entry"
 
         if "Next Attempt At" = 0DT then
             "Next Attempt At" := CurrentDateTime();
+    end;
+
+    procedure AddError(ErrorText: Text)
+    var
+        LastErrorResponseOutStream: OutStream;
+    begin
+        "Last Error Response".CreateOutStream(LastErrorResponseOutStream);
+        LastErrorResponseOutStream.Write(ErrorText);
+    end;
+
+    procedure GetNextAttemptAt(): DateTime
+    var
+        IntMessageSetup: Record "AMC Int. Message Setup";
+        Delay: Duration;
+    begin
+        if not IntMessageSetup.Get(Rec."Message Type") then
+            exit(0DT);
+        Delay := IntMessageSetup."Base Retry Delay (sec)" * 1000;
+        exit(Rec."Last Attempt At" + Delay);
     end;
 }

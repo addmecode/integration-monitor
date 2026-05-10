@@ -7,6 +7,9 @@ page 50113 "AMC Int. Outbox Entries"
     ApplicationArea = All;
     UsageCategory = Lists;
     Caption = 'Integration Outbox Entries';
+    InsertAllowed = false;
+    DeleteAllowed = false;
+    Editable = false;
 
     layout
     {
