@@ -43,7 +43,7 @@ codeunit 50115 "AMC Outbox Dispatcher Job"
 
         OutboxRecRef.GetTable(Outbox);
         // todo: instead of using WriteTextToBlob, create AddError function to outbox table 
-        BlobHelper.WriteTextToBlob(OutboxRecRef, Outbox.FieldNo(Outbox."Error Message"), StrSubstNo(OutboxErrorMessageLbl, LastErrorText, LastErrorCallStack));
+        BlobHelper.WriteTextToBlob(OutboxRecRef, Outbox.FieldNo(Outbox."Last Error Response"), StrSubstNo(OutboxErrorMessageLbl, LastErrorText, LastErrorCallStack));
     end;
 
     local procedure GetNextAttemptAt(IntMessageSetup: Record "AMC Int. Message Setup"; LastAttemptAt: DateTime): DateTime

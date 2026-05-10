@@ -1,4 +1,6 @@
-enum 50102 "AMC Int. Queue Status"
+namespace Addmecode.IntegrationMonitor.Outbox;
+
+enum 50102 "AMC Int. Outbox Status"
 {
     Extensible = false;
 
@@ -6,15 +8,19 @@ enum 50102 "AMC Int. Queue Status"
     {
         Caption = 'Ready To Process';
     }
-    value(1; Sent)
+    value(1; Sending)
+    {
+        Caption = 'Sending';
+    }
+    value(2; Sent)
     {
         Caption = 'Sent';
     }
-    value(2; Failed)
+    value(3; Failed)
     {
         Caption = 'Failed';
     }
-    value(3; Cancelled)
+    value(4; Cancelled)
     {
         Caption = 'Cancelled';
     }

@@ -64,6 +64,12 @@ Translations/
 
 ### Make Outbox Work
 
+DOKONCZYLEM LOGIKE W SETUPIE
+TERAZ MUSZE SPRAWDZIC JAK DZIALA OUTBOX I PO KOLEI DORABIAC TAK ZEBY DALO SIE COKOLWIEK WYSLAC
+ZROBIC DEMO APP, KTORE COS WYSYLA Z UZYCIEM TEGO MECHANIZMU
+  - tlumaczenie payment terms code
+  - pobieranie dancych o firmie na podstawie nip
+
 #### What Is Already Done
 
 - `AMC Int. Outbox Entry` stores outbound queue entries with message type, status, timestamps, attempt count, request payload, error message, and source record reference.

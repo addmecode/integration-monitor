@@ -1,10 +1,12 @@
+namespace Addmecode.IntegrationMonitor.Outbox;
+
 page 50113 "AMC Int. Outbox Entries"
 {
     PageType = List;
     SourceTable = "AMC Int. Outbox Entry";
     ApplicationArea = All;
     UsageCategory = Lists;
-    Caption = 'Outbox Entries';
+    Caption = 'Integration Outbox Entries';
 
     layout
     {
@@ -32,6 +34,14 @@ page 50113 "AMC Int. Outbox Entries"
                 {
                     ApplicationArea = All;
                 }
+                field("Last Attempt At"; Rec."Last Attempt At")
+                {
+                    ApplicationArea = All;
+                }
+                field("Sent At"; Rec."Sent At")
+                {
+                    ApplicationArea = All;
+                }
                 field("Attempt Count"; Rec."Attempt Count")
                 {
                     ApplicationArea = All;
@@ -44,19 +54,17 @@ page 50113 "AMC Int. Outbox Entries"
     {
         area(processing)
         {
-            action(Retry)
+            action("Reset")
             {
                 ApplicationArea = All;
-                Caption = 'Retry';
-                Image = Repeat;
+                Caption = 'Reset';
+                Image = Redo;
+                ToolTip = 'Reset entry the selected integration outbox entry.';
                 trigger OnAction()
+                var
+                    OutboxProcessor: Codeunit "AMC Outbox Processor";
                 begin
-                    if Rec.Status = Rec.Status::Cancelled then
-                        exit;
-
-                    Rec.Status := Rec.Status::ReadyToProcess;
-                    Rec."Next Attempt At" := CurrentDateTime();
-                    Rec.Modify(true);
+                    OutboxProcessor.ResetEntry(Rec);
                 end;
             }
             action(Cancel)
@@ -64,10 +72,12 @@ page 50113 "AMC Int. Outbox Entries"
                 ApplicationArea = All;
                 Caption = 'Cancel';
                 Image = Cancel;
+                ToolTip = 'Cancels processing for the selected integration outbox entry.';
                 trigger OnAction()
+                var
+                    OutboxProcessor: Codeunit "AMC Outbox Processor";
                 begin
-                    Rec.Status := Rec.Status::Cancelled;
-                    Rec.Modify(true);
+                    OutboxProcessor.CancelEntry(Rec);
                 end;
             }
             action(ViewPayload)
@@ -75,11 +85,12 @@ page 50113 "AMC Int. Outbox Entries"
                 ApplicationArea = All;
                 Caption = 'View Payload';
                 Image = View;
+                ToolTip = 'Opens the request payload for the selected integration outbox entry in read-only mode.';
                 trigger OnAction()
+                var
+                    OutboxProcessor: Codeunit "AMC Outbox Processor";
                 begin
-                    PayloadPage.SetRecord(Rec);
-                    PayloadPage.SetReadOnly(true);
-                    PayloadPage.RunModal();
+                    OutboxProcessor.ViewPayload(Rec);
                 end;
             }
             action(EditPayload)
@@ -87,11 +98,12 @@ page 50113 "AMC Int. Outbox Entries"
                 ApplicationArea = All;
                 Caption = 'Edit Payload';
                 Image = Edit;
+                ToolTip = 'Opens the request payload for the selected integration outbox entry for editing.';
                 trigger OnAction()
+                var
+                    OutboxProcessor: Codeunit "AMC Outbox Processor";
                 begin
-                    PayloadPage.SetRecord(Rec);
-                    PayloadPage.SetReadOnly(false);
-                    PayloadPage.RunModal();
+                    OutboxProcessor.EditPayload(Rec);
                 end;
             }
             action(ViewErrorDetails)
@@ -99,17 +111,14 @@ page 50113 "AMC Int. Outbox Entries"
                 ApplicationArea = All;
                 Caption = 'View Error Details';
                 Image = Error;
+                ToolTip = 'Opens the error details for the selected integration outbox entry.';
                 trigger OnAction()
+                var
+                    OutboxProcessor: Codeunit "AMC Outbox Processor";
                 begin
-                    ErrorPage.SetRecord(Rec);
-                    ErrorPage.RunModal();
+                    OutboxProcessor.ViewErrorDetails(Rec);
                 end;
             }
         }
     }
-
-    var
-        PayloadPage: Page "AMC Int. Outbox Payload";
-        ErrorPage: Page "AMC Int. Outbox Error";
 }
-
