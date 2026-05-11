@@ -64,10 +64,8 @@ page 50113 "AMC Int. Outbox Entries"
                 Image = Redo;
                 ToolTip = 'Reset entry the selected integration outbox entry.';
                 trigger OnAction()
-                var
-                    OutboxProcessor: Codeunit "AMC Outbox Processor";
                 begin
-                    OutboxProcessor.ResetEntry(Rec);
+                    Rec.ResetEntry();
                 end;
             }
             action(Cancel)
@@ -77,10 +75,8 @@ page 50113 "AMC Int. Outbox Entries"
                 Image = Cancel;
                 ToolTip = 'Cancels processing for the selected integration outbox entry.';
                 trigger OnAction()
-                var
-                    OutboxProcessor: Codeunit "AMC Outbox Processor";
                 begin
-                    OutboxProcessor.CancelEntry(Rec);
+                    Rec.CancelEntry();
                 end;
             }
             action(ViewPayload)
@@ -90,10 +86,8 @@ page 50113 "AMC Int. Outbox Entries"
                 Image = View;
                 ToolTip = 'Opens the request payload for the selected integration outbox entry in read-only mode.';
                 trigger OnAction()
-                var
-                    OutboxProcessor: Codeunit "AMC Outbox Processor";
                 begin
-                    OutboxProcessor.ViewPayload(Rec);
+                    Rec.ViewPayload();
                 end;
             }
             action(EditPayload)
@@ -103,10 +97,8 @@ page 50113 "AMC Int. Outbox Entries"
                 Image = Edit;
                 ToolTip = 'Opens the request payload for the selected integration outbox entry for editing.';
                 trigger OnAction()
-                var
-                    OutboxProcessor: Codeunit "AMC Outbox Processor";
                 begin
-                    OutboxProcessor.EditPayload(Rec);
+                    Rec.EditPayload();
                 end;
             }
             action(ViewErrorDetails)
@@ -116,10 +108,8 @@ page 50113 "AMC Int. Outbox Entries"
                 Image = Error;
                 ToolTip = 'Opens the error details for the selected integration outbox entry.';
                 trigger OnAction()
-                var
-                    OutboxProcessor: Codeunit "AMC Outbox Processor";
                 begin
-                    OutboxProcessor.ViewErrorDetails(Rec);
+                    Rec.ViewErrorDetails();
                 end;
             }
         }

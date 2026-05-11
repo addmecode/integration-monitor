@@ -1,10 +1,13 @@
+namespace Addmecode.IntegrationMonitor.Outbox;
+using Addmecode.IntegrationMonitor.Setup;
+
 codeunit 50116 "AMC Outbox Processor"
 {
     TableNo = "AMC Int. Outbox Entry";
 
     trigger OnRun()
     begin
-        ProcessEntry(Rec);
+        this.ProcessEntry(Rec);
     end;
 
     procedure ResetEntry(var Outbox: Record "AMC Int. Outbox Entry")

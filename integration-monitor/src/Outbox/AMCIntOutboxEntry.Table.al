@@ -85,4 +85,39 @@ table 50107 "AMC Int. Outbox Entry"
         if "Next Attempt At" = 0DT then
             "Next Attempt At" := CurrentDateTime();
     end;
+
+    procedure ResetEntry()
+    var
+        OutboxProcessor: Codeunit "AMC Outbox Processor";
+    begin
+        OutboxProcessor.ResetEntry(Rec);
+    end;
+
+    procedure CancelEntry()
+    var
+        OutboxProcessor: Codeunit "AMC Outbox Processor";
+    begin
+        OutboxProcessor.CancelEntry(Rec);
+    end;
+
+    procedure ViewPayload()
+    var
+        OutboxProcessor: Codeunit "AMC Outbox Processor";
+    begin
+        OutboxProcessor.ViewPayload(Rec);
+    end;
+
+    procedure EditPayload()
+    var
+        OutboxProcessor: Codeunit "AMC Outbox Processor";
+    begin
+        OutboxProcessor.EditPayload(Rec);
+    end;
+
+    procedure ViewErrorDetails()
+    var
+        OutboxProcessor: Codeunit "AMC Outbox Processor";
+    begin
+        OutboxProcessor.ViewErrorDetails(Rec);
+    end;
 }
