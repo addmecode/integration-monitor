@@ -1,3 +1,6 @@
+namespace Addmecode.IntegrationMonitor.Message;
+using Addmecode.IntegrationMonitor.Outbox;
+
 interface "AMC IMessageHandler"
 {
     procedure BuildRequest(Outbox: Record "AMC Int. Outbox Entry"; var Request: HttpRequestMessage);

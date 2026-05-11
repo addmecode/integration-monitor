@@ -1,4 +1,5 @@
 namespace Addmecode.IntegrationMonitor.Outbox;
+using Addmecode.IntegrationMonitor.Message;
 
 table 50107 "AMC Int. Outbox Entry"
 {

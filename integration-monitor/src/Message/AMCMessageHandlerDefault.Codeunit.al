@@ -1,3 +1,7 @@
+namespace Addmecode.IntegrationMonitor.Message;
+using Addmecode.IntegrationMonitor.Outbox;
+using Addmecode.IntegrationMonitor.Setup;
+
 codeunit 50114 "AMC Message Handler Default" implements "AMC IMessageHandler"
 {
     /// <summary>
