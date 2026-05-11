@@ -40,9 +40,8 @@ codeunit 50114 "AMC Message Handler Default" implements "AMC IMessageHandler"
     /// <param name="ErrorText">Error text if processing failed.</param>
     /// <param name="ErrorDetail">Optional error details text.</param>
     procedure ProcessResponse(Inbox: Record "AMC Int. Inbox Entry"; var Success: Boolean)
-    var
-        IntMessageSetup: Record "AMC Int. Message Setup";
     begin
+        //todo: do i need success?
         Success := true;
     end;
 }
