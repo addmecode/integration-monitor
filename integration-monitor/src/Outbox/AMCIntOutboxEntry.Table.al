@@ -88,36 +88,36 @@ table 50107 "AMC Int. Outbox Entry"
 
     procedure ResetEntry()
     var
-        OutboxProcessor: Codeunit "AMC Outbox Processor";
+        OutboxEntryMgt: Codeunit "AMC Outbox Entry Mgt.";
     begin
-        OutboxProcessor.ResetEntry(Rec);
+        OutboxEntryMgt.ResetEntry(Rec);
     end;
 
     procedure CancelEntry()
     var
-        OutboxProcessor: Codeunit "AMC Outbox Processor";
+        OutboxEntryMgt: Codeunit "AMC Outbox Entry Mgt.";
     begin
-        OutboxProcessor.CancelEntry(Rec);
+        OutboxEntryMgt.CancelEntry(Rec);
     end;
 
     procedure ViewPayload()
     var
-        OutboxProcessor: Codeunit "AMC Outbox Processor";
+        OutboxEntryMgt: Codeunit "AMC Outbox Entry Mgt.";
     begin
-        OutboxProcessor.ViewPayload(Rec);
+        OutboxEntryMgt.ViewPayload(Rec);
     end;
 
     procedure EditPayload()
     var
-        OutboxProcessor: Codeunit "AMC Outbox Processor";
+        OutboxEntryMgt: Codeunit "AMC Outbox Entry Mgt.";
     begin
-        OutboxProcessor.EditPayload(Rec);
+        OutboxEntryMgt.EditPayload(Rec);
     end;
 
     procedure ViewErrorDetails()
     var
-        OutboxProcessor: Codeunit "AMC Outbox Processor";
+        OutboxEntryMgt: Codeunit "AMC Outbox Entry Mgt.";
     begin
-        OutboxProcessor.ViewErrorDetails(Rec);
+        OutboxEntryMgt.ViewErrorDetails(Rec);
     end;
 }
