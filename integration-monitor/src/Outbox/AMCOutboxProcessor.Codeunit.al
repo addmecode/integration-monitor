@@ -17,74 +17,69 @@ codeunit 50116 "AMC Outbox Processor"
         TransportHandler: Interface "AMC IHttpTransportHandler";
         Request: HttpRequestMessage;
         Response: HttpResponseMessage;
-        TryProcessOn: DateTime;
     begin
-        //todo delete the try functions and move the whole code to separate codeunit
-        // how to handle status = failed or canceled, lastError and Error detail - global var? - leave only one field - error message as blob and add action that display its content
-
-        TryProcessOn := CurrentDateTime();
-        IntMessageSetup.get(Outbox."Message Type");
-        if not ShouldProcessEntry(Outbox, TryProcessOn) then
+        this.ProcessOn := CurrentDateTime();
+        IntMessageSetup.Get(Outbox."Message Type");
+        if not this.ShouldProcessEntry(Outbox, IntMessageSetup) then
             exit;
-        ValidateSetupBeforeProcessingEntry(IntMessageSetup);
+        this.ValidateSetupBeforeProcessingEntry(IntMessageSetup);
 
         MessageHandler := Outbox."Message Type";
         TransportHandler := IntMessageSetup.Transport;
         MessageHandler.BuildRequest(Outbox, Request);
-        TransportHandler.Send(Request, IntMessageSetup, Response); //todo move it for now to the message interface
-        ValidateResponse(Response);
+        TransportHandler.Send(Request, IntMessageSetup, Response);
+        this.ValidateResponse(Response);
 
         if IntMessageSetup."Process Response" then
-            CreateInboxEntry(Outbox, Response);
+            this.CreateInboxEntry(Outbox, Response);
 
         Outbox.Status := Outbox.Status::Sent;
-        Outbox."Sent At" := TryProcessOn;
+        Outbox."Sent At" := this.ProcessOn;
         Outbox.Modify(true);
     end;
 
-    local procedure ShouldProcessEntry(Outbox: Record "AMC Int. Outbox Entry"; TryToProcessOn: DateTime): Boolean
+    local procedure ShouldProcessEntry(Outbox: Record "AMC Int. Outbox Entry"; IntMessageSetup: Record "AMC Int. Message Setup"): Boolean
     var
+        IsHandled: Boolean;
         ShouldProcess: Boolean;
     begin
-        ShouldProcess := DoShouldProcessEntry(Outbox, TryToProcessOn);
-        OnAfterShouldProcessEntry(Outbox, TryToProcessOn, ShouldProcess);
+        this.OnBeforeShouldProcessEntry(Outbox, IntMessageSetup, ShouldProcess, IsHandled);
+        if IsHandled then
+            exit(ShouldProcess);
+
+        ShouldProcess := this.DoShouldProcessEntry(Outbox, IntMessageSetup);
+        this.OnAfterShouldProcessEntry(Outbox, IntMessageSetup, ShouldProcess);
         exit(ShouldProcess);
     end;
 
-    local procedure DoShouldProcessEntry(Outbox: Record "AMC Int. Outbox Entry"; TryToProcessOn: DateTime): Boolean
-    var
-        IntMessageSetup: Record "AMC Int. Message Setup";
+    local procedure DoShouldProcessEntry(Outbox: Record "AMC Int. Outbox Entry"; IntMessageSetup: Record "AMC Int. Message Setup"): Boolean
     begin
-        //todo move to separate functions
-        if not (Outbox.Status in [Outbox.Status::ReadyToProcess, Outbox.Status::Failed]) then
+        if not IntMessageSetup.Enabled then
             exit(false);
-
-        if Outbox."Next Attempt At" < TryToProcessOn then
+        if Outbox."Next Attempt At" < this.ProcessOn then
             exit(false);
-
-        IntMessageSetup.Get(Outbox."Message Type");
         if Outbox."Attempt Count" > IntMessageSetup."Max Attempts" then
             exit(false);
+        exit(true);
     end;
 
     local procedure ValidateSetupBeforeProcessingEntry(IntMessageSetup: Record "AMC Int. Message Setup")
     var
         IsHandled: Boolean;
     begin
-        OnBeforeValidateSetupBeforeProcessingEntry(IntMessageSetup, IsHandled);
-        DoValidateSetupBeforeProcessingEntry(IntMessageSetup, IsHandled);
-        OnAfterValidateSetupBeforeProcessingEntry(IntMessageSetup, IsHandled);
-    end;
-
-    local procedure DoValidateSetupBeforeProcessingEntry(IntMessageSetup: Record "AMC Int. Message Setup"; IsHandled: Boolean)
-    var
-        IntMessageSetupIsNotEnabledErr: Label '%1 with %2 must have %3 equal true.', Comment = '%1 = Int. Message Setup table caption, %2 = Message Type, %3 = Enabled field caption';
-    begin
+        this.OnBeforeValidateSetupBeforeProcessingEntry(IntMessageSetup, IsHandled);
         if IsHandled then
             exit;
 
-        if not IntMessageSetup.Enabled then
-            Error(IntMessageSetupIsNotEnabledErr, IntMessageSetup.TableCaption, Format(IntMessageSetup."Message Type"), IntMessageSetup.FieldCaption(IntMessageSetup.Enabled));
+        this.DoValidateSetupBeforeProcessingEntry(IntMessageSetup);
+        this.OnAfterValidateSetupBeforeProcessingEntry(IntMessageSetup);
+    end;
+
+    local procedure DoValidateSetupBeforeProcessingEntry(IntMessageSetup: Record "AMC Int. Message Setup")
+    begin
+        //todo: nothing for now. All the mandatory fields are handled by properties on the table
+        if IntMessageSetup.Enabled then
+            exit;
     end;
 
     procedure ValidateResponse(Response: HttpResponseMessage)
@@ -102,28 +97,29 @@ codeunit 50116 "AMC Outbox Processor"
     var
         IsHandled: Boolean;
     begin
-        OnBeforeCreateInboxEntry(Outbox, Response, IsHandled);
-        DoCreateInboxEntry(Outbox, Response, IsHandled);
-        OnAfterCreateInboxEntry(Outbox, Response, IsHandled)
+        this.OnBeforeCreateInboxEntry(Outbox, Response, IsHandled);
+        if IsHandled then
+            exit;
+
+        this.DoCreateInboxEntry(Outbox, Response);
+        this.OnAfterCreateInboxEntry(Outbox, Response);
     end;
 
-    local procedure DoCreateInboxEntry(Outbox: Record "AMC Int. Outbox Entry"; Response: HttpResponseMessage; IsHandled: Boolean)
+    local procedure DoCreateInboxEntry(Outbox: Record "AMC Int. Outbox Entry"; Response: HttpResponseMessage)
     var
         Inbox: Record "AMC Int. Inbox Entry";
         ResponseBody: Text;
         ResponseOutStream: OutStream;
     begin
-        if IsHandled then
-            exit;
-
         Inbox.Init();
         Inbox."Outbox Entry No." := Outbox."Entry No.";
         Inbox."Message Type" := Outbox."Message Type";
         Inbox.Status := Inbox.Status::ReadyToProcess;
-        Inbox."Received At" := CurrentDateTime;
+        Inbox."Received At" := this.ProcessOn;
         Inbox."Next Attempt At" := Inbox."Received At";
         Inbox."Attempt Count" := 0;
 
+        //todo: move to inbox table
         Response.Content.ReadAs(ResponseBody);
         Inbox."Response Payload".CreateOutStream(ResponseOutStream);
         ResponseOutStream.Write(ResponseBody);
@@ -137,17 +133,17 @@ codeunit 50116 "AMC Outbox Processor"
     end;
 
     [IntegrationEvent(false, false)]
-    local procedure OnAfterValidateSetupBeforeProcessingEntry(IntMessageSetup: Record "AMC Int. Message Setup"; var IsHandled: Boolean)
+    local procedure OnAfterValidateSetupBeforeProcessingEntry(IntMessageSetup: Record "AMC Int. Message Setup")
     begin
     end;
 
     [IntegrationEvent(false, false)]
-    local procedure OnBeforeShouldProcessEntry(Outbox: Record "AMC Int. Outbox Entry"; TryToProcessOn: DateTime; var ShouldProcess: Boolean; var IsHandled: Boolean)
+    local procedure OnBeforeShouldProcessEntry(Outbox: Record "AMC Int. Outbox Entry"; IntMessageSetup: Record "AMC Int. Message Setup"; var ShouldProcess: Boolean; var IsHandled: Boolean)
     begin
     end;
 
     [IntegrationEvent(false, false)]
-    local procedure OnAfterShouldProcessEntry(Outbox: Record "AMC Int. Outbox Entry"; TryToProcessOn: DateTime; var ShouldProcess: Boolean)
+    local procedure OnAfterShouldProcessEntry(Outbox: Record "AMC Int. Outbox Entry"; IntMessageSetup: Record "AMC Int. Message Setup"; var ShouldProcess: Boolean)
     begin
     end;
 
@@ -157,7 +153,10 @@ codeunit 50116 "AMC Outbox Processor"
     end;
 
     [IntegrationEvent(false, false)]
-    local procedure OnAfterCreateInboxEntry(Outbox: Record "AMC Int. Outbox Entry"; Response: HttpResponseMessage; var IsHandled: Boolean)
+    local procedure OnAfterCreateInboxEntry(Outbox: Record "AMC Int. Outbox Entry"; Response: HttpResponseMessage)
     begin
     end;
+
+    var
+        ProcessOn: DateTime;
 }
