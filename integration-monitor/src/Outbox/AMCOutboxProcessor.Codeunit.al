@@ -1,6 +1,7 @@
 namespace Addmecode.IntegrationMonitor.Outbox;
 using Addmecode.IntegrationMonitor.Message;
 using Addmecode.IntegrationMonitor.Setup;
+using Addmecode.IntegrationMonitor.Transport;
 
 codeunit 50116 "AMC Outbox Processor"
 {

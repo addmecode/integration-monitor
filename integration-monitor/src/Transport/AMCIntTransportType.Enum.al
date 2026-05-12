@@ -1,3 +1,5 @@
+namespace Addmecode.IntegrationMonitor.Transport;
+
 enum 50104 "AMC Int. Transport Type" implements "AMC IHttpTransportHandler"
 {
     Extensible = true;

@@ -1,3 +1,7 @@
+namespace Addmecode.IntegrationMonitor.Transport;
+using Addmecode.IntegrationMonitor.Setup;
+using System.Integration;
+
 codeunit 50117 "AMC Http Transport Default" implements "AMC IHttpTransportHandler"
 {
     procedure ValidateSetup(Setup: Record "AMC Int. Message Setup")
@@ -22,24 +26,17 @@ codeunit 50117 "AMC Http Transport Default" implements "AMC IHttpTransportHandle
     var
         Client: HttpClient;
     begin
-        if Setup."Timeout (ms)" > 0 then
-            Client.Timeout := Setup."Timeout (ms)";
-
+        Client.Timeout := Setup."Timeout (ms)";
         if Setup."Auth Profile Code" <> '' then
-            ApplyAuth(Client, Request, Setup."Auth Profile Code");
+            this.ApplyAuth(Client, Request, Setup."Auth Profile Code");
 
         Client.Send(Request, Response);
     end;
 
     local procedure ApplyAuth(var Client: HttpClient; var Request: HttpRequestMessage; AuthProfile: Code[20])
     begin
-        OnApplyAuth(Client, Request, AuthProfile);
-    end;
-
-    [TryFunction]
-    local procedure TryReadResponseBody(var Response: HttpResponseMessage; var ResponseBody: InStream)
-    begin
-        Response.Content.ReadAs(ResponseBody);
+        this.OnApplyAuth(Client, Request, AuthProfile);
+        //todo
     end;
 
     [IntegrationEvent(false, false)]

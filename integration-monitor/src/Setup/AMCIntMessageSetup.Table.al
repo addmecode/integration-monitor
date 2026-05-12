@@ -1,5 +1,7 @@
 namespace Addmecode.IntegrationMonitor.Setup;
 using Addmecode.IntegrationMonitor.Message;
+using Addmecode.IntegrationMonitor.Transport;
+
 table 50108 "AMC Int. Message Setup"
 {
     DataClassification = SystemMetadata;
