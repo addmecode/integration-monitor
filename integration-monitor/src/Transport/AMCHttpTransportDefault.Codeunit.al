@@ -1,4 +1,5 @@
 namespace Addmecode.IntegrationMonitor.Transport;
+using Addmecode.IntegrationMonitor.Auth;
 using Addmecode.IntegrationMonitor.Setup;
 using System.Integration;
 
@@ -30,17 +31,34 @@ codeunit 50117 "AMC Http Transport Default" implements "AMC IHttpTransportHandle
         if Setup."Auth Profile Code" <> '' then
             this.ApplyAuth(Client, Request, Setup."Auth Profile Code");
 
-        Client.Send(Request, Response);
+        this.SendRequest(Client, Request, Setup, Response);
     end;
 
     local procedure ApplyAuth(var Client: HttpClient; var Request: HttpRequestMessage; AuthProfile: Code[20])
+    var
+        AuthApplier: Codeunit "AMC Int. Auth Applier";
     begin
-        this.OnApplyAuth(Client, Request, AuthProfile);
-        //todo
+        AuthApplier.ApplyAuth(Request, AuthProfile);
+    end;
+
+    local procedure SendRequest(var Client: HttpClient; var Request: HttpRequestMessage; Setup: Record "AMC Int. Message Setup"; var Response: HttpResponseMessage)
+    var
+        IsHandled: Boolean;
+    begin
+        this.OnBeforeSend(Client, Request, Setup, Response, IsHandled);
+        if not IsHandled then
+            Client.Send(Request, Response);
+
+        this.OnAfterSend(Client, Request, Setup, Response);
     end;
 
     [IntegrationEvent(false, false)]
-    local procedure OnApplyAuth(var Client: HttpClient; var Request: HttpRequestMessage; AuthProfile: Code[20])
+    local procedure OnBeforeSend(var Client: HttpClient; var Request: HttpRequestMessage; Setup: Record "AMC Int. Message Setup"; var Response: HttpResponseMessage; var IsHandled: Boolean)
+    begin
+    end;
+
+    [IntegrationEvent(false, false)]
+    local procedure OnAfterSend(var Client: HttpClient; var Request: HttpRequestMessage; Setup: Record "AMC Int. Message Setup"; var Response: HttpResponseMessage)
     begin
     end;
 

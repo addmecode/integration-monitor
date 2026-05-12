@@ -1,4 +1,5 @@
 namespace Addmecode.IntegrationMonitor.Setup;
+using Addmecode.IntegrationMonitor.Auth;
 using Addmecode.IntegrationMonitor.Message;
 using Addmecode.IntegrationMonitor.Transport;
 
@@ -50,10 +51,10 @@ table 50108 "AMC Int. Message Setup"
             InitValue = 10000;
             MinValue = 1;
         }
-        // todo: auth profile table is missing
         field(7; "Auth Profile Code"; Code[20])
         {
             DataClassification = SystemMetadata;
+            TableRelation = "AMC Int. Auth Profile".Code;
             ToolTip = 'Specifies the authentication profile code used when sending requests for this message type.';
         }
         field(8; "Process Response"; Boolean)
@@ -78,9 +79,11 @@ table 50108 "AMC Int. Message Setup"
 
     local procedure TestRequiredFieldsForEnabled()
     var
+        AuthProfileMgt: Codeunit "AMC Int. Auth Profile Mgt.";
         TransportHandler: Interface "AMC IHttpTransportHandler";
     begin
         TransportHandler := Rec.Transport;
         TransportHandler.ValidateSetup(Rec);
+        AuthProfileMgt.TestProfileCode(Rec."Auth Profile Code");
     end;
 }
