@@ -58,7 +58,7 @@ codeunit 50116 "AMC Outbox Processor"
     begin
         if not IntMessageSetup.Enabled then
             exit(false);
-        if Outbox."Next Attempt At" < this.ProcessOn then
+        if Outbox."Next Attempt At" > this.ProcessOn then
             exit(false);
         if Outbox."Attempt Count" > IntMessageSetup."Max Attempts" then
             exit(false);
