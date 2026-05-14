@@ -17,6 +17,13 @@ codeunit 50120 "AMC Int. Auth Profile Mgt."
         AuthProfile.Modify(true);
     end;
 
+    local procedure SetSecretStored(var AuthProfile: Record "AMC Int. Auth Profile")
+    begin
+        AuthProfile."Has Secret" := true;
+        AuthProfile."Secret Updated At" := CurrentDateTime();
+        AuthProfile."Secret Updated By" := CopyStr(UserId(), 1, MaxStrLen(AuthProfile."Secret Updated By"));
+    end;
+
     [NonDebuggable]
     procedure GetSecret(AuthProfileCode: Code[20]; var SecretValue: SecretText): Boolean
     begin
@@ -45,6 +52,13 @@ codeunit 50120 "AMC Int. Auth Profile Mgt."
         this.ClearSecretStored(AuthProfile);
     end;
 
+    local procedure ClearSecretStored(var AuthProfile: Record "AMC Int. Auth Profile")
+    begin
+        AuthProfile."Has Secret" := false;
+        Clear(AuthProfile."Secret Updated At");
+        Clear(AuthProfile."Secret Updated By");
+    end;
+
     procedure ClearSecret(var AuthProfile: Record "AMC Int. Auth Profile")
     begin
         AuthProfile.TestField(Code);
@@ -68,6 +82,28 @@ codeunit 50120 "AMC Int. Auth Profile Mgt."
         end;
 
         this.ClearSecret(AuthProfile);
+    end;
+
+    local procedure CountEnabledMessageSetups(AuthProfileCode: Code[20]): Integer
+    var
+        IntMessageSetup: Record "AMC Int. Message Setup";
+    begin
+        IntMessageSetup.SetRange("Auth Profile Code", AuthProfileCode);
+        IntMessageSetup.SetRange(Enabled, true);
+        exit(IntMessageSetup.Count());
+    end;
+
+    local procedure DisableEnabledMessageSetups(AuthProfileCode: Code[20])
+    var
+        IntMessageSetup: Record "AMC Int. Message Setup";
+    begin
+        IntMessageSetup.SetRange("Auth Profile Code", AuthProfileCode);
+        IntMessageSetup.SetRange(Enabled, true);
+        if IntMessageSetup.FindSet(true) then
+            repeat
+                IntMessageSetup.Validate(Enabled, false);
+                IntMessageSetup.Modify(true);
+            until IntMessageSetup.Next() = 0;
     end;
 
     procedure TestProfileCode(AuthProfileCode: Code[20])
@@ -106,41 +142,5 @@ codeunit 50120 "AMC Int. Auth Profile Mgt."
         KeyLbl: label 'AMC:IntegrationMonitor:AuthProfile:%1:Secret', Locked = true;
     begin
         exit(StrSubstNo(KeyLbl, AuthProfileCode));
-    end;
-
-    local procedure SetSecretStored(var AuthProfile: Record "AMC Int. Auth Profile")
-    begin
-        AuthProfile."Has Secret" := true;
-        AuthProfile."Secret Updated At" := CurrentDateTime();
-        AuthProfile."Secret Updated By" := CopyStr(UserId(), 1, MaxStrLen(AuthProfile."Secret Updated By"));
-    end;
-
-    local procedure ClearSecretStored(var AuthProfile: Record "AMC Int. Auth Profile")
-    begin
-        AuthProfile."Has Secret" := false;
-        Clear(AuthProfile."Secret Updated At");
-        Clear(AuthProfile."Secret Updated By");
-    end;
-
-    local procedure CountEnabledMessageSetups(AuthProfileCode: Code[20]): Integer
-    var
-        IntMessageSetup: Record "AMC Int. Message Setup";
-    begin
-        IntMessageSetup.SetRange("Auth Profile Code", AuthProfileCode);
-        IntMessageSetup.SetRange(Enabled, true);
-        exit(IntMessageSetup.Count());
-    end;
-
-    local procedure DisableEnabledMessageSetups(AuthProfileCode: Code[20])
-    var
-        IntMessageSetup: Record "AMC Int. Message Setup";
-    begin
-        IntMessageSetup.SetRange("Auth Profile Code", AuthProfileCode);
-        IntMessageSetup.SetRange(Enabled, true);
-        if IntMessageSetup.FindSet(true) then
-            repeat
-                IntMessageSetup.Validate(Enabled, false);
-                IntMessageSetup.Modify(true);
-            until IntMessageSetup.Next() = 0;
     end;
 }

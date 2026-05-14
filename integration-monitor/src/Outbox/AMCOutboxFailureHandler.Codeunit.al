@@ -36,6 +36,14 @@ codeunit 50118 "AMC Outbox Failure Handler"
         Outbox.Modify(true);
     end;
 
+    local procedure GetNextAttemptAt(Outbox: Record "AMC Int. Outbox Entry"; IntMessageSetup: Record "AMC Int. Message Setup"): DateTime
+    var
+        Delay: Duration;
+    begin
+        Delay := IntMessageSetup."Base Retry Delay (sec)" * 1000;
+        exit(Outbox."Last Attempt At" + Delay);
+    end;
+
     local procedure SetLastError(var Outbox: Record "AMC Int. Outbox Entry"; ErrorText: Text)
     var
         LastErrorResponseOutStream: OutStream;
@@ -43,13 +51,5 @@ codeunit 50118 "AMC Outbox Failure Handler"
         //todo: test this
         Outbox."Last Error Response".CreateOutStream(LastErrorResponseOutStream);
         LastErrorResponseOutStream.Write(ErrorText);
-    end;
-
-    local procedure GetNextAttemptAt(Outbox: Record "AMC Int. Outbox Entry"; IntMessageSetup: Record "AMC Int. Message Setup"): DateTime
-    var
-        Delay: Duration;
-    begin
-        Delay := IntMessageSetup."Base Retry Delay (sec)" * 1000;
-        exit(Outbox."Last Attempt At" + Delay);
     end;
 }
