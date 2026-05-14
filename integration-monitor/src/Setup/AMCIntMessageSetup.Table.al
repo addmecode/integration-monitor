@@ -79,11 +79,8 @@ table 50108 "AMC Int. Message Setup"
 
     local procedure TestRequiredFieldsForEnabled()
     var
-        AuthProfileMgt: Codeunit "AMC Int. Auth Profile Mgt.";
-        TransportHandler: Interface "AMC IHttpTransportHandler";
+        IntMessageSetupMgt: Codeunit "AMC Int. Message Setup Mgt.";
     begin
-        TransportHandler := Rec.Transport;
-        TransportHandler.ValidateSetup(Rec);
-        AuthProfileMgt.TestProfileCode(Rec."Auth Profile Code");
+        IntMessageSetupMgt.TestRequiredFieldsForEnabled(Rec);
     end;
 }
