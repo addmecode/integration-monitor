@@ -1,7 +1,17 @@
 namespace Addmecode.IntegrationMonitor.Outbox;
+using Addmecode.IntegrationMonitor.Setup;
 
 codeunit 50119 "AMC Outbox Entry Mgt."
 {
+    procedure TestMessageSetupExists(Outbox: Record "AMC Int. Outbox Entry")
+    var
+        IntMessageSetup: Record "AMC Int. Message Setup";
+        MissingMessageSetupErr: Label 'Integration message setup for message type %1 does not exist.', Comment = '%1 = message type';
+    begin
+        if not IntMessageSetup.Get(Outbox."Message Type") then
+            Error(MissingMessageSetupErr, Format(Outbox."Message Type"));
+    end;
+
     procedure ResetEntry(var Outbox: Record "AMC Int. Outbox Entry")
     var
         EntryAlreadySentErr: label 'The entry is already sent';

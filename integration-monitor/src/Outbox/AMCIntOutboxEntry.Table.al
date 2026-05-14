@@ -20,6 +20,11 @@ table 50107 "AMC Int. Outbox Entry"
             DataClassification = SystemMetadata;
             NotBlank = true;
             ToolTip = 'Specifies the integration message type for this outbox entry.';
+
+            trigger OnValidate()
+            begin
+                this.TestMessageSetupExists();
+            end;
         }
         field(3; Status; Enum "AMC Int. Outbox Status")
         {
@@ -80,11 +85,20 @@ table 50107 "AMC Int. Outbox Entry"
     }
     trigger OnInsert()
     begin
+        this.TestMessageSetupExists();
+
         if "Created At" = 0DT then
             "Created At" := CurrentDateTime();
 
         if "Next Attempt At" = 0DT then
             "Next Attempt At" := CurrentDateTime();
+    end;
+
+    local procedure TestMessageSetupExists()
+    var
+        OutboxEntryMgt: Codeunit "AMC Outbox Entry Mgt.";
+    begin
+        OutboxEntryMgt.TestMessageSetupExists(Rec);
     end;
 
     procedure ResetEntry()

@@ -60,12 +60,59 @@ Translations/
 | `AMC Int. Inbox Payload` | Page 50116 | Commented out draft | Draft card page for viewing or editing response payload BLOB data. It is currently disabled and conflicts with the active message setup page ID. |
 | `AMC Int. Inbox Error` | Page 50118 | Commented out draft | Draft read-only card page for displaying inbox error details. It is currently disabled and depends on the disabled inbox page flow. |
 
+## Demo: Postal Code City Validation
+
+The project includes a small demo that shows how a Business Central action can create outbox entries and send a real HTTP request through the integration framework.
+
+The demo extends the standard `Post Code` table with `City Validation Status` and `City Validated At`. Changing `Code`, `City`, or `Country/Region Code` clears the validation status and timestamp. The `Post Codes` page has a `Validate City` action that creates `AMC Int. Outbox Entry` records for the selected post code rows.
+
+The demo message type is `Postal Code Validation`. Its handler reads the outbox payload and sends this request:
+
+```text
+GET {Endpoint URL}/{countryRegionCode}/{code}
+```
+
+For example, with `Endpoint URL` set to `https://api.zippopotam.us`, a Polish post code request can become:
+
+```text
+GET https://api.zippopotam.us/PL/00-001
+```
+
+If `Process Response` is enabled in the message setup, the HTTP response is stored in the inbox. Processing that inbox response into `Valid` or `Invalid` is intentionally not implemented yet.
+
+### Demo Configuration
+
+Create an `AMC Int. Message Setup` record for message type `Postal Code Validation` with these values:
+
+| Field | Value |
+| --- | --- |
+| `Endpoint URL` | `https://api.zippopotam.us` |
+| `Transport` | `HTTP` |
+| `Enabled` | `true` |
+| `Process Response` | `true` |
+| `Auth Profile Code` | blank |
+| `Max Attempts` | `3` |
+| `Base Retry Delay (sec)` | `60` |
+| `Timeout (ms)` | `10000` |
+
+The Business Central environment must allow outbound HTTP requests to `https://api.zippopotam.us`.
+
+### Demo Usage
+
+1. Open `Post Codes`.
+2. Select one or more rows with `Country/Region Code` and `Code`.
+3. Run `Validate City`.
+4. Inspect the created entries in `AMC Int. Outbox Entries`.
+5. Run or schedule `AMC Outbox Dispatcher Job`.
+6. Inspect the inbox payload if response processing is enabled.
+
 ## TODO
 
 ### Make Outbox Work
 
 DOKONCZYLEM LOGIKE W SETUPIE i OUTBOX DISPATCHER
-TERAZ MUSZE SPRAWDZIC JAK DZIALA OUTBOX PROCESSOR I PO KOLEI DORABIAC TAK ZEBY DALO SIE COKOLWIEK WYSLAC
+Przejrzec auth tak zeby deklaracje funkcji byly w tabeli
+WYSLAC
   OUTBOX PROCESSOR i MESSAGE HANDLER SPRAWDZONY TERAZ SPRAWDZIC TRANSPORT HANDLER
 ZROBIC DEMO APP, KTORE COS WYSYLA Z UZYCIEM TEGO MECHANIZMU
   - tlumaczenie payment terms code
