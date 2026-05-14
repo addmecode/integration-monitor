@@ -7,13 +7,12 @@ codeunit 50121 "AMC Int. Auth Applier"
     procedure ApplyAuth(var Request: HttpRequestMessage; AuthProfileCode: Code[20])
     var
         AuthProfile: Record "AMC Int. Auth Profile";
-        AuthProfileMgt: Codeunit "AMC Int. Auth Profile Mgt.";
     begin
         if AuthProfileCode = '' then
             exit;
 
         AuthProfile.Get(AuthProfileCode);
-        AuthProfileMgt.TestProfile(AuthProfile);
+        AuthProfile.TestProfile();
 
         case AuthProfile."Auth Type" of
             AuthProfile."Auth Type"::Basic:
@@ -26,13 +25,12 @@ codeunit 50121 "AMC Int. Auth Applier"
     [NonDebuggable]
     local procedure ApplyBasicAuth(var Request: HttpRequestMessage; AuthProfile: Record "AMC Int. Auth Profile")
     var
-        AuthProfileMgt: Codeunit "AMC Int. Auth Profile Mgt.";
         Base64Convert: Codeunit "Base64 Convert";
         Password: SecretText;
         Credential: SecretText;
         AuthorizationValue: SecretText;
     begin
-        AuthProfileMgt.GetSecret(AuthProfile.Code, Password);
+        AuthProfile.GetSecret(Password);
         Credential := SecretStrSubstNo('%1:%2', AuthProfile.Username, Password);
         AuthorizationValue := SecretStrSubstNo('Basic %1', Base64Convert.ToBase64(Credential));
         this.SetAuthorizationHeader(Request, AuthorizationValue);
@@ -41,11 +39,10 @@ codeunit 50121 "AMC Int. Auth Applier"
     [NonDebuggable]
     local procedure ApplyBearerTokenAuth(var Request: HttpRequestMessage; AuthProfile: Record "AMC Int. Auth Profile")
     var
-        AuthProfileMgt: Codeunit "AMC Int. Auth Profile Mgt.";
         Token: SecretText;
         AuthorizationValue: SecretText;
     begin
-        AuthProfileMgt.GetSecret(AuthProfile.Code, Token);
+        AuthProfile.GetSecret(Token);
         AuthorizationValue := SecretStrSubstNo('Bearer %1', Token);
         this.SetAuthorizationHeader(Request, AuthorizationValue);
     end;

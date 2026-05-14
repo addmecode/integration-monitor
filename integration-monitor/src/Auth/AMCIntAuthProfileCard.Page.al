@@ -54,14 +54,12 @@ page 50119 "AMC Int. Auth Profile Card"
                     ToolTip = 'Specifies the password or bearer token to store for this authentication profile.';
 
                     trigger OnValidate()
-                    var
-                        AuthProfileMgt: Codeunit "AMC Int. Auth Profile Mgt.";
                     begin
                         if this.NewSecretValue = '' then
                             exit;
 
                         CurrPage.SaveRecord();
-                        AuthProfileMgt.SetSecret(Rec, this.NewSecretValue);
+                        Rec.SetSecret(this.NewSecretValue);
                         Clear(this.NewSecretValue);
                         CurrPage.Update(false);
                     end;
@@ -94,11 +92,9 @@ page 50119 "AMC Int. Auth Profile Card"
                 ToolTip = 'Deletes the stored password or token for this authentication profile.';
 
                 trigger OnAction()
-                var
-                    AuthProfileMgt: Codeunit "AMC Int. Auth Profile Mgt.";
                 begin
                     CurrPage.SaveRecord();
-                    AuthProfileMgt.ClearSecretWithEnabledSetupCheck(Rec);
+                    Rec.ClearSecretWithEnabledSetupCheck();
                     Clear(this.NewSecretValue);
                     CurrPage.Update(false);
                 end;

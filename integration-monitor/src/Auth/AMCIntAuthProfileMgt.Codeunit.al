@@ -13,7 +13,7 @@ codeunit 50120 "AMC Int. Auth Profile Mgt."
             Error(EmptySecretErr);
 
         IsolatedStorage.Set(this.GetSecretKey(AuthProfile.Code), SecretValue, DataScope::Company);
-        AuthProfile.SetSecretStored();
+        this.SetSecretStored(AuthProfile);
         AuthProfile.Modify(true);
     end;
 
@@ -34,20 +34,21 @@ codeunit 50120 "AMC Int. Auth Profile Mgt."
         exit(IsolatedStorage.Contains(this.GetSecretKey(AuthProfileCode), DataScope::Company));
     end;
 
-    procedure DeleteSecret(AuthProfileCode: Code[20])
+    procedure DeleteSecret(var AuthProfile: Record "AMC Int. Auth Profile")
     begin
-        if AuthProfileCode = '' then
+        if AuthProfile.Code = '' then
             exit;
 
-        if IsolatedStorage.Contains(this.GetSecretKey(AuthProfileCode), DataScope::Company) then
-            IsolatedStorage.Delete(this.GetSecretKey(AuthProfileCode), DataScope::Company);
+        if IsolatedStorage.Contains(this.GetSecretKey(AuthProfile.Code), DataScope::Company) then
+            IsolatedStorage.Delete(this.GetSecretKey(AuthProfile.Code), DataScope::Company);
+
+        this.ClearSecretStored(AuthProfile);
     end;
 
     procedure ClearSecret(var AuthProfile: Record "AMC Int. Auth Profile")
     begin
         AuthProfile.TestField(Code);
-        this.DeleteSecret(AuthProfile.Code);
-        AuthProfile.ClearSecretStored();
+        this.DeleteSecret(AuthProfile);
         AuthProfile.Modify(true);
     end;
 
@@ -105,6 +106,20 @@ codeunit 50120 "AMC Int. Auth Profile Mgt."
         KeyLbl: label 'AMC:IntegrationMonitor:AuthProfile:%1:Secret', Locked = true;
     begin
         exit(StrSubstNo(KeyLbl, AuthProfileCode));
+    end;
+
+    local procedure SetSecretStored(var AuthProfile: Record "AMC Int. Auth Profile")
+    begin
+        AuthProfile."Has Secret" := true;
+        AuthProfile."Secret Updated At" := CurrentDateTime();
+        AuthProfile."Secret Updated By" := CopyStr(UserId(), 1, MaxStrLen(AuthProfile."Secret Updated By"));
+    end;
+
+    local procedure ClearSecretStored(var AuthProfile: Record "AMC Int. Auth Profile")
+    begin
+        AuthProfile."Has Secret" := false;
+        Clear(AuthProfile."Secret Updated At");
+        Clear(AuthProfile."Secret Updated By");
     end;
 
     local procedure CountEnabledMessageSetups(AuthProfileCode: Code[20]): Integer
