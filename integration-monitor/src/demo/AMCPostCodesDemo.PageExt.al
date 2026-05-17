@@ -50,6 +50,27 @@ pageextension 50123 "AMC Post Codes Demo" extends "Post Codes"
                     Message(EntriesCreatedMsg, CreatedCount);
                 end;
             }
+            action("AMC Reset City Validation")
+            {
+                ApplicationArea = All;
+                Caption = 'Reset City Validation';
+                Image = ResetStatus;
+                ToolTip = 'Clear postal code validation fields and delete unprocessed postal code validation queue entries for the selected records.';
+
+                trigger OnAction()
+                var
+                    SelectedPostCode: Record "Post Code";
+                    PostalCodeValidationMgt: Codeunit "AMC Post Code Validation Mgt";
+                    DeletedInboxCount: Integer;
+                    DeletedOutboxCount: Integer;
+                    ResetCount: Integer;
+                    EntriesResetMsg: Label '%1 postal code validation records were reset. %2 outbox entries and %3 inbox entries were deleted.', Comment = '%1 = number of reset post code records, %2 = number of deleted outbox entries, %3 = number of deleted inbox entries';
+                begin
+                    CurrPage.SetSelectionFilter(SelectedPostCode);
+                    ResetCount := PostalCodeValidationMgt.ResetValidationForSelection(SelectedPostCode, DeletedOutboxCount, DeletedInboxCount);
+                    Message(EntriesResetMsg, ResetCount, DeletedOutboxCount, DeletedInboxCount);
+                end;
+            }
         }
     }
 

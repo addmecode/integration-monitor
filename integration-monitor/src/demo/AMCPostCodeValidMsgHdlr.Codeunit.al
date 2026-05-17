@@ -4,7 +4,7 @@ using Addmecode.IntegrationMonitor.Outbox;
 using Addmecode.IntegrationMonitor.Setup;
 using System.Utilities;
 
-codeunit 50124 "AMC Post Code Validation Hdlr" implements "AMC IMessageHandler"
+codeunit 50124 "AMC Post Code Valid Msg Hdlr" implements "AMC IMessageHandler"
 {
     procedure BuildRequest(Outbox: Record "AMC Int. Outbox Entry"; var Request: HttpRequestMessage)
     var

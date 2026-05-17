@@ -99,7 +99,7 @@ The Business Central environment must allow outbound HTTPS requests to `https://
 
 ### Demo Usage
 
-1. Open `Post Codes`.
+1. Open `Zip Codes`.
 2. Select one or more rows with `Country/Region Code` and `Code`.
 3. Run `Validate City`.
 4. Inspect the created entries in `AMC Int. Outbox Entries`.
