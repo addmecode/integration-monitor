@@ -7,7 +7,7 @@ Integration Monitor is an early-stage Microsoft Dynamics 365 Business Central ex
 - Outbound integration messages are stored in an outbox table before they are sent to external systems.
 - Incoming responses can be stored in an inbox table for later processing when a message setup requires response handling.
 - Message-specific behavior is selected through extensible enums and AL interfaces, so new message types can provide their own request builder and response processor.
-- Transport-specific behavior is also selected through an interface and extensible enum, with HTTP implemented as the first default transport.
+- Transport-specific behavior is also selected through an interface and extensible enum, with HTTP/HTTPS implemented as the first default transport.
 - Processing should be driven by job queue codeunits that pick eligible entries, apply retry rules, update statuses, and store payload or error details for review.
 - Users should be able to inspect queue entries, retry or cancel failed work, and view or edit payloads through Business Central pages.
 
@@ -28,7 +28,7 @@ src/
   Setup/
     Message setup table and administration page.
   TransportType/
-    Transport handler interface, transport enum, and default HTTP transport.
+    Transport handler interface, transport enum, and default HTTP/HTTPS transport.
 Translations/
   Generated translation files.
 ```
@@ -42,9 +42,9 @@ Translations/
 | `AMC Int. Message Type` | Enum 50103 | Active | Defines extensible integration message types and maps each enum value to an `AMC IMessageHandler` implementation. The current default value is `Generic`. |
 | `AMC IMessageHandler` | Interface | Active | Defines the contract for message-specific request building and response processing. Implementations decide how an outbox entry becomes an HTTP request and how an inbox response should be handled. |
 | `AMC Message Handler Default` | Codeunit 50110 | Active | Default handler for generic messages. It builds a POST request from the outbox payload and configured endpoint, while response processing is currently only a successful placeholder. |
-| `AMC Int. Transport Type` | Enum 50104 | Active | Defines extensible transport types and maps each value to an `AMC IHttpTransportHandler` implementation. The current default transport is HTTP. |
+| `AMC Int. Transport Type` | Enum 50104 | Active | Defines extensible transport types and maps each value to an `AMC IHttpTransportHandler` implementation. The current default transport is HTTP/HTTPS. |
 | `AMC IHttpTransportHandler` | Interface | Active | Defines the transport contract for sending a prepared request using message setup data. This keeps transport concerns separate from message-specific request construction. |
-| `AMC Http Transport Default` | Codeunit 50113 | Active | Sends HTTP requests through `HttpClient`, applies timeout settings, and exposes an integration event for authentication. Authentication storage and concrete authentication handling are not implemented yet. |
+| `AMC Http Transport Default` | Codeunit 50113 | Active | Sends HTTP/HTTPS requests through `HttpClient`, applies timeout settings, and exposes an integration event for authentication. Authentication storage and concrete authentication handling are not implemented yet. |
 | `AMC Int. Message Setup` | Table 50108 | Active | Stores configuration per message type, including enablement, retry settings, endpoint URL, timeout, authentication profile code, response processing flag, and transport type. |
 | `AMC Int. Message Setup` | Page 50116 | Active | Read-only administration list page for browsing integration message setup records. It opens `AMC Int. Message Setup Card` for record editing. |
 | `AMC Int. Message Setup Card` | Page 50117 | Active | Editable card page for maintaining one integration message setup record. It exposes the key processing, endpoint, retry, authentication, and transport settings. |
@@ -87,7 +87,7 @@ Create an `AMC Int. Message Setup` record for message type `Postal Code Validati
 | Field | Value |
 | --- | --- |
 | `Endpoint URL` | `https://api.zippopotam.us` |
-| `Transport` | `HTTP` |
+| `Transport` | `HTTP/HTTPS` |
 | `Enabled` | `true` |
 | `Process Response` | `true` |
 | `Auth Profile Code` | blank |
@@ -95,7 +95,7 @@ Create an `AMC Int. Message Setup` record for message type `Postal Code Validati
 | `Base Retry Delay (sec)` | `60` |
 | `Timeout (ms)` | `10000` |
 
-The Business Central environment must allow outbound HTTP requests to `https://api.zippopotam.us`.
+The Business Central environment must allow outbound HTTPS requests to `https://api.zippopotam.us`.
 
 ### Demo Usage
 
@@ -110,13 +110,9 @@ The Business Central environment must allow outbound HTTP requests to `https://a
 
 ### Make Outbox Work
 
-DOKONCZYLEM LOGIKE W SETUPIE i OUTBOX DISPATCHER
-Przejrzec auth tak zeby deklaracje funkcji byly w tabeli
-WYSLAC
-  OUTBOX PROCESSOR i MESSAGE HANDLER SPRAWDZONY TERAZ SPRAWDZIC TRANSPORT HANDLER
-ZROBIC DEMO APP, KTORE COS WYSYLA Z UZYCIEM TEGO MECHANIZMU
-  - tlumaczenie payment terms code
-  - pobieranie dancych o firmie na podstawie nip
+Ustawic config dla demo i sprobowac wyslac
+finalnie dla tego demo powienien byc nowy job, ktory bedzie walidowal wszystkie post codes
+Jesli wysylka bedzie dziala to zrobic inbox
 
 #### What Is Already Done
 
@@ -128,7 +124,7 @@ ZROBIC DEMO APP, KTORE COS WYSYLA Z UZYCIEM TEGO MECHANIZMU
 - `AMC Outbox Dispatcher Job` scans ready or failed entries where `Next Attempt At` is due and calls `AMC Outbox Processor` for each entry.
 - `AMC Outbox Processor` contains the intended processing flow: load setup, check eligibility, validate setup, build request, send request, validate response, optionally create inbox entry, and mark the outbox entry as sent.
 - `AMC IMessageHandler` and `AMC Int. Message Type` separate message-specific request and response behavior from the generic outbox processor.
-- `AMC IHttpTransportHandler` and `AMC Int. Transport Type` separate transport behavior from message handling, with `AMC Http Transport Default` as the first HTTP implementation.
+- `AMC IHttpTransportHandler` and `AMC Int. Transport Type` separate transport behavior from message handling, with `AMC Http Transport Default` as the first HTTP/HTTPS implementation.
 
 #### Current Flow
 
