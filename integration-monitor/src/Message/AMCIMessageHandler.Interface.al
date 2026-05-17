@@ -1,4 +1,5 @@
 namespace Addmecode.IntegrationMonitor.Message;
+using Addmecode.IntegrationMonitor.Inbox;
 using Addmecode.IntegrationMonitor.Outbox;
 
 interface "AMC IMessageHandler"
