@@ -1,4 +1,5 @@
 namespace Addmecode.IntegrationMonitor.Outbox;
+using Addmecode.IntegrationMonitor.Inbox;
 
 page 50113 "AMC Int. Outbox Entries"
 {
@@ -55,6 +56,18 @@ page 50113 "AMC Int. Outbox Entries"
 
     actions
     {
+        area(Navigation)
+        {
+            action(ShowRelatedInboxEntries)
+            {
+                ApplicationArea = All;
+                Caption = 'Related Inbox Entries';
+                Image = Entries;
+                RunObject = page "AMC Int. Inbox Entries";
+                RunPageLink = "Outbox Entry No." = field("Entry No.");
+                ToolTip = 'Opens the inbox entries created for the selected integration outbox entry.';
+            }
+        }
         area(processing)
         {
             action(Process)
