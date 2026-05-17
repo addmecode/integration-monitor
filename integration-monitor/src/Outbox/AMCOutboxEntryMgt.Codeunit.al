@@ -35,6 +35,16 @@ codeunit 50119 "AMC Outbox Entry Mgt."
         Outbox.Modify(true);
     end;
 
+    procedure ProcessEntry(var Outbox: Record "AMC Int. Outbox Entry")
+    var
+        OutboxFailureHandler: Codeunit "AMC Outbox Failure Handler";
+        OutboxProcessor: Codeunit "AMC Outbox Processor";
+    begin
+        if not OutboxProcessor.Run(Outbox) then
+            if not OutboxFailureHandler.Run(Outbox) then
+                ClearLastError();
+    end;
+
     procedure ViewPayload(Outbox: Record "AMC Int. Outbox Entry")
     var
         PayloadPage: Page "AMC Int. Outbox Payload";

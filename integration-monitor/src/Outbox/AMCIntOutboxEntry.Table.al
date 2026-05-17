@@ -115,6 +115,13 @@ table 50107 "AMC Int. Outbox Entry"
         OutboxEntryMgt.CancelEntry(Rec);
     end;
 
+    procedure ProcessEntry()
+    var
+        OutboxEntryMgt: Codeunit "AMC Outbox Entry Mgt.";
+    begin
+        OutboxEntryMgt.ProcessEntry(Rec);
+    end;
+
     procedure ViewPayload()
     var
         OutboxEntryMgt: Codeunit "AMC Outbox Entry Mgt.";

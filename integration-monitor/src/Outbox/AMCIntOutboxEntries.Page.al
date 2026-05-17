@@ -57,6 +57,18 @@ page 50113 "AMC Int. Outbox Entries"
     {
         area(processing)
         {
+            action(Process)
+            {
+                ApplicationArea = All;
+                Caption = 'Process';
+                Image = Process;
+                ToolTip = 'Processes the selected integration outbox entry.';
+                trigger OnAction()
+                begin
+                    Rec.ProcessEntry();
+                    CurrPage.Update(false);
+                end;
+            }
             action("Reset")
             {
                 ApplicationArea = All;
