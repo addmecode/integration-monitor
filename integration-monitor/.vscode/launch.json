@@ -12,7 +12,7 @@
             "authentication": "UserPassword",
             "startupObjectId": 50116,
             "startupObjectType": "Page",
-            // "breakOnError": "ExcludeTry",
+            "breakOnError": "ExcludeTry",
             "launchBrowser": true,
             "enableLongRunningSqlStatements": true,
             "enableSqlInformationDebugger": true,

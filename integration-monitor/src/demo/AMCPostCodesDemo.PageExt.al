@@ -24,6 +24,12 @@ pageextension 50123 "AMC Post Codes Demo" extends "Post Codes"
                 Style = Unfavorable;
                 StyleExpr = IsCityInvalid;
             }
+            field("AMC City Validated By"; Rec."AMC City Validated By")
+            {
+                ApplicationArea = All;
+                Style = Unfavorable;
+                StyleExpr = IsCityInvalid;
+            }
         }
     }
 

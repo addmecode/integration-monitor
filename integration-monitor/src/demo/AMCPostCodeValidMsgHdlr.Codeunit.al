@@ -25,6 +25,7 @@ codeunit 50124 "AMC Post Code Valid Msg Hdlr" implements "AMC IMessageHandler"
         PostCode := this.GetPayloadText(Payload, 'code');
 
         Request.Method := 'GET';
+        // todo: save BuildRequestUri to local var before using it
         Request.SetRequestUri(this.BuildRequestUri(IntMessageSetup."Endpoint URL", CountryRegionCode, PostCode));
     end;
 
