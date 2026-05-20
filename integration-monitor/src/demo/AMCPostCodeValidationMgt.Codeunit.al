@@ -95,7 +95,7 @@ codeunit 50123 "AMC Post Code Validation Mgt"
         Inbox: Record "AMC Int. Inbox Entry";
     begin
         Inbox.SetRange("Outbox Entry No.", OutboxEntryNo);
-        Inbox.SetFilter(Status, '<>%1', Inbox.Status::Sent);
+        Inbox.SetFilter(Status, '<>%1', Inbox.Status::Received);
         DeletedInboxCount += Inbox.Count();
         Inbox.DeleteAll(true);
     end;

@@ -16,21 +16,19 @@ codeunit 50118 "AMC Outbox Failure Handler"
     var
         IntMessageSetup: Record "AMC Int. Message Setup";
     begin
-        if not IntMessageSetup.Get(Outbox."Message Type") then begin
-            IntMessageSetup.Init();
-            IntMessageSetup."Max Attempts" := 0;
-            IntMessageSetup."Base Retry Delay (sec)" := 0;
-        end;
-
-        Outbox."Sent At" := 0DT;
+        Outbox."Processed At" := CurrentDateTime;
         Outbox."Attempt Count" += 1;
         Outbox."Last Attempt At" := CurrentDateTime;
-        if Outbox."Attempt Count" >= IntMessageSetup."Max Attempts" then
-            Outbox.Status := Outbox.Status::Cancelled
-        else begin
-            Outbox.Status := Outbox.Status::Failed;
-            Outbox."Next Attempt At" := this.GetNextAttemptAt(Outbox, IntMessageSetup);
-        end;
+
+        if IntMessageSetup.Get(Outbox."Message Type") then begin
+            if Outbox."Attempt Count" >= IntMessageSetup."Max Attempts" then
+                Outbox.Status := Outbox.Status::Cancelled
+            else begin
+                Outbox.Status := Outbox.Status::Failed;
+                Outbox."Next Attempt At" := this.GetNextAttemptAt(Outbox, IntMessageSetup);
+            end;
+        end else
+            Outbox.Status := Outbox.Status::Cancelled;
 
         this.SetLastError(Outbox, ErrorText);
         Outbox.Modify(true);
@@ -49,7 +47,7 @@ codeunit 50118 "AMC Outbox Failure Handler"
         LastErrorResponseOutStream: OutStream;
     begin
         //todo: test this
-        Outbox."Last Error Response".CreateOutStream(LastErrorResponseOutStream);
+        Outbox."Last Error".CreateOutStream(LastErrorResponseOutStream);
         LastErrorResponseOutStream.Write(ErrorText);
     end;
 }

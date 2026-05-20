@@ -1,15 +1,14 @@
 namespace Addmecode.IntegrationMonitor.Outbox;
-using Addmecode.IntegrationMonitor.Setup;
 
 codeunit 50119 "AMC Outbox Entry Mgt."
 {
-    procedure TestMessageSetupExists(Outbox: Record "AMC Int. Outbox Entry")
-    var
-        IntMessageSetup: Record "AMC Int. Message Setup";
-        MissingMessageSetupErr: Label 'Integration message setup for message type %1 does not exist.', Comment = '%1 = message type';
+    internal procedure OnInsertOutboxEntry(var Outbox: Record "AMC Int. Outbox Entry")
     begin
-        if not IntMessageSetup.Get(Outbox."Message Type") then
-            Error(MissingMessageSetupErr, Format(Outbox."Message Type"));
+        if Outbox."Created At" = 0DT then
+            Outbox."Created At" := CurrentDateTime();
+
+        if Outbox."Next Attempt At" = 0DT then
+            Outbox."Next Attempt At" := CurrentDateTime();
     end;
 
     procedure ResetEntry(var Outbox: Record "AMC Int. Outbox Entry")
@@ -21,9 +20,9 @@ codeunit 50119 "AMC Outbox Entry Mgt."
         Outbox.Status := Outbox.Status::ReadyToProcess;
         Outbox."Next Attempt At" := CurrentDateTime();
         Outbox."Last Attempt At" := 0DT;
-        Outbox."Sent At" := 0DT;
+        Outbox."Processed At" := 0DT;
         Outbox."Attempt Count" := 0;
-        Clear(Outbox."Last Error Response");
+        Clear(Outbox."Last Error");
         Outbox.Modify(true);
     end;
 
@@ -47,23 +46,28 @@ codeunit 50119 "AMC Outbox Entry Mgt."
 
     procedure ViewPayload(Outbox: Record "AMC Int. Outbox Entry")
     var
-        PayloadPage: Page "AMC Int. Outbox Payload";
+        PayloadPage: Page "AMC Int. Blob Viewer";
+        OutboxRef: RecordRef;
     begin
-        PayloadPage.SetRecord(Outbox);
+        OutboxRef.GetTable(Outbox);
+        PayloadPage.SetBlob(OutboxRef, Outbox.FieldNo("Request Payload"));
         PayloadPage.SetReadOnly(true);
         PayloadPage.RunModal();
     end;
 
     procedure EditPayload(Outbox: Record "AMC Int. Outbox Entry")
     var
-        PayloadPage: Page "AMC Int. Outbox Payload";
+        PayloadPage: Page "AMC Int. Blob Viewer";
+        OutboxRef: RecordRef;
         StatusMustBeCancelledForEditingPayloadErr: Label 'To be able to modify the payload the status must be set to Cancelled';
     begin
         if Outbox.Status <> Outbox.Status::Cancelled then
             Error(StatusMustBeCancelledForEditingPayloadErr);
-        PayloadPage.SetRecord(Outbox);
+        OutboxRef.GetTable(Outbox);
+        PayloadPage.SetBlob(OutboxRef, Outbox.FieldNo("Request Payload"));
         PayloadPage.SetReadOnly(false);
         PayloadPage.RunModal();
+        PayloadPage.GetBlob(OutboxRef, Outbox.FieldNo("Request Payload"));
     end;
 
     procedure ViewErrorDetails(Outbox: Record "AMC Int. Outbox Entry")
@@ -75,7 +79,7 @@ codeunit 50119 "AMC Outbox Entry Mgt."
         if not GuiAllowed then
             exit;
         OutboxRef.GetTable(Outbox);
-        LastErrorResponseAsText := BlobHelper.ReadBlobAsText(OutboxRef, Outbox.FieldNo("Last Error Response"));
+        LastErrorResponseAsText := BlobHelper.ReadBlobAsText(OutboxRef, Outbox.FieldNo("Last Error"));
         Message(LastErrorResponseAsText);
     end;
 }

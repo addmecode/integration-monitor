@@ -46,7 +46,7 @@ table 50107 "AMC Int. Outbox Entry"
             DataClassification = SystemMetadata;
             ToolTip = 'Specifies the date and time when the most recent processing attempt occurred.';
         }
-        field(7; "Sent At"; DateTime)
+        field(7; "Processed At"; DateTime)
         {
             DataClassification = SystemMetadata;
             ToolTip = 'Specifies the date and time when the integration outbox entry was sent successfully.';
@@ -61,7 +61,7 @@ table 50107 "AMC Int. Outbox Entry"
             DataClassification = CustomerContent;
             ToolTip = 'Specifies the request payload that will be sent for the integration outbox entry.';
         }
-        field(10; "Last Error Response"; Blob)
+        field(10; "Last Error"; Blob)
         {
             DataClassification = CustomerContent;
             ToolTip = 'Specifies the error message from the most recent failed processing attempt.';
@@ -84,21 +84,17 @@ table 50107 "AMC Int. Outbox Entry"
         }
     }
     trigger OnInsert()
+    var
+        OutboxEntryMgt: Codeunit "AMC Outbox Entry Mgt.";
     begin
-        this.TestMessageSetupExists();
-
-        if "Created At" = 0DT then
-            "Created At" := CurrentDateTime();
-
-        if "Next Attempt At" = 0DT then
-            "Next Attempt At" := CurrentDateTime();
+        OutboxEntryMgt.OnInsertOutboxEntry(Rec);
     end;
 
     local procedure TestMessageSetupExists()
     var
-        OutboxEntryMgt: Codeunit "AMC Outbox Entry Mgt.";
+        MessageMgt: Codeunit "AMC Message Mgt.";
     begin
-        OutboxEntryMgt.TestMessageSetupExists(Rec);
+        MessageMgt.TestMessageSetupExists(Rec."Message Type");
     end;
 
     procedure ResetEntry()

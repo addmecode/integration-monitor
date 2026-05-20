@@ -42,7 +42,7 @@ page 50113 "AMC Int. Outbox Entries"
                 {
                     ApplicationArea = All;
                 }
-                field("Sent At"; Rec."Sent At")
+                field("Processed At"; Rec."Processed At")
                 {
                     ApplicationArea = All;
                 }

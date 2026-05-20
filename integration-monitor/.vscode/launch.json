@@ -10,7 +10,7 @@
             "server": "http://ui-translation-bc-27-3",
             "serverInstance": "BC",
             "authentication": "UserPassword",
-            "startupObjectId": 50116,
+            "startupObjectId": 50113,
             "startupObjectType": "Page",
             "breakOnError": "ExcludeTry",
             "launchBrowser": true,

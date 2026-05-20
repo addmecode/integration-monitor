@@ -37,7 +37,7 @@ codeunit 50116 "AMC Outbox Processor"
             this.CreateInboxEntry(Outbox, Response);
 
         Outbox.Status := Outbox.Status::Sent;
-        Outbox."Sent At" := this.ProcessOn;
+        Outbox."Processed At" := this.ProcessOn;
         Outbox.Modify(true);
     end;
 
@@ -118,8 +118,8 @@ codeunit 50116 "AMC Outbox Processor"
         Inbox."Outbox Entry No." := Outbox."Entry No.";
         Inbox."Message Type" := Outbox."Message Type";
         Inbox.Status := Inbox.Status::ReadyToProcess;
-        Inbox."Received At" := this.ProcessOn;
-        Inbox."Next Attempt At" := Inbox."Received At";
+        Inbox."Created At" := this.ProcessOn;
+        Inbox."Next Attempt At" := Inbox."Created At";
         Inbox."Attempt Count" := 0;
 
         //todo: move to inbox table

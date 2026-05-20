@@ -1,4 +1,5 @@
 namespace Addmecode.IntegrationMonitor.Inbox;
+using Addmecode.IntegrationMonitor.Outbox;
 
 page 50114 "AMC Int. Inbox Entries"
 {
@@ -21,10 +22,6 @@ page 50114 "AMC Int. Inbox Entries"
                 {
                     ApplicationArea = All;
                 }
-                field("Outbox Entry No."; Rec."Outbox Entry No.")
-                {
-                    ApplicationArea = All;
-                }
                 field("Message Type"; Rec."Message Type")
                 {
                     ApplicationArea = All;
@@ -33,11 +30,7 @@ page 50114 "AMC Int. Inbox Entries"
                 {
                     ApplicationArea = All;
                 }
-                field("Received At"; Rec."Received At")
-                {
-                    ApplicationArea = All;
-                }
-                field("Processed At"; Rec."Processed At")
+                field("Created At"; Rec."Created At")
                 {
                     ApplicationArea = All;
                 }
@@ -45,15 +38,19 @@ page 50114 "AMC Int. Inbox Entries"
                 {
                     ApplicationArea = All;
                 }
+                field("Last Attempt At"; Rec."Last Attempt At")
+                {
+                    ApplicationArea = All;
+                }
+                field("Processed At"; Rec."Processed At")
+                {
+                    ApplicationArea = All;
+                }
                 field("Attempt Count"; Rec."Attempt Count")
                 {
                     ApplicationArea = All;
                 }
-                field("Correlation ID"; Rec."Correlation ID")
-                {
-                    ApplicationArea = All;
-                }
-                field("Last Error"; Rec."Last Error")
+                field("Outbox Entry No."; Rec."Outbox Entry No.")
                 {
                     ApplicationArea = All;
                 }
@@ -61,64 +58,90 @@ page 50114 "AMC Int. Inbox Entries"
         }
     }
 
-    // actions
-    // {
-    //     area(processing)
-    //     {
-    //         action(Retry)
-    //         {
-    //             ApplicationArea = All;
-    //             Caption = 'Retry';
-    //             Image = Repeat;
-    //             trigger OnAction()
-    //             begin
-    //                 if Rec.Status = Rec.Status::Cancelled then
-    //                     exit;
-
-    //                 Rec.Status := Rec.Status::Ready;
-    //                 Rec."Next Attempt At" := CurrentDateTime();
-    //                 Rec.Modify(true);
-    //             end;
-    //         }
-    //         action(Cancel)
-    //         {
-    //             ApplicationArea = All;
-    //             Caption = 'Cancel';
-    //             Image = Cancel;
-    //             trigger OnAction()
-    //             begin
-    //                 Rec.Status := Rec.Status::Cancelled;
-    //                 Rec.Modify(true);
-    //             end;
-    //         }
-    //         action(ViewResponse)
-    //         {
-    //             ApplicationArea = All;
-    //             Caption = 'View Response';
-    //             Image = View;
-    //             trigger OnAction()
-    //             begin
-    //                 PayloadPage.SetRecord(Rec);
-    //                 PayloadPage.SetReadOnly(true);
-    //                 PayloadPage.RunModal();
-    //             end;
-    //         }
-    //         action(ViewErrorDetails)
-    //         {
-    //             ApplicationArea = All;
-    //             Caption = 'View Error Details';
-    //             Image = Error;
-    //             trigger OnAction()
-    //             begin
-    //                 ErrorPage.SetRecord(Rec);
-    //                 ErrorPage.RunModal();
-    //             end;
-    //         }
-    //     }
-    // }
-
-    // var
-    //     PayloadPage: Page "AMC Int. Inbox Payload";
-    //     ErrorPage: Page "AMC Int. Inbox Error";
+    actions
+    {
+        area(Navigation)
+        {
+            action(ShowRelatedOutboxEntries)
+            {
+                ApplicationArea = All;
+                Caption = 'Related Outbox Entries';
+                Image = Entries;
+                RunObject = page "AMC Int. Outbox Entries";
+                RunPageLink = "Entry No." = field("Outbox Entry No.");
+                ToolTip = 'Opens the related outbox entries.';
+            }
+        }
+        area(processing)
+        {
+            action(Process)
+            {
+                ApplicationArea = All;
+                Caption = 'Process';
+                Image = Process;
+                ToolTip = 'Processes the selected integration inbox entry.';
+                trigger OnAction()
+                begin
+                    Rec.ProcessEntry();
+                    CurrPage.Update(false);
+                end;
+            }
+            action("Reset")
+            {
+                ApplicationArea = All;
+                Caption = 'Reset';
+                Image = Redo;
+                ToolTip = 'Reset entry the selected integration inbox entry.';
+                trigger OnAction()
+                begin
+                    Rec.ResetEntry();
+                end;
+            }
+            action(Cancel)
+            {
+                ApplicationArea = All;
+                Caption = 'Cancel';
+                Image = Cancel;
+                ToolTip = 'Cancels processing for the selected integration inbox entry.';
+                trigger OnAction()
+                begin
+                    Rec.CancelEntry();
+                end;
+            }
+            action(ViewPayload)
+            {
+                ApplicationArea = All;
+                Caption = 'View Payload';
+                Image = View;
+                ToolTip = 'Opens the request payload for the selected integration inbox entry in read-only mode.';
+                trigger OnAction()
+                begin
+                    Rec.ViewPayload();
+                end;
+            }
+            action(EditPayload)
+            {
+                ApplicationArea = All;
+                Caption = 'Edit Payload';
+                Image = Edit;
+                ToolTip = 'Opens the request payload for the selected integration inbox entry for editing.';
+                trigger OnAction()
+                begin
+                    Rec.EditPayload();
+                end;
+            }
+            action(ViewErrorDetails)
+            {
+                ApplicationArea = All;
+                Caption = 'View Error Details';
+                Image = Error;
+                ToolTip = 'Opens the error details for the selected integration inbox entry.';
+                trigger OnAction()
+                begin
+                    Rec.ViewErrorDetails();
+                end;
+            }
+        }
+    }
 }
 
