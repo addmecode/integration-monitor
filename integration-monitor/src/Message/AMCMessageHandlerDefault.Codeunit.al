@@ -36,17 +36,8 @@ codeunit 50114 "AMC Message Handler Default" implements "AMC IMessageHandler"
         end;
     end;
 
-    /// <summary>
-    /// Processes an inbound response entry.
-    /// </summary>
-    /// <param name="Inbox">Inbox entry to process.</param>
-    /// <param name="Setup">Message setup for the entry.</param>
-    /// <param name="Success">Set to true if processing succeeded.</param>
-    /// <param name="ErrorText">Error text if processing failed.</param>
-    /// <param name="ErrorDetail">Optional error details text.</param>
-    procedure ProcessResponse(Inbox: Record "AMC Int. Inbox Entry"; var Success: Boolean)
+    procedure ProcessResponse(Inbox: Record "AMC Int. Inbox Entry")
     begin
-        //todo: do i need success?
-        Success := true;
+
     end;
 }

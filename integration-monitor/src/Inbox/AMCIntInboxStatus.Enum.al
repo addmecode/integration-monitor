@@ -12,9 +12,9 @@ enum 50106 "AMC Int. Inbox Status"
     {
         Caption = 'Processing';
     }
-    value(2; Received)
+    value(2; Processed)
     {
-        Caption = 'Received';
+        Caption = 'Processed';
     }
     value(3; Failed)
     {

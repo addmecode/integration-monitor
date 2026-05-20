@@ -36,7 +36,7 @@ codeunit 50116 "AMC Outbox Processor"
         if IntMessageSetup."Process Response" then
             this.CreateInboxEntry(Outbox, Response);
 
-        Outbox.Status := Outbox.Status::Sent;
+        Outbox.Status := Outbox.Status::Processed;
         Outbox."Processed At" := this.ProcessOn;
         Outbox.Modify(true);
     end;

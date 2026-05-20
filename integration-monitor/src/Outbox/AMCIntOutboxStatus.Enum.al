@@ -12,9 +12,9 @@ enum 50102 "AMC Int. Outbox Status"
     {
         Caption = 'Processing';
     }
-    value(2; Sent)
+    value(2; Processed)
     {
-        Caption = 'Sent';
+        Caption = 'Processed';
     }
     value(3; Failed)
     {

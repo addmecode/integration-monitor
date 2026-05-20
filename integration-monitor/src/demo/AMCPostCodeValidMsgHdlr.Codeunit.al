@@ -30,9 +30,9 @@ codeunit 50124 "AMC Post Code Valid Msg Hdlr" implements "AMC IMessageHandler"
         Request.SetRequestUri(this.BuildRequestUri(IntMessageSetup."Endpoint URL", CountryRegionCode, PostCode));
     end;
 
-    procedure ProcessResponse(Inbox: Record "AMC Int. Inbox Entry"; var Success: Boolean)
+    procedure ProcessResponse(Inbox: Record "AMC Int. Inbox Entry")
     begin
-        Success := false;
+        // todo
     end;
 
     local procedure BuildRequestUri(BaseUrl: Text; CountryRegionCode: Text; PostCode: Text): Text

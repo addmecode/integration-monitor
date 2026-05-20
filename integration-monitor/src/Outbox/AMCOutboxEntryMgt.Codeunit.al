@@ -13,10 +13,10 @@ codeunit 50119 "AMC Outbox Entry Mgt."
 
     procedure ResetEntry(var Outbox: Record "AMC Int. Outbox Entry")
     var
-        EntryAlreadySentErr: label 'The entry is already sent';
+        CannotResetEntryErr: label 'Cannot reset entry with status = %1', Comment = '%1 is entry status';
     begin
-        if Outbox.Status = Outbox.Status::Sent then
-            Error(EntryAlreadySentErr);
+        if (Outbox.Status = Outbox.Status::Processed) or (Outbox.Status = Outbox.Status::Processing) then
+            Error(CannotResetEntryErr, Outbox.Status);
         Outbox.Status := Outbox.Status::ReadyToProcess;
         Outbox."Next Attempt At" := CurrentDateTime();
         Outbox."Last Attempt At" := 0DT;
