@@ -1,4 +1,9 @@
-codeunit 50110 "AMC Message Handler Default" implements "AMC IMessageHandler"
+namespace Addmecode.IntegrationMonitor.Message;
+using Addmecode.IntegrationMonitor.Inbox;
+using Addmecode.IntegrationMonitor.Outbox;
+using Addmecode.IntegrationMonitor.Setup;
+
+codeunit 50114 "AMC Message Handler Default" implements "AMC IMessageHandler"
 {
     /// <summary>
     /// Builds an outbound HTTP request based on the outbox entry and setup.
@@ -31,18 +36,8 @@ codeunit 50110 "AMC Message Handler Default" implements "AMC IMessageHandler"
         end;
     end;
 
-    /// <summary>
-    /// Processes an inbound response entry.
-    /// </summary>
-    /// <param name="Inbox">Inbox entry to process.</param>
-    /// <param name="Setup">Message setup for the entry.</param>
-    /// <param name="Success">Set to true if processing succeeded.</param>
-    /// <param name="ErrorText">Error text if processing failed.</param>
-    /// <param name="ErrorDetail">Optional error details text.</param>
-    procedure ProcessResponse(Inbox: Record "AMC Int. Inbox Entry"; var Success: Boolean)
-    var
-        IntMessageSetup: Record "AMC Int. Message Setup";
+    procedure ProcessResponse(Inbox: Record "AMC Int. Inbox Entry")
     begin
-        Success := true;
+
     end;
 }

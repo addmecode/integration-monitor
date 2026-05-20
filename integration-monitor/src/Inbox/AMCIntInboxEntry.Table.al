@@ -1,86 +1,150 @@
+namespace Addmecode.IntegrationMonitor.Inbox;
+using Addmecode.IntegrationMonitor.Message;
+using Addmecode.IntegrationMonitor.Outbox;
+
+
 table 50106 "AMC Int. Inbox Entry"
 {
-  DataClassification = CustomerContent;
+    DataClassification = CustomerContent;
+    Caption = 'Integration Inbox Entry';
+    AllowInCustomizations = AsReadOnly;
 
-  fields
-  {
-    field(1; "Entry No."; Integer)
+    fields
     {
-      DataClassification = SystemMetadata;
-      AutoIncrement = true;
+        field(1; "Entry No."; Integer)
+        {
+            DataClassification = SystemMetadata;
+            AutoIncrement = true;
+            ToolTip = 'Specifies the unique entry number assigned to the integration inbox entry.';
+        }
+        field(2; "Message Type"; Enum "AMC Int. Message Type")
+        {
+            DataClassification = SystemMetadata;
+            NotBlank = true;
+            ToolTip = 'Specifies the integration message type for this inbox entry.';
+            trigger OnValidate()
+            begin
+                this.TestMessageSetupExists();
+            end;
+        }
+        field(3; Status; Enum "AMC Int. Inbox Status")
+        {
+            DataClassification = SystemMetadata;
+            ToolTip = 'Specifies the current processing status of the integration inbox entry.';
+        }
+        field(4; "Created At"; DateTime)
+        {
+            DataClassification = SystemMetadata;
+            ToolTip = 'Specifies the date and time when the integration inbox entry was received.';
+        }
+        field(5; "Next Attempt At"; DateTime)
+        {
+            DataClassification = SystemMetadata;
+            ToolTip = 'Specifies the date and time when the next processing attempt should occur.';
+        }
+        field(6; "Last Attempt At"; DateTime)
+        {
+            DataClassification = SystemMetadata;
+            ToolTip = 'Specifies the date and time when the most recent processing attempt occurred.';
+        }
+        field(7; "Processed At"; DateTime)
+        {
+            DataClassification = SystemMetadata;
+            ToolTip = 'Specifies the date and time when the integration inbox entry was processed successfully.';
+        }
+        field(8; "Attempt Count"; Integer)
+        {
+            DataClassification = SystemMetadata;
+            ToolTip = 'Specifies the number of processing attempts made for the integration inbox entry.';
+        }
+        field(9; "Response Payload"; Blob)
+        {
+            DataClassification = CustomerContent;
+            ToolTip = 'Specifies the response payload received for the integration inbox entry.';
+        }
+        field(10; "Last Error"; Blob)
+        {
+            DataClassification = CustomerContent;
+            ToolTip = 'Specifies the error message from the most recent failed processing attempt.';
+        }
+        field(11; "Source Record ID"; RecordId)
+        {
+            FieldClass = FlowField;
+            CalcFormula = lookup("AMC Int. Outbox Entry"."Source Record ID" where("Entry No." = field("Outbox Entry No.")));
+            ToolTip = 'Specifies the source record that created the related integration outbox entry.';
+        }
+        field(12; "Outbox Entry No."; Integer)
+        {
+            DataClassification = SystemMetadata;
+            TableRelation = "AMC Int. Outbox Entry"."Entry No.";
+            ToolTip = 'Specifies the related integration outbox entry that created this inbox entry.';
+        }
     }
-    field(2; "Outbox Entry No."; Integer)
-    {
-      DataClassification = SystemMetadata;
-      TableRelation = "AMC Int. Outbox Entry"."Entry No.";
-    }
-    field(3; "Message Type"; Enum "AMC Int. Message Type")
-    {
-      DataClassification = SystemMetadata;
-    }
-    field(4; Status; Enum "AMC Int. Queue Status")
-    {
-      DataClassification = SystemMetadata;
-    }
-    field(5; "Correlation ID"; Guid)
-    {
-      DataClassification = SystemMetadata;
-    }
-    field(6; "Received At"; DateTime)
-    {
-      DataClassification = SystemMetadata;
-    }
-    field(7; "Next Attempt At"; DateTime)
-    {
-      DataClassification = SystemMetadata;
-    }
-    field(8; "Last Attempt At"; DateTime)
-    {
-      DataClassification = SystemMetadata;
-    }
-    field(9; "Processed At"; DateTime)
-    {
-      DataClassification = SystemMetadata;
-    }
-    field(10; "Attempt Count"; Integer)
-    {
-      DataClassification = SystemMetadata;
-    }
-    field(11; "Response Payload"; Blob)
-    {
-      DataClassification = CustomerContent;
-    }
-    field(12; "Last Error"; Text[2048])
-    {
-      DataClassification = CustomerContent;
-    }
-    field(13; "Error Details"; Blob)
-    {
-      DataClassification = CustomerContent;
-    }
-  }
 
-  keys
-  {
-    key(PK; "Entry No.")
+    keys
     {
-      Clustered = true;
+        key(PK; "Entry No.")
+        {
+            Clustered = true;
+        }
+        key(StatusNextAttempt; Status, "Next Attempt At")
+        {
+        }
     }
-    key(StatusNextAttempt; Status, "Next Attempt At")
-    {
-    }
-  }
 
-  trigger OnInsert()
-  begin
-    if "Received At" = 0DT then
-      "Received At" := CurrentDateTime();
+    trigger OnInsert()
+    var
+        InboxEntryMgt: Codeunit "AMC Inbox Entry Mgt.";
+    begin
+        InboxEntryMgt.OnInsertInboxEntry(Rec);
+    end;
 
-    if "Next Attempt At" = 0DT then
-      "Next Attempt At" := CurrentDateTime();
+    local procedure TestMessageSetupExists()
+    var
+        MessageMgt: Codeunit "AMC Message Mgt.";
+    begin
+        MessageMgt.TestMessageSetupExists(Rec."Message Type");
+    end;
 
-    if IsNullGuid("Correlation ID") then
-      "Correlation ID" := CreateGuid();
-  end;
+    procedure ResetEntry()
+    var
+        InboxEntryMgt: Codeunit "AMC Inbox Entry Mgt.";
+    begin
+        InboxEntryMgt.ResetEntry(Rec);
+    end;
+
+    procedure CancelEntry()
+    var
+        InboxEntryMgt: Codeunit "AMC Inbox Entry Mgt.";
+    begin
+        InboxEntryMgt.CancelEntry(Rec);
+    end;
+
+    procedure ProcessEntry()
+    var
+        InboxEntryMgt: Codeunit "AMC Inbox Entry Mgt.";
+    begin
+        InboxEntryMgt.ProcessEntry(Rec);
+    end;
+
+    procedure ViewPayload()
+    var
+        InboxEntryMgt: Codeunit "AMC Inbox Entry Mgt.";
+    begin
+        InboxEntryMgt.ViewPayload(Rec);
+    end;
+
+    procedure EditPayload()
+    var
+        InboxEntryMgt: Codeunit "AMC Inbox Entry Mgt.";
+    begin
+        InboxEntryMgt.EditPayload(Rec);
+    end;
+
+    procedure ViewErrorDetails()
+    var
+        InboxEntryMgt: Codeunit "AMC Inbox Entry Mgt.";
+    begin
+        InboxEntryMgt.ViewErrorDetails(Rec);
+    end;
 }
-

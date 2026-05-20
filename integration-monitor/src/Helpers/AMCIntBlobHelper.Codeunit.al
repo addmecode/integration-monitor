@@ -1,4 +1,4 @@
-codeunit 50109 "AMC Int. Blob Helper"
+codeunit 50113 "AMC Int. Blob Helper"
 {
     // TODO: move to utils
 
@@ -29,12 +29,11 @@ codeunit 50109 "AMC Int. Blob Helper"
     procedure WriteTextToBlob(var AnyRecord: RecordRef; FieldNo: Integer; Value: Text)
     var
         TempBlob: Codeunit "Temp Blob";
-        RecRef: RecordRef;
         OutStream: OutStream;
     begin
         TempBlob.CreateOutStream(OutStream);
         OutStream.Write(Value);
         TempBlob.ToRecordRef(AnyRecord, FieldNo);
-        RecRef.Modify(true);
+        AnyRecord.Modify(true);
     end;
 }
