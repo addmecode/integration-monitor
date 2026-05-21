@@ -16,8 +16,9 @@ codeunit 50126 "AMC Inbox Entry Mgt."
     var
         CannotResetEntryErr: label 'Cannot reset entry with status = %1', Comment = '%1 is entry status';
     begin
-        if (Inbox.Status = Inbox.Status::Processed) or (Inbox.Status = Inbox.Status::Processing) then
-            Error(CannotResetEntryErr, Inbox.Status);
+        //todo only for testing
+        // if (Inbox.Status = Inbox.Status::Processed) or (Inbox.Status = Inbox.Status::Processing) then
+        //     Error(CannotResetEntryErr, Inbox.Status);
         Inbox.Status := Inbox.Status::ReadyToProcess;
         Inbox."Next Attempt At" := CurrentDateTime();
         Inbox."Last Attempt At" := 0DT;

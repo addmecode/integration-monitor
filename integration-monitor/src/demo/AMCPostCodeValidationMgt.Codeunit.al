@@ -14,6 +14,7 @@ codeunit 50123 "AMC Post Code Validation Mgt"
         if PostCode.FindSet() then
             repeat
                 PostCode.ResetValidation(DeletedOutboxCount, DeletedInboxCount);
+                PostCode.Modify(true);
                 ResetCount += 1;
             until PostCode.Next() = 0;
 
@@ -65,7 +66,6 @@ codeunit 50123 "AMC Post Code Validation Mgt"
         this.DeleteNotProcessedEntries(PostCode.RecordId(), DeletedOutboxCount, DeletedInboxCount);
 
         PostCode.Validate("AMC City Validation Status", PostCode."AMC City Validation Status"::" ");
-        PostCode.Modify(true);
     end;
 
     procedure UpdateCityValidationAudit(var PostCode: Record "Post Code")
