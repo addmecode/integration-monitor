@@ -110,4 +110,16 @@ codeunit 50123 "AMC Post Code Validation Mgt"
         PostCode.Validate("AMC Validation Status", PostCode."AMC Validation Status"::Sent);
         PostCode.Modify(true);
     end;
+
+    internal procedure GetValidationStyle(PostCode: Record "Post Code"): Text
+    begin
+        case PostCode."AMC Validation Status" of
+            PostCode."AMC Validation Status"::Valid:
+                exit('Favorable');
+            PostCode."AMC Validation Status"::Invalid:
+                exit('Unfavorable');
+            else
+                exit('');
+        end
+    end;
 }

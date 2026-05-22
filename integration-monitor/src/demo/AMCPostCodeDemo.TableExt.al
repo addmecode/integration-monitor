@@ -77,6 +77,13 @@ tableextension 50123 "AMC Post Code Demo" extends "Post Code"
         PostCodeValidationMgt.ResetValidation(Rec, DeletedOutboxCount, DeletedInboxCount);
     end;
 
+    internal procedure GetValidationStyle(): Text
+    var
+        PostCodeValidationMgt: Codeunit "AMC Post Code Validation Mgt";
+    begin
+        exit(PostCodeValidationMgt.GetValidationStyle(Rec));
+    end;
+
     local procedure UpdateValidationAudit()
     var
         PostCodeValidationMgt: Codeunit "AMC Post Code Validation Mgt";

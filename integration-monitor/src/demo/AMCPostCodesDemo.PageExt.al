@@ -7,33 +7,28 @@ pageextension 50123 "AMC Post Codes Demo" extends "Post Codes"
     {
         modify(City)
         {
-            Style = Unfavorable;
-            StyleExpr = IsValidationInvalid;
+            StyleExpr = ValidationStyle;
         }
         modify(County)
         {
-            Style = Unfavorable;
-            StyleExpr = IsValidationInvalid;
+            StyleExpr = ValidationStyle;
         }
         addlast(Control1)
         {
             field("AMC Validation Status"; Rec."AMC Validation Status")
             {
                 ApplicationArea = All;
-                Style = Unfavorable;
-                StyleExpr = IsValidationInvalid;
+                StyleExpr = ValidationStyle;
             }
             field("AMC Validated At"; Rec."AMC Validated At")
             {
                 ApplicationArea = All;
-                Style = Unfavorable;
-                StyleExpr = IsValidationInvalid;
+                StyleExpr = ValidationStyle;
             }
             field("AMC Validated By"; Rec."AMC Validated By")
             {
                 ApplicationArea = All;
-                Style = Unfavorable;
-                StyleExpr = IsValidationInvalid;
+                StyleExpr = ValidationStyle;
             }
         }
     }
@@ -87,9 +82,9 @@ pageextension 50123 "AMC Post Codes Demo" extends "Post Codes"
 
     trigger OnAfterGetRecord()
     begin
-        IsValidationInvalid := Rec."AMC Validation Status" = Rec."AMC Validation Status"::Invalid;
+        ValidationStyle := Rec.GetValidationStyle();
     end;
 
     var
-        IsValidationInvalid: Boolean;
+        ValidationStyle: Text;
 }
