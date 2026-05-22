@@ -17,6 +17,7 @@ codeunit 50124 "AMC Post Code Valid Msg Hdlr" implements "AMC IMessageHandler"
         PayloadText: Text;
         CountryRegionCode: Text;
         PostCode: Text;
+        RequestUri: Text;
     begin
         IntMessageSetup.Get(Outbox."Message Type");
 
@@ -27,8 +28,8 @@ codeunit 50124 "AMC Post Code Valid Msg Hdlr" implements "AMC IMessageHandler"
         PostCode := this.GetPayloadText(Payload, 'code');
 
         Request.Method := 'GET';
-        // todo: save BuildRequestUri to local var before using it
-        Request.SetRequestUri(this.BuildRequestUri(IntMessageSetup."Endpoint URL", CountryRegionCode, PostCode));
+        RequestUri := this.BuildRequestUri(IntMessageSetup."Endpoint URL", CountryRegionCode, PostCode);
+        Request.SetRequestUri(RequestUri);
     end;
 
     procedure ProcessResponse(Inbox: Record "AMC Int. Inbox Entry")
@@ -44,8 +45,6 @@ codeunit 50124 "AMC Post Code Valid Msg Hdlr" implements "AMC IMessageHandler"
         ResponsePayload.ReadFrom(PayloadText);
 
         this.GetSourcePostCode(Inbox, PostCode);
-        this.ValidateResponsePostCode(ResponsePayload, PostCode);
-
         if this.ResponseMatchesPostCodeDetails(ResponsePayload, PostCode) then
             PostCode.Validate("AMC Validation Status", PostCode."AMC Validation Status"::Valid)
         else
@@ -65,44 +64,50 @@ codeunit 50124 "AMC Post Code Valid Msg Hdlr" implements "AMC IMessageHandler"
         PostCodeRef.SetTable(PostCode);
     end;
 
-    local procedure ValidateResponsePostCode(ResponsePayload: JsonObject; PostCode: Record "Post Code")
-    var
-        ResponsePostCode: Text;
-        ResponsePostCodeMismatchErr: Label 'The postal code validation response contains post code %1, but inbox entry source post code is %2.', Comment = '%1 = response post code, %2 = source post code';
-    begin
-        ResponsePostCode := this.GetPayloadText(ResponsePayload, 'post code');
-        if this.NormalizeValue(ResponsePostCode) <> this.NormalizeValue(PostCode.Code) then
-            Error(ResponsePostCodeMismatchErr, ResponsePostCode, PostCode.Code);
-    end;
-
     local procedure ResponseMatchesPostCodeDetails(ResponsePayload: JsonObject; PostCode: Record "Post Code"): Boolean
     var
-        Place: JsonObject;
-        Places: JsonArray;
-        PlaceToken: JsonToken;
-        PlacesToken: JsonToken;
+        Result: JsonObject;
+        Results: JsonArray;
+        ResultToken: JsonToken;
+        ResultsToken: JsonToken;
         Index: Integer;
         MissingPayloadPropertyErr: Label 'The postal code validation payload does not contain property %1.', Comment = '%1 = JSON property name';
+        AdminNameFromPayload: Text;
         CityFromPayload: Text;
+        CityMatchesPayload: Boolean;
         CityFromTable: Text;
+        CountryRegionFromPayload: Text;
+        CountryRegionFromTable: Text;
+        PostCodeFromPayload: Text;
+        PostCodeFromTable: Text;
         StateFromPayload: Text;
         StateFromTable: Text;
     begin
-        if not ResponsePayload.Get('places', PlacesToken) then
-            Error(MissingPayloadPropertyErr, 'places');
+        if not ResponsePayload.Get('results', ResultsToken) then
+            Error(MissingPayloadPropertyErr, 'results');
 
-        Places := PlacesToken.AsArray();
-        if Places.Count() = 0 then
+        Results := ResultsToken.AsArray();
+        if Results.Count() = 0 then
             exit(false);
 
         CityFromTable := this.NormalizeValue(PostCode.City);
+        CountryRegionFromTable := this.NormalizeValue(PostCode."Country/Region Code");
+        PostCodeFromTable := this.NormalizeValue(PostCode.Code);
         StateFromTable := this.NormalizeValue(PostCode.County);
-        for Index := 0 to Places.Count() - 1 do begin
-            Places.Get(Index, PlaceToken);
-            Place := PlaceToken.AsObject();
-            CityFromPayload := this.NormalizeValue(this.GetPayloadText(Place, 'place name'));
-            StateFromPayload := this.NormalizeValue(this.GetPayloadText(Place, 'state abbreviation'));
-            if (CityFromPayload = CityFromTable) and (StateFromPayload = StateFromTable) then
+        for Index := 0 to Results.Count() - 1 do begin
+            Results.Get(Index, ResultToken);
+            Result := ResultToken.AsObject();
+            AdminNameFromPayload := this.NormalizeValue(this.GetPayloadText(Result, 'admin_name1'));
+            CityFromPayload := this.NormalizeValue(this.GetPayloadText(Result, 'place_name'));
+            CityMatchesPayload := (CityFromPayload = CityFromTable) or (AdminNameFromPayload = CityFromTable);
+            CountryRegionFromPayload := this.NormalizeValue(this.GetPayloadText(Result, 'country_code'));
+            PostCodeFromPayload := this.NormalizeValue(this.GetPayloadText(Result, 'postal_code'));
+            StateFromPayload := this.NormalizeValue(this.GetPayloadText(Result, 'admin_code1'));
+            if CityMatchesPayload and
+               (CountryRegionFromPayload = CountryRegionFromTable) and
+               (PostCodeFromPayload = PostCodeFromTable) and
+               (StateFromPayload = StateFromTable)
+            then
                 exit(true);
         end;
 
@@ -117,8 +122,10 @@ codeunit 50124 "AMC Post Code Valid Msg Hdlr" implements "AMC IMessageHandler"
     local procedure BuildRequestUri(BaseUrl: Text; CountryRegionCode: Text; PostCode: Text): Text
     var
         Uri: Codeunit Uri;
+        WhereClause: Text;
     begin
-        exit(this.TrimTrailingSlash(BaseUrl) + '/' + Uri.EscapeDataString(CountryRegionCode) + '/' + Uri.EscapeDataString(PostCode));
+        WhereClause := StrSubstNo('country_code="%1" AND postal_code="%2"', CountryRegionCode, PostCode);
+        exit(this.TrimTrailingSlash(BaseUrl) + '?where=' + Uri.EscapeDataString(WhereClause) + '&limit=10');
     end;
 
     local procedure TrimTrailingSlash(Value: Text): Text
