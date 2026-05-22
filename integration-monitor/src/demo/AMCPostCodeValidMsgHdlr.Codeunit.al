@@ -46,10 +46,10 @@ codeunit 50124 "AMC Post Code Valid Msg Hdlr" implements "AMC IMessageHandler"
         this.GetSourcePostCode(Inbox, PostCode);
         this.ValidateResponsePostCode(ResponsePayload, PostCode);
 
-        if this.ResponseContainsCity(ResponsePayload, PostCode.City) then
-            PostCode.Validate("AMC City Validation Status", PostCode."AMC City Validation Status"::Valid)
+        if this.ResponseMatchesPostCodeDetails(ResponsePayload, PostCode) then
+            PostCode.Validate("AMC Validation Status", PostCode."AMC Validation Status"::Valid)
         else
-            PostCode.Validate("AMC City Validation Status", PostCode."AMC City Validation Status"::Invalid);
+            PostCode.Validate("AMC Validation Status", PostCode."AMC Validation Status"::Invalid);
 
         PostCode.Modify(true);
     end;
@@ -75,7 +75,7 @@ codeunit 50124 "AMC Post Code Valid Msg Hdlr" implements "AMC IMessageHandler"
             Error(ResponsePostCodeMismatchErr, ResponsePostCode, PostCode.Code);
     end;
 
-    local procedure ResponseContainsCity(ResponsePayload: JsonObject; City: Text): Boolean
+    local procedure ResponseMatchesPostCodeDetails(ResponsePayload: JsonObject; PostCode: Record "Post Code"): Boolean
     var
         Place: JsonObject;
         Places: JsonArray;
@@ -85,6 +85,8 @@ codeunit 50124 "AMC Post Code Valid Msg Hdlr" implements "AMC IMessageHandler"
         MissingPayloadPropertyErr: Label 'The postal code validation payload does not contain property %1.', Comment = '%1 = JSON property name';
         CityFromPayload: Text;
         CityFromTable: Text;
+        StateFromPayload: Text;
+        StateFromTable: Text;
     begin
         if not ResponsePayload.Get('places', PlacesToken) then
             Error(MissingPayloadPropertyErr, 'places');
@@ -93,12 +95,14 @@ codeunit 50124 "AMC Post Code Valid Msg Hdlr" implements "AMC IMessageHandler"
         if Places.Count() = 0 then
             exit(false);
 
-        CityFromTable := this.NormalizeValue(City);
+        CityFromTable := this.NormalizeValue(PostCode.City);
+        StateFromTable := this.NormalizeValue(PostCode.County);
         for Index := 0 to Places.Count() - 1 do begin
             Places.Get(Index, PlaceToken);
             Place := PlaceToken.AsObject();
             CityFromPayload := this.NormalizeValue(this.GetPayloadText(Place, 'place name'));
-            if CityFromPayload = CityFromTable then
+            StateFromPayload := this.NormalizeValue(this.GetPayloadText(Place, 'state abbreviation'));
+            if (CityFromPayload = CityFromTable) and (StateFromPayload = StateFromTable) then
                 exit(true);
         end;
 

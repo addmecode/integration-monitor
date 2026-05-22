@@ -8,27 +8,32 @@ pageextension 50123 "AMC Post Codes Demo" extends "Post Codes"
         modify(City)
         {
             Style = Unfavorable;
-            StyleExpr = IsCityInvalid;
+            StyleExpr = IsValidationInvalid;
+        }
+        modify(County)
+        {
+            Style = Unfavorable;
+            StyleExpr = IsValidationInvalid;
         }
         addlast(Control1)
         {
-            field("AMC City Validation Status"; Rec."AMC City Validation Status")
+            field("AMC Validation Status"; Rec."AMC Validation Status")
             {
                 ApplicationArea = All;
                 Style = Unfavorable;
-                StyleExpr = IsCityInvalid;
+                StyleExpr = IsValidationInvalid;
             }
-            field("AMC City Validated At"; Rec."AMC City Validated At")
+            field("AMC Validated At"; Rec."AMC Validated At")
             {
                 ApplicationArea = All;
                 Style = Unfavorable;
-                StyleExpr = IsCityInvalid;
+                StyleExpr = IsValidationInvalid;
             }
-            field("AMC City Validated By"; Rec."AMC City Validated By")
+            field("AMC Validated By"; Rec."AMC Validated By")
             {
                 ApplicationArea = All;
                 Style = Unfavorable;
-                StyleExpr = IsCityInvalid;
+                StyleExpr = IsValidationInvalid;
             }
         }
     }
@@ -37,10 +42,10 @@ pageextension 50123 "AMC Post Codes Demo" extends "Post Codes"
     {
         addlast(processing)
         {
-            action("AMC Validate City")
+            action("AMC Validate")
             {
                 ApplicationArea = All;
-                Caption = 'Validate City';
+                Caption = 'Validate';
                 Image = Check;
                 ToolTip = 'Create postal code validation outbox entries for the selected post code records.';
 
@@ -56,10 +61,10 @@ pageextension 50123 "AMC Post Codes Demo" extends "Post Codes"
                     Message(EntriesCreatedMsg, CreatedCount);
                 end;
             }
-            action("AMC Reset City Validation")
+            action("AMC Reset Validation")
             {
                 ApplicationArea = All;
-                Caption = 'Reset City Validation';
+                Caption = 'Reset Validation';
                 Image = ResetStatus;
                 ToolTip = 'Clear postal code validation fields and delete unprocessed postal code validation queue entries for the selected records.';
 
@@ -82,9 +87,9 @@ pageextension 50123 "AMC Post Codes Demo" extends "Post Codes"
 
     trigger OnAfterGetRecord()
     begin
-        IsCityInvalid := Rec."AMC City Validation Status" = Rec."AMC City Validation Status"::Invalid;
+        IsValidationInvalid := Rec."AMC Validation Status" = Rec."AMC Validation Status"::Invalid;
     end;
 
     var
-        IsCityInvalid: Boolean;
+        IsValidationInvalid: Boolean;
 }
