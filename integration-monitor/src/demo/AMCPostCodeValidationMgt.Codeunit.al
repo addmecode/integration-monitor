@@ -29,12 +29,17 @@ codeunit 50123 "AMC Post Code Validation Mgt"
         PostCode.Copy(SelectedPostCode);
         if PostCode.FindSet() then
             repeat
-                this.EnqueueValidation(PostCode);
-                this.MarkValidationAsSent(PostCode);
+                this.ValidatePostCode(PostCode);
                 CreatedCount += 1;
             until PostCode.Next() = 0;
 
         exit(CreatedCount);
+    end;
+
+    internal procedure ValidatePostCode(var PostCode: Record "Post Code")
+    begin
+        this.EnqueueValidation(PostCode);
+        this.MarkValidationAsSent(PostCode);
     end;
 
     procedure EnqueueValidation(PostCode: Record "Post Code")
