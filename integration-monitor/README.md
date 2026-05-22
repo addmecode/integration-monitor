@@ -60,25 +60,44 @@ Translations/
 | `AMC Int. Inbox Payload` | Page 50116 | Commented out draft | Draft card page for viewing or editing response payload BLOB data. It is currently disabled and conflicts with the active message setup page ID. |
 | `AMC Int. Inbox Error` | Page 50118 | Commented out draft | Draft read-only card page for displaying inbox error details. It is currently disabled and depends on the disabled inbox page flow. |
 
-## Demo: Postal Code City Validation
+## Demo: Postal Code Validation
 
 The project includes a small demo that shows how a Business Central action can create outbox entries and send a real HTTP request through the integration framework.
 
-The demo extends the standard `Post Code` table with `City Validation Status` and `City Validated At`. Changing `Code`, `City`, or `Country/Region Code` clears the validation status and timestamp. The `Post Codes` page has a `Validate City` action that creates `AMC Int. Outbox Entry` records for the selected post code rows.
+The demo extends the standard `Post Code` table with `State`, `Validation Status`, `Validated At`, and `Validated By`. Changing `Code`, `City`, `Country/Region Code`, or `State` clears the validation fields and deletes unprocessed validation queue entries. The `Post Codes` page has a `Validate` action that creates `AMC Int. Outbox Entry` records for the selected post code rows.
 
 The demo message type is `Postal Code Validation`. Its handler reads the outbox payload and sends this request:
 
 ```text
-GET {Endpoint URL}/{countryRegionCode}/{code}
+GET {Endpoint URL}?where=country_code="{countryRegionCode}" AND postal_code="{code}"&limit=10
 ```
 
-For example, with `Endpoint URL` set to `https://api.zippopotam.us`, a Polish post code request can become:
+For example, with `Endpoint URL` set to `https://public.opendatasoft.com/api/explore/v2.1/catalog/datasets/geonames-postal-code/records`, a US postal code request can become:
 
 ```text
-GET https://api.zippopotam.us/PL/00-001
+GET https://public.opendatasoft.com/api/explore/v2.1/catalog/datasets/geonames-postal-code/records?where=country_code%3D%22US%22%20AND%20postal_code%3D%2290210%22&limit=10
 ```
 
-If `Process Response` is enabled in the message setup, the HTTP response is stored in the inbox. Processing that inbox response into `Valid` or `Invalid` is intentionally not implemented yet.
+If `Process Response` is enabled in the message setup, the HTTP response is stored in the inbox. Processing that inbox response validates the source `Post Code` record. `Validation Status` becomes `Invalid` when OpenDataSoft returns an empty `results` array. It becomes `Valid` only when one result has `country_code` matching `Country/Region Code`, `postal_code` matching `Code`, `admin_code1` matching the state/county value, and `City` matching either `place_name` or `admin_name1`.
+
+Example response:
+
+```json
+{
+  "total_count": 1,
+  "results": [
+    {
+      "country_code": "US",
+      "postal_code": "90210",
+      "place_name": "Beverly Hills",
+      "admin_name1": "California",
+      "admin_code1": "CA",
+      "latitude": 34.0901,
+      "longitude": -118.4065
+    }
+  ]
+}
+```
 
 ### Demo Configuration
 
@@ -86,22 +105,22 @@ Create an `AMC Int. Message Setup` record for message type `Postal Code Validati
 
 | Field | Value |
 | --- | --- |
-| `Endpoint URL` | `https://api.zippopotam.us` |
+| `Endpoint URL` | `https://public.opendatasoft.com/api/explore/v2.1/catalog/datasets/geonames-postal-code/records` |
 | `Transport` | `HTTP/HTTPS` |
 | `Enabled` | `true` |
 | `Process Response` | `true` |
 | `Auth Profile Code` | blank |
-| `Max Attempts` | `3` |
+| `Max Attempts` | `1` |
 | `Base Retry Delay (sec)` | `60` |
 | `Timeout (ms)` | `10000` |
 
-The Business Central environment must allow outbound HTTPS requests to `https://api.zippopotam.us`.
+The Business Central environment must allow outbound HTTPS requests to `https://public.opendatasoft.com`.
 
 ### Demo Usage
 
 1. Open `Zip Codes`.
-2. Select one or more rows with `Country/Region Code` and `Code`.
-3. Run `Validate City`.
+2. Select one or more rows with `Code`, `City`, `Country/Region Code`, and `State`.
+3. Run `Validate`.
 4. Inspect the created entries in `AMC Int. Outbox Entries`.
 5. Run or schedule `AMC Outbox Dispatcher Job`.
 6. Inspect the inbox payload if response processing is enabled.
@@ -109,10 +128,14 @@ The Business Central environment must allow outbound HTTPS requests to `https://
 ## TODO
 
 ### Make Outbox Work
+- gdy state jest w tabeli pusty, to niech bedzie ustawiony na ten z response
+- Dodac card page do outbox i inbox?
+- przepatrzyc kod i poprawic 
+  - czytelnosc top-down
+  - pod wzgledem performance
+- zmienic nazwe apki
+- dolozyc testy
 
-Ustawic config dla demo i sprobowac wyslac
-finalnie dla tego demo powienien byc nowy job, ktory bedzie walidowal wszystkie post codes
-Jesli wysylka bedzie dziala to zrobic inbox
 
 #### What Is Already Done
 
