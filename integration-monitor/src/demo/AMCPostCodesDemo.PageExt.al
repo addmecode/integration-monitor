@@ -67,14 +67,12 @@ pageextension 50123 "AMC Post Codes Demo" extends "Post Codes"
                 var
                     SelectedPostCode: Record "Post Code";
                     PostalCodeValidationMgt: Codeunit "AMC Post Code Validation Mgt";
-                    DeletedInboxCount: Integer;
-                    DeletedOutboxCount: Integer;
                     ResetCount: Integer;
-                    EntriesResetMsg: Label '%1 postal code validation records were reset. %2 outbox entries and %3 inbox entries were deleted.', Comment = '%1 = number of reset post code records, %2 = number of deleted outbox entries, %3 = number of deleted inbox entries';
+                    EntriesResetMsg: Label '%1 postal code validation records were reset. Outbox and inbox entries were deleted if they existed.', Comment = '%1 = number of reset post code records';
                 begin
                     CurrPage.SetSelectionFilter(SelectedPostCode);
-                    ResetCount := PostalCodeValidationMgt.ResetValidationForSelection(SelectedPostCode, DeletedOutboxCount, DeletedInboxCount);
-                    Message(EntriesResetMsg, ResetCount, DeletedOutboxCount, DeletedInboxCount);
+                    ResetCount := PostalCodeValidationMgt.ResetValidationForSelection(SelectedPostCode);
+                    Message(EntriesResetMsg, ResetCount);
                 end;
             }
         }

@@ -98,6 +98,13 @@ table 50106 "AMC Int. Inbox Entry"
         InboxEntryMgt.OnInsertInboxEntry(Rec);
     end;
 
+    trigger OnDelete()
+    var
+        InboxEntryMgt: Codeunit "AMC Inbox Entry Mgt.";
+    begin
+        InboxEntryMgt.OnDeleteInboxEntry(Rec);
+    end;
+
     local procedure TestMessageSetupExists()
     var
         MessageMgt: Codeunit "AMC Message Mgt.";

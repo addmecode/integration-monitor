@@ -1,6 +1,6 @@
 # Integration Monitor
 
-Integration Monitor is an early-stage Microsoft Dynamics 365 Business Central extension for monitoring and processing integration traffic through explicit inbox and outbox queues. The current codebase contains active outbox and inbox processing flows, a default HTTP/HTTPS transport, basic authentication profile storage, and a postal-code validation demo. It is still not production-ready: retry semantics, concurrency control, diagnostics, cleanup, permissions, and automated tests need hardening.
+Integration Monitor is an early-stage Microsoft Dynamics 365 Business Central extension for monitoring and processing integration traffic through explicit inbox and outbox queues. The current codebase contains active outbox and inbox processing flows, retention cleanup for completed outbox traffic, a default HTTP/HTTPS transport, basic authentication profile storage, and a postal-code validation demo. It is still not production-ready: retry semantics, concurrency control, diagnostics, cleanup scheduling, permissions, and automated tests need hardening.
 
 ## Main Assumptions
 
@@ -10,6 +10,7 @@ Integration Monitor is an early-stage Microsoft Dynamics 365 Business Central ex
 - Transport-specific behavior is also selected through an interface and extensible enum, with HTTP/HTTPS implemented as the first default transport.
 - Processing should be driven by job queue codeunits that pick eligible entries, apply retry rules, update statuses, and store payload or error details for review.
 - Users should be able to inspect queue entries, retry or cancel failed work, and view or edit payloads through Business Central pages.
+- Completed or cancelled outbox entries can be cleaned up per message type by configuring a retention DateFormula. Deleting an outbox entry also deletes its related inbox entries unless either side is currently being processed.
 
 ## Project Structure
 
@@ -24,9 +25,9 @@ src/
   Message/
     Message handler interface, message type enum, message setup checks, and default message behavior.
   Outbox/
-    Outbox entry storage, dispatcher, processor, failure handler, entry management, and monitoring page.
+    Outbox entry storage, dispatcher, processor, failure handler, cleanup job, entry management, and monitoring page.
   Setup/
-    Message setup table and administration page.
+    Message setup table, retention settings, validation, and administration page.
   Transport/
     Transport handler interface, transport enum, and default HTTP/HTTPS transport.
   demo/
@@ -55,27 +56,29 @@ Translations/
 | `AMC Int. Auth Profile Card` | Page 50119 | Active | Card page for maintaining authentication profiles and setting or clearing stored secrets. |
 | `AMC Int. Auth Profile Mgt.` | Codeunit 50120 | Active | Manages authentication profile secrets in isolated storage and validates profile readiness. |
 | `AMC Int. Auth Applier` | Codeunit 50121 | Active | Applies Basic or Bearer authorization headers to outgoing HTTP requests. |
-| `AMC Int. Message Setup` | Table 50108 | Active | Stores configuration per message type, including enablement, retry settings, endpoint URL, timeout, authentication profile code, response processing flag, and transport type. |
-| `AMC Int. Message Setup Mgt.` | Codeunit 50122 | Active | Validates transport and authentication setup before a setup record can be enabled. |
+| `AMC Int. Message Setup` | Table 50108 | Active | Stores configuration per message type, including enablement, retry settings, endpoint URL, timeout, authentication profile code, response processing flag, transport type, and the outbox retention DateFormula. |
+| `AMC Int. Message Setup Mgt.` | Codeunit 50122 | Active | Validates transport and authentication setup before a setup record can be enabled, and validates that configured outbox retention formulas resolve to a date before today. |
 | `AMC Int. Message Setup List` | Page 50116 | Active | Read-only administration list page for browsing integration message setup records. It opens `AMC Int. Message Setup Card` for record editing. |
-| `AMC Int. Message Setup Card` | Page 50117 | Active | Editable card page for maintaining one integration message setup record. It exposes the key processing, endpoint, retry, authentication, and transport settings. |
-| `AMC Int. Outbox Entry` | Table 50107 | Active | Stores outbound integration messages, processing status, timestamps, retry count, request payload, error message, and source record reference. Insert triggers initialize creation and next attempt timestamps. |
+| `AMC Int. Message Setup Card` | Page 50117 | Active | Editable card page for maintaining one integration message setup record. It exposes the key processing, endpoint, retry, authentication, transport, and outbox retention settings. |
+| `AMC Int. Outbox Entry` | Table 50107 | Active | Stores outbound integration messages, processing status, timestamps, retry count, request payload, error message, and source record reference. Insert triggers initialize creation and next attempt timestamps. Delete triggers validate processing state and delete related inbox entries. |
 | `AMC Int. Outbox Entries` | Page 50113 | Active | List page for monitoring outbox entries. It provides actions to process, reset, cancel, view payload, edit payload, view error details, and open related inbox entries. |
 | `AMC Outbox Dispatcher Job` | Codeunit 50115 | Active | Job entry point for finding outbox entries that are ready or failed and due for processing. It runs the outbox processor and delegates failures to the failure handler. |
 | `AMC Outbox Processor` | Codeunit 50116 | Active | Processes a single outbox entry by loading setup, validating eligibility, building the request, sending it through the selected transport, validating the response, optionally creating an inbox entry, and marking the outbox entry as processed. |
 | `AMC Outbox Failure Handler` | Codeunit 50118 | Active | Marks failed outbox processing attempts, increments attempt count, stores last error text, schedules the next attempt, or marks the entry as cancelled after max attempts. |
-| `AMC Outbox Entry Mgt.` | Codeunit 50119 | Active | Centralizes outbox insert defaults and page actions such as reset, cancel, process, payload view/edit, and error details. |
-| `AMC Int. Inbox Entry` | Table 50106 | Active | Stores inbound response entries linked to outbox entries, including status, timestamps, retry count, response payload, error details, source record reference, and related outbox entry number. Insert triggers initialize creation and next attempt timestamps. |
+| `AMC Outbox Entry Mgt.` | Codeunit 50119 | Active | Centralizes outbox insert defaults, delete validation, related inbox cleanup, and page actions such as reset, cancel, process, payload view/edit, and error details. |
+| `AMC Outbox Cleanup Job` | Codeunit 50131 | Active | Deletes processed or cancelled outbox entries older than the retention threshold configured on each message setup. Blank retention formulas disable cleanup for that message type. |
+| `AMC Outbox Cleanup Processor` | Codeunit 50132 | Active | Table-bound processor that deletes one outbox entry with triggers enabled, allowing related inbox cleanup and processing guards to run. |
+| `AMC Int. Inbox Entry` | Table 50106 | Active | Stores inbound response entries linked to outbox entries, including status, timestamps, retry count, response payload, error details, source record reference, and related outbox entry number. Insert triggers initialize creation and next attempt timestamps. Delete triggers block direct deletion while the related outbox entry still exists. |
 | `AMC Int. Inbox Status` | Enum 50106 | Active | Defines the inbox lifecycle values: ready to process, processing, processed, failed, and cancelled. `Processing` exists but is not claimed by the processors yet. |
 | `AMC Int. Inbox Entries` | Page 50114 | Active | List page for monitoring inbox entries. It provides actions to process, reset, cancel, view payload, edit payload, view error details, and open the related outbox entry. |
-| `AMC Inbox Entry Mgt.` | Codeunit 50126 | Active | Centralizes inbox insert defaults and page actions such as reset, cancel, process, payload view/edit, and error details. |
+| `AMC Inbox Entry Mgt.` | Codeunit 50126 | Active | Centralizes inbox insert defaults, delete guards, and page actions such as reset, cancel, process, payload view/edit, and error details. |
 | `AMC Inbox Processor` | Codeunit 50127 | Active | Processes a single inbox entry by loading setup, validating eligibility, and calling the message handler response processor before marking the entry as processed. |
 | `AMC Inbox Failure Handler` | Codeunit 50128 | Active | Marks failed inbox processing attempts, increments attempt count, stores last error text, schedules the next attempt, or marks the entry as cancelled after max attempts. |
 | `AMC Inbox Dispatcher Job` | Codeunit 50130 | Active | Job entry point for finding inbox entries that are ready or failed and due for processing. |
 | `AMC Demo Message Type` | EnumExtension 50123 | Active demo | Adds the postal-code validation message type. |
 | `AMC Post Code Demo` | TableExtension 50123 | Active demo | Extends `Post Code` with validation state fields and reset behavior. |
-| `AMC Post Codes Demo` | PageExtension 50123 | Active demo | Adds postal-code validation and reset actions to `Post Codes`. |
-| `AMC Post Code Validation Mgt` | Codeunit 50123 | Active demo | Creates postal-code validation outbox entries and deletes unprocessed validation entries when source data changes. |
+| `AMC Post Codes Demo` | PageExtension 50123 | Active demo | Adds postal-code validation and reset actions to `Post Codes`. The reset action clears validation state and reports that related queue entries were removed when present. |
+| `AMC Post Code Validation Mgt` | Codeunit 50123 | Active demo | Creates postal-code validation outbox entries and deletes unprocessed validation outbox entries when source data changes, relying on outbox delete triggers to remove related inbox entries. |
 | `AMC Post Code Valid Msg Hdlr` | Codeunit 50124 | Active demo | Builds the OpenDataSoft postal-code validation request and processes inbox responses back into the source `Post Code`. |
 | `AMC Validation Status` | Enum 50125 | Active demo | Defines postal-code validation states. |
 | `AMC Post Code Validation Job` | Codeunit 50129 | Active demo | Creates validation requests for post codes that have not been validated yet. |
@@ -84,7 +87,7 @@ Translations/
 
 The project includes a small demo that shows how a Business Central action can create outbox entries and send a real HTTP request through the integration framework.
 
-The demo extends the standard `Post Code` table with `Validation Status`, `Validated At`, and `Validated By`. Changing `Code`, `City`, `Country/Region Code`, or `County` clears the validation fields and deletes unprocessed validation queue entries. The `Post Codes` page has a `Validate` action that creates `AMC Int. Outbox Entry` records for the selected post code rows.
+The demo extends the standard `Post Code` table with `Validation Status`, `Validated At`, and `Validated By`. Changing `Code`, `City`, `Country/Region Code`, or `County` clears the validation fields and deletes unprocessed validation outbox entries. Related inbox entries are removed through the outbox delete trigger. The `Post Codes` page has a `Validate` action that creates `AMC Int. Outbox Entry` records for the selected post code rows.
 
 The demo message type is `Postal Code Validation`. Its handler reads the outbox payload and sends this request:
 
@@ -133,6 +136,7 @@ Create an `AMC Int. Message Setup` record for message type `Postal Code Validati
 | `Max Attempts` | `1` |
 | `Base Retry Delay (sec)` | `60` |
 | `Timeout (ms)` | `10000` |
+| `Delete Outbox Entr. Older Than` | optional, for example `<-30D>` |
 
 The Business Central environment must allow outbound HTTPS requests to `https://public.opendatasoft.com`.
 
@@ -151,25 +155,23 @@ The Business Central environment must allow outbound HTTPS requests to `https://
 
 - Outbox and inbox are active flows, not commented drafts. Both have entry tables, status enums, dispatcher jobs, processors, failure handlers, list pages, and payload/error actions through the generic BLOB viewer.
 - Authentication profiles, isolated-storage secrets, Basic auth, and Bearer token auth are implemented and connected to the default HTTP transport.
+- Processed and cancelled outbox entries can be cleaned up by `AMC Outbox Cleanup Job` based on the per-message retention formula. Related inbox entries are deleted through outbox delete triggers.
 - The postal-code validation demo can enqueue outbox entries and process responses through the inbox flow.
 
 ### Problems To Fix
 
-- Decide whether outbox and inbox need dedicated entry card pages. The current UI is list-page based with a generic BLOB viewer for payloads and message dialogs for error details.
-- Add a cleanup or archive job for old outbox entries and related inbox entries.
-- Review the code for top-down readability and performance, especially the duplicated outbox/inbox processor and failure-handler patterns.
-- Rename the app
 - `AMC Outbox Processor`, `AMC Inbox Processor`, and `AMC Message Handler Default` still use unprotected `IntMessageSetup.Get(...)`. Missing or deleted setup records should become controlled processing failures with clear messages.
 - Successful processing does not update `Attempt Count` or `Last Attempt At`; failure handlers also write failure time into `Processed At`, which makes the field semantics unclear.
 - Max attempts still changes status to `Cancelled` in both failure handlers. This mixes an automatic terminal failure with a manual cancellation and makes reset/retry rules ambiguous.
 - `Processing` exists in both status enums, but neither dispatcher claims entries before processing. Two job queue sessions can still pick the same due entry.
 - The outbox flow still has no generic enqueue API. The demo inserts outbox records directly and writes the BLOB itself, so future callers would need to know the internal insert and payload rules.
-- Reset actions clear error details, reset attempt count, and make entries ready again, but the guard against resetting `Processed` or `Processing` entries is commented out. Decide whether reset is a fresh retry, an operator override, or both.
 - `HttpClient.Send` result is ignored. Runtime send failures should become explicit processing errors with useful diagnostics.
 - HTTP diagnostics are still minimal. Entries do not store endpoint, method, status code, response summary, duration, or correlation/idempotency data.
 - If the HTTP call succeeds but inbox entry creation fails, the dispatcher can retry the outbound call and create a duplicate external side effect.
 - Setup validation is now present when enabling a setup record, but runtime processor validation is still effectively a no-op and can be bypassed by direct data changes or code. Response-processing requirements also need clearer validation.
-- Legacy commented draft files for inbox payload/error pages still exist under `src/Inbox`. They should be removed or replaced with active objects if separate pages are still needed.
+- Reset actions clear error details, reset attempt count, and make entries ready again, but the guard against resetting `Processed` or `Processing` entries is commented out. Decide whether reset is a fresh retry, an operator override, or both.
+- Review the code for top-down readability and performance, especially the duplicated outbox/inbox processor and failure-handler patterns.
+- Rename the app
+- Add job queue setup guidance or assisted setup for the outbox, inbox, and cleanup dispatchers.
 - Add permissions, role center/search discoverability, and any required page actions for normal users.
-- Add job queue setup guidance or assisted setup for the outbox and inbox dispatchers.
 - Automated tests are still missing for outbox eligibility, request building, successful dispatch, HTTP failure, retry scheduling, max attempts, manual reset/cancel, response-to-inbox creation, inbox response processing, and auth validation.

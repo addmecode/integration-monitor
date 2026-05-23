@@ -12,6 +12,16 @@ codeunit 50126 "AMC Inbox Entry Mgt."
             Inbox."Next Attempt At" := CurrentDateTime();
     end;
 
+    internal procedure OnDeleteInboxEntry(Inbox: Record "AMC Int. Inbox Entry"): Boolean
+    var
+        Outbox: Record "AMC Int. Outbox Entry";
+        OutboxEntryExistsErr: Label 'Cannot delete record because related outbox entry exists.';
+    begin
+        Outbox.SetRange("Entry No.", Inbox."Outbox Entry No.");
+        if not Outbox.IsEmpty() then
+            Error(OutboxEntryExistsErr);
+    end;
+
     procedure ResetEntry(var Inbox: Record "AMC Int. Inbox Entry")
     var
         CannotResetEntryErr: label 'Cannot reset entry with status = %1', Comment = '%1 is entry status';

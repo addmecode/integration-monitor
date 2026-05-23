@@ -62,19 +62,11 @@ tableextension 50123 "AMC Post Code Demo" extends "Post Code"
         }
     }
 
-    local procedure ResetValidation()
-    var
-        DeletedOutboxCount: Integer;
-        DeletedInboxCount: Integer;
-    begin
-        Rec.ResetValidation(DeletedOutboxCount, DeletedInboxCount);
-    end;
-
-    internal procedure ResetValidation(var DeletedOutboxCount: Integer; var DeletedInboxCount: Integer)
+    internal procedure ResetValidation()
     var
         PostCodeValidationMgt: Codeunit "AMC Post Code Validation Mgt";
     begin
-        PostCodeValidationMgt.ResetValidation(Rec, DeletedOutboxCount, DeletedInboxCount);
+        PostCodeValidationMgt.ResetValidation(Rec);
     end;
 
     internal procedure GetValidationStyle(): Text
