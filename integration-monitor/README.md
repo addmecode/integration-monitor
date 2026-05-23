@@ -155,8 +155,6 @@ The Business Central environment must allow outbound HTTPS requests to `https://
 
 ### Problems To Fix
 
-- Decide whether outbox and inbox need dedicated entry card pages. The current UI is list-page based with a generic BLOB viewer for payloads and message dialogs for error details.
-- Legacy commented draft files for inbox payload/error pages still exist under `src/Inbox`. They should be removed or replaced with active objects if separate pages are still needed.
 - Add a cleanup or archive job for old outbox entries and related inbox entries.
 - `AMC Outbox Processor`, `AMC Inbox Processor`, and `AMC Message Handler Default` still use unprotected `IntMessageSetup.Get(...)`. Missing or deleted setup records should become controlled processing failures with clear messages.
 - Successful processing does not update `Attempt Count` or `Last Attempt At`; failure handlers also write failure time into `Processed At`, which makes the field semantics unclear.
