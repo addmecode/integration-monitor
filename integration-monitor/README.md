@@ -156,20 +156,20 @@ The Business Central environment must allow outbound HTTPS requests to `https://
 ### Problems To Fix
 
 - Decide whether outbox and inbox need dedicated entry card pages. The current UI is list-page based with a generic BLOB viewer for payloads and message dialogs for error details.
+- Legacy commented draft files for inbox payload/error pages still exist under `src/Inbox`. They should be removed or replaced with active objects if separate pages are still needed.
 - Add a cleanup or archive job for old outbox entries and related inbox entries.
-- Review the code for top-down readability and performance, especially the duplicated outbox/inbox processor and failure-handler patterns.
-- Rename the app
 - `AMC Outbox Processor`, `AMC Inbox Processor`, and `AMC Message Handler Default` still use unprotected `IntMessageSetup.Get(...)`. Missing or deleted setup records should become controlled processing failures with clear messages.
 - Successful processing does not update `Attempt Count` or `Last Attempt At`; failure handlers also write failure time into `Processed At`, which makes the field semantics unclear.
 - Max attempts still changes status to `Cancelled` in both failure handlers. This mixes an automatic terminal failure with a manual cancellation and makes reset/retry rules ambiguous.
 - `Processing` exists in both status enums, but neither dispatcher claims entries before processing. Two job queue sessions can still pick the same due entry.
 - The outbox flow still has no generic enqueue API. The demo inserts outbox records directly and writes the BLOB itself, so future callers would need to know the internal insert and payload rules.
-- Reset actions clear error details, reset attempt count, and make entries ready again, but the guard against resetting `Processed` or `Processing` entries is commented out. Decide whether reset is a fresh retry, an operator override, or both.
 - `HttpClient.Send` result is ignored. Runtime send failures should become explicit processing errors with useful diagnostics.
 - HTTP diagnostics are still minimal. Entries do not store endpoint, method, status code, response summary, duration, or correlation/idempotency data.
 - If the HTTP call succeeds but inbox entry creation fails, the dispatcher can retry the outbound call and create a duplicate external side effect.
 - Setup validation is now present when enabling a setup record, but runtime processor validation is still effectively a no-op and can be bypassed by direct data changes or code. Response-processing requirements also need clearer validation.
-- Legacy commented draft files for inbox payload/error pages still exist under `src/Inbox`. They should be removed or replaced with active objects if separate pages are still needed.
-- Add permissions, role center/search discoverability, and any required page actions for normal users.
+- Reset actions clear error details, reset attempt count, and make entries ready again, but the guard against resetting `Processed` or `Processing` entries is commented out. Decide whether reset is a fresh retry, an operator override, or both.
+- Review the code for top-down readability and performance, especially the duplicated outbox/inbox processor and failure-handler patterns.
+- Rename the app
 - Add job queue setup guidance or assisted setup for the outbox and inbox dispatchers.
+- Add permissions, role center/search discoverability, and any required page actions for normal users.
 - Automated tests are still missing for outbox eligibility, request building, successful dispatch, HTTP failure, retry scheduling, max attempts, manual reset/cancel, response-to-inbox creation, inbox response processing, and auth validation.
