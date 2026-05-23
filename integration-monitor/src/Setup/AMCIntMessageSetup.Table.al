@@ -67,6 +67,16 @@ table 50108 "AMC Int. Message Setup"
             DataClassification = SystemMetadata;
             ToolTip = 'Specifies the transport handler used to send requests for this message type.';
         }
+        field(10; "Delete Outbox Entr. Older Than"; DateFormula)
+        {
+            DataClassification = SystemMetadata;
+            ToolTip = 'Specifies the formula for deleting old outbox entries';
+
+            trigger OnValidate()
+            begin
+                this.ValidateDeleteOutboxEntriesOlderThan();
+            end;
+        }
     }
 
     keys
@@ -82,5 +92,12 @@ table 50108 "AMC Int. Message Setup"
         IntMessageSetupMgt: Codeunit "AMC Int. Message Setup Mgt.";
     begin
         IntMessageSetupMgt.TestRequiredFieldsForEnabled(Rec);
+    end;
+
+    local procedure ValidateDeleteOutboxEntriesOlderThan()
+    var
+        IntMessageSetupMgt: Codeunit "AMC Int. Message Setup Mgt.";
+    begin
+        IntMessageSetupMgt.ValidateDeleteOutboxEntriesOlderThan(Rec);
     end;
 }

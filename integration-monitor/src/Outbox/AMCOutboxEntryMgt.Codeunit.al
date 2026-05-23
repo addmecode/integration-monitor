@@ -1,4 +1,5 @@
 namespace Addmecode.IntegrationMonitor.Outbox;
+using Addmecode.IntegrationMonitor.Inbox;
 
 codeunit 50119 "AMC Outbox Entry Mgt."
 {
@@ -9,6 +10,37 @@ codeunit 50119 "AMC Outbox Entry Mgt."
 
         if Outbox."Next Attempt At" = 0DT then
             Outbox."Next Attempt At" := CurrentDateTime();
+    end;
+
+    internal procedure OnDeleteOutboxEntry(var Outbox: Record "AMC Int. Outbox Entry"): Boolean
+    var
+        Inbox: Record "AMC Int. Inbox Entry";
+    begin
+        Inbox.LockTable();
+        this.ValidateOutboxDeletion(Outbox);
+        this.DeleteRelatedInboxEntry(Outbox);
+    end;
+
+    local procedure ValidateOutboxDeletion(Outbox: Record "AMC Int. Outbox Entry"): Boolean
+    var
+        Inbox: Record "AMC Int. Inbox Entry";
+        InboxEntryIsBeingProcessedErr: Label 'Cannot delete record because a related Inbox Entry is being processed.';
+        OutboxEntryIsBeingProcessedErr: Label 'Cannot delete record because is being processed.';
+    begin
+        if Outbox.Status = Outbox.Status::Processing then
+            Error(OutboxEntryIsBeingProcessedErr);
+        Inbox.SetRange("Outbox Entry No.", Outbox."Entry No.");
+        Inbox.SetRange(Status, Inbox.Status::Processing);
+        if not Inbox.IsEmpty() then
+            Error(InboxEntryIsBeingProcessedErr);
+    end;
+
+    internal procedure DeleteRelatedInboxEntry(Outbox: Record "AMC Int. Outbox Entry"): Boolean
+    var
+        Inbox: Record "AMC Int. Inbox Entry";
+    begin
+        Inbox.SetRange("Outbox Entry No.", Outbox."Entry No.");
+        Inbox.DeleteAll();
     end;
 
     procedure ResetEntry(var Outbox: Record "AMC Int. Outbox Entry")

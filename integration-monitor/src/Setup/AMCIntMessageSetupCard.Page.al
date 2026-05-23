@@ -67,6 +67,10 @@ page 50117 "AMC Int. Message Setup Card"
                 {
                     ApplicationArea = All;
                 }
+                field("Delete Outbox Entr. Older Than"; Rec."Delete Outbox Entr. Older Than")
+                {
+                    ApplicationArea = All;
+                }
             }
         }
     }

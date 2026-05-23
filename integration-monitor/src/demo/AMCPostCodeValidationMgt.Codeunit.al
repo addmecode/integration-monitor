@@ -5,7 +5,7 @@ using Microsoft.Foundation.Address;
 
 codeunit 50123 "AMC Post Code Validation Mgt"
 {
-    procedure ResetValidationForSelection(var SelectedPostCode: Record "Post Code"; var DeletedOutboxCount: Integer; var DeletedInboxCount: Integer): Integer
+    procedure ResetValidationForSelection(var SelectedPostCode: Record "Post Code"): Integer
     var
         PostCode: Record "Post Code";
         ResetCount: Integer;
@@ -13,7 +13,7 @@ codeunit 50123 "AMC Post Code Validation Mgt"
         PostCode.Copy(SelectedPostCode);
         if PostCode.FindSet() then
             repeat
-                PostCode.ResetValidation(DeletedOutboxCount, DeletedInboxCount);
+                PostCode.ResetValidation();
                 PostCode.Modify(true);
                 ResetCount += 1;
             until PostCode.Next() = 0;
@@ -65,9 +65,9 @@ codeunit 50123 "AMC Post Code Validation Mgt"
         Outbox.Insert(true);
     end;
 
-    procedure ResetValidation(var PostCode: Record "Post Code"; var DeletedOutboxCount: Integer; var DeletedInboxCount: Integer)
+    procedure ResetValidation(var PostCode: Record "Post Code")
     begin
-        this.DeleteNotProcessedEntries(PostCode.RecordId(), DeletedOutboxCount, DeletedInboxCount);
+        this.DeleteNotProcessedEntries(PostCode.RecordId());
 
         PostCode.Validate("AMC Validation Status", PostCode."AMC Validation Status"::" ");
     end;
@@ -84,30 +84,17 @@ codeunit 50123 "AMC Post Code Validation Mgt"
         PostCode."AMC Validated By" := CopyStr(UserId(), 1, MaxStrLen(PostCode."AMC Validated By"));
     end;
 
-    local procedure DeleteNotProcessedEntries(SourceRecordId: RecordId; var DeletedOutboxCount: Integer; var DeletedInboxCount: Integer)
+    local procedure DeleteNotProcessedEntries(SourceRecordId: RecordId)
     var
         Outbox: Record "AMC Int. Outbox Entry";
     begin
         Outbox.SetRange("Message Type", Outbox."Message Type"::AMCPostalCodeValidation);
         Outbox.SetRange("Source Record ID", SourceRecordId);
         Outbox.SetFilter(Status, '%1|%2', Outbox.Status::ReadyToProcess, Outbox.Status::Cancelled);
-        Outbox.SetLoadFields("Entry No.");
         if Outbox.FindSet(true) then
             repeat
-                this.DeleteNotProcessedInboxEntries(Outbox."Entry No.", DeletedInboxCount);
                 Outbox.Delete(true);
-                DeletedOutboxCount += 1;
             until Outbox.Next() = 0;
-    end;
-
-    local procedure DeleteNotProcessedInboxEntries(OutboxEntryNo: Integer; var DeletedInboxCount: Integer)
-    var
-        Inbox: Record "AMC Int. Inbox Entry";
-    begin
-        Inbox.SetRange("Outbox Entry No.", OutboxEntryNo);
-        Inbox.SetFilter(Status, '%1|%2', Inbox.Status::ReadyToProcess, Inbox.Status::Cancelled);
-        DeletedInboxCount += Inbox.Count();
-        Inbox.DeleteAll(true);
     end;
 
     local procedure MarkValidationAsSent(var PostCode: Record "Post Code")

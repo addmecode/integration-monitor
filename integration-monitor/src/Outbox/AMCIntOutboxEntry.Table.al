@@ -90,6 +90,13 @@ table 50107 "AMC Int. Outbox Entry"
         OutboxEntryMgt.OnInsertOutboxEntry(Rec);
     end;
 
+    trigger OnDelete()
+    var
+        OutboxEntryMgt: Codeunit "AMC Outbox Entry Mgt.";
+    begin
+        OutboxEntryMgt.OnDeleteOutboxEntry(Rec);
+    end;
+
     local procedure TestMessageSetupExists()
     var
         MessageMgt: Codeunit "AMC Message Mgt.";
