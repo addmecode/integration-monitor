@@ -5,31 +5,38 @@ tableextension 50123 "AMC Post Code Demo" extends "Post Code"
 {
     fields
     {
-        field(50100; "AMC City Validation Status"; Enum "AMC City Validation Status")
+        field(50100; "AMC Validation Status"; Enum "AMC Validation Status")
         {
-            Caption = 'City Validation Status';
+            Caption = 'Validation Status';
             DataClassification = CustomerContent;
             Editable = true;
-            ToolTip = 'Specifies the city validation status from the postal code validation API.';
+            ToolTip = 'Specifies the validation status from the postal code validation API.';
 
             trigger OnValidate()
             begin
-                UpdateCityValidationAudit();
+                UpdateValidationAudit();
             end;
         }
-        field(50101; "AMC City Validated At"; DateTime)
+        field(50101; "AMC Validated At"; DateTime)
         {
-            Caption = 'City Validated At';
+            Caption = 'Validated At';
             DataClassification = CustomerContent;
             Editable = false;
-            ToolTip = 'Specifies when the city was last validated against the postal code validation API.';
+            ToolTip = 'Specifies when the postal code details were last validated against the postal code validation API.';
         }
-        field(50102; "AMC City Validated By"; Code[50])
+        field(50102; "AMC Validated By"; Code[50])
         {
-            Caption = 'City Validated By';
+            Caption = 'Validated By';
             DataClassification = EndUserIdentifiableInformation;
             Editable = false;
-            ToolTip = 'Specifies who last changed the city validation status.';
+            ToolTip = 'Specifies who last changed the postal code validation status.';
+        }
+        modify(County)
+        {
+            trigger OnAfterValidate()
+            begin
+                ResetValidation();
+            end;
         }
 
         modify(Code)
@@ -70,10 +77,17 @@ tableextension 50123 "AMC Post Code Demo" extends "Post Code"
         PostCodeValidationMgt.ResetValidation(Rec, DeletedOutboxCount, DeletedInboxCount);
     end;
 
-    local procedure UpdateCityValidationAudit()
+    internal procedure GetValidationStyle(): Text
     var
         PostCodeValidationMgt: Codeunit "AMC Post Code Validation Mgt";
     begin
-        PostCodeValidationMgt.UpdateCityValidationAudit(Rec);
+        exit(PostCodeValidationMgt.GetValidationStyle(Rec));
+    end;
+
+    local procedure UpdateValidationAudit()
+    var
+        PostCodeValidationMgt: Codeunit "AMC Post Code Validation Mgt";
+    begin
+        PostCodeValidationMgt.UpdateValidationAudit(Rec);
     end;
 }

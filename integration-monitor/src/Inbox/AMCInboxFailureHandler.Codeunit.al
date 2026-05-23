@@ -7,7 +7,7 @@ codeunit 50128 "AMC Inbox Failure Handler"
 
     trigger OnRun()
     var
-        InboxErrorMessageLbl: Label 'Error: %1 /Call Stack: %2', Comment = '%1 = Error text, %2 = Error call stack', Locked = true;
+        InboxErrorMessageLbl: Label 'Error:\ %1 \Call Stack:\ %2', Comment = '%1 = Error text, %2 = Error call stack', Locked = true;
     begin
         this.MarkInboxAsFailed(Rec, StrSubstNo(InboxErrorMessageLbl, GetLastErrorText(), GetLastErrorCallStack()));
     end;

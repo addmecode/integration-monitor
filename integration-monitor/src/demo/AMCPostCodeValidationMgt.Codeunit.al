@@ -14,6 +14,7 @@ codeunit 50123 "AMC Post Code Validation Mgt"
         if PostCode.FindSet() then
             repeat
                 PostCode.ResetValidation(DeletedOutboxCount, DeletedInboxCount);
+                PostCode.Modify(true);
                 ResetCount += 1;
             until PostCode.Next() = 0;
 
@@ -28,12 +29,17 @@ codeunit 50123 "AMC Post Code Validation Mgt"
         PostCode.Copy(SelectedPostCode);
         if PostCode.FindSet() then
             repeat
-                this.EnqueueValidation(PostCode);
-                this.MarkValidationAsSent(PostCode);
+                this.ValidatePostCode(PostCode);
                 CreatedCount += 1;
             until PostCode.Next() = 0;
 
         exit(CreatedCount);
+    end;
+
+    internal procedure ValidatePostCode(var PostCode: Record "Post Code")
+    begin
+        this.EnqueueValidation(PostCode);
+        this.MarkValidationAsSent(PostCode);
     end;
 
     procedure EnqueueValidation(PostCode: Record "Post Code")
@@ -48,7 +54,6 @@ codeunit 50123 "AMC Post Code Validation Mgt"
 
         Payload.Add('code', PostCode.Code);
         Payload.Add('countryRegionCode', PostCode."Country/Region Code");
-        Payload.Add('city', PostCode.City);
         Payload.WriteTo(PayloadText);
 
         Outbox.Init();
@@ -64,14 +69,19 @@ codeunit 50123 "AMC Post Code Validation Mgt"
     begin
         this.DeleteNotProcessedEntries(PostCode.RecordId(), DeletedOutboxCount, DeletedInboxCount);
 
-        PostCode.Validate("AMC City Validation Status", PostCode."AMC City Validation Status"::" ");
-        PostCode.Modify(true);
+        PostCode.Validate("AMC Validation Status", PostCode."AMC Validation Status"::" ");
     end;
 
-    procedure UpdateCityValidationAudit(var PostCode: Record "Post Code")
+    procedure UpdateValidationAudit(var PostCode: Record "Post Code")
     begin
-        PostCode."AMC City Validated At" := CurrentDateTime();
-        PostCode."AMC City Validated By" := CopyStr(UserId(), 1, MaxStrLen(PostCode."AMC City Validated By"));
+        if PostCode."AMC Validation Status" = PostCode."AMC Validation Status"::" " then begin
+            Clear(PostCode."AMC Validated At");
+            Clear(PostCode."AMC Validated By");
+            exit;
+        end;
+
+        PostCode."AMC Validated At" := CurrentDateTime();
+        PostCode."AMC Validated By" := CopyStr(UserId(), 1, MaxStrLen(PostCode."AMC Validated By"));
     end;
 
     local procedure DeleteNotProcessedEntries(SourceRecordId: RecordId; var DeletedOutboxCount: Integer; var DeletedInboxCount: Integer)
@@ -102,7 +112,19 @@ codeunit 50123 "AMC Post Code Validation Mgt"
 
     local procedure MarkValidationAsSent(var PostCode: Record "Post Code")
     begin
-        PostCode.Validate("AMC City Validation Status", PostCode."AMC City Validation Status"::Sent);
+        PostCode.Validate("AMC Validation Status", PostCode."AMC Validation Status"::Sent);
         PostCode.Modify(true);
+    end;
+
+    internal procedure GetValidationStyle(PostCode: Record "Post Code"): Text
+    begin
+        case PostCode."AMC Validation Status" of
+            PostCode."AMC Validation Status"::Valid:
+                exit('Favorable');
+            PostCode."AMC Validation Status"::Invalid:
+                exit('Unfavorable');
+            else
+                exit('');
+        end
     end;
 }

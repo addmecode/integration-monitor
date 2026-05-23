@@ -69,8 +69,7 @@ table 50106 "AMC Int. Inbox Entry"
         }
         field(11; "Source Record ID"; RecordId)
         {
-            FieldClass = FlowField;
-            CalcFormula = lookup("AMC Int. Outbox Entry"."Source Record ID" where("Entry No." = field("Outbox Entry No.")));
+            DataClassification = CustomerContent;
             ToolTip = 'Specifies the source record that created the related integration outbox entry.';
         }
         field(12; "Outbox Entry No."; Integer)
