@@ -16,7 +16,7 @@ codeunit 50128 "AMC Inbox Failure Handler"
     var
         IntMessageSetup: Record "AMC Int. Message Setup";
     begin
-        Inbox."Processed At" := CurrentDateTime;
+        Inbox."Processed At" := 0DT;
         Inbox."Attempt Count" += 1;
         Inbox."Last Attempt At" := CurrentDateTime;
 

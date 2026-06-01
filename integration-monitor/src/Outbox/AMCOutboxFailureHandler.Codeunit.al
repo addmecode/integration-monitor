@@ -16,7 +16,7 @@ codeunit 50118 "AMC Outbox Failure Handler"
     var
         IntMessageSetup: Record "AMC Int. Message Setup";
     begin
-        Outbox."Processed At" := CurrentDateTime;
+        Outbox."Processed At" := 0DT;
         Outbox."Attempt Count" += 1;
         Outbox."Last Attempt At" := CurrentDateTime;
 
