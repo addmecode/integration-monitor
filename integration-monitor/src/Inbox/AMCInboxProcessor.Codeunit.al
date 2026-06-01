@@ -31,6 +31,8 @@ codeunit 50127 "AMC Inbox Processor"
         MessageHandler.ProcessResponse(Inbox);
         Inbox.Status := Inbox.Status::Processed;
         Inbox."Processed At" := this.ProcessOn;
+        Inbox."Attempt Count" += 1;
+        Inbox."Last Attempt At" := this.ProcessOn;
         Inbox.Modify(true);
     end;
 

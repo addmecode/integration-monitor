@@ -41,6 +41,8 @@ codeunit 50116 "AMC Outbox Processor"
 
         Outbox.Status := Outbox.Status::Processed;
         Outbox."Processed At" := this.ProcessOn;
+        Outbox."Attempt Count" += 1;
+        Outbox."Last Attempt At" := this.ProcessOn;
         Outbox.Modify(true);
     end;
 
