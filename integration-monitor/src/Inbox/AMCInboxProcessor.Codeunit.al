@@ -17,9 +17,12 @@ codeunit 50127 "AMC Inbox Processor"
     var
         IntMessageSetup: Record "AMC Int. Message Setup";
         MessageHandler: Interface "AMC IMessageHandler";
+        MissingMessageSetupErr: Label 'Integration message setup for message type %1 does not exist. Inbox entry %2 cannot be processed.', Comment = '%1 = message type, %2 = inbox entry number';
     begin
         this.ProcessOn := CurrentDateTime();
-        IntMessageSetup.Get(Inbox."Message Type");
+        if not IntMessageSetup.Get(Inbox."Message Type") then
+            Error(MissingMessageSetupErr, Format(Inbox."Message Type"), Inbox."Entry No.");
+
         if not this.ShouldProcessEntry(Inbox, IntMessageSetup) then
             exit;
         this.ValidateSetupBeforeProcessingEntry(IntMessageSetup);

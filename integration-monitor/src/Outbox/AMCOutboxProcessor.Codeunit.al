@@ -20,9 +20,12 @@ codeunit 50116 "AMC Outbox Processor"
         TransportHandler: Interface "AMC IHttpTransportHandler";
         Request: HttpRequestMessage;
         Response: HttpResponseMessage;
+        MissingMessageSetupErr: Label 'Integration message setup for message type %1 does not exist. Outbox entry %2 cannot be processed.', Comment = '%1 = message type, %2 = outbox entry number';
     begin
         this.ProcessOn := CurrentDateTime();
-        IntMessageSetup.Get(Outbox."Message Type");
+        if not IntMessageSetup.Get(Outbox."Message Type") then
+            Error(MissingMessageSetupErr, Format(Outbox."Message Type"), Outbox."Entry No.");
+
         if not this.ShouldProcessEntry(Outbox, IntMessageSetup) then
             exit;
         this.ValidateSetupBeforeProcessingEntry(IntMessageSetup);
