@@ -19,8 +19,10 @@ codeunit 50114 "AMC Message Handler Default" implements "AMC IMessageHandler"
         Content: HttpContent;
         ContentHeaders: HttpHeaders;
         PayloadText: Text;
+        MissingMessageSetupErr: Label 'Cannot build request for outbox entry %1 because integration message setup for message type %2 does not exist.', Comment = '%1 = outbox entry number, %2 = message type';
     begin
-        IntMessageSetup.Get(Outbox."Message Type");
+        if not IntMessageSetup.Get(Outbox."Message Type") then
+            Error(MissingMessageSetupErr, Outbox."Entry No.", Format(Outbox."Message Type"));
 
         Request.Method := 'POST';
         Request.SetRequestUri(IntMessageSetup."Endpoint URL");

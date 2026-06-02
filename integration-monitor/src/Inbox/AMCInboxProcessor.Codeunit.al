@@ -17,18 +17,42 @@ codeunit 50127 "AMC Inbox Processor"
     var
         IntMessageSetup: Record "AMC Int. Message Setup";
         MessageHandler: Interface "AMC IMessageHandler";
+        MissingMessageSetupErr: Label 'Integration message setup for message type %1 does not exist. Inbox entry %2 cannot be processed.', Comment = '%1 = message type, %2 = inbox entry number';
     begin
         this.ProcessOn := CurrentDateTime();
-        IntMessageSetup.Get(Inbox."Message Type");
+        if not IntMessageSetup.Get(Inbox."Message Type") then
+            Error(MissingMessageSetupErr, Format(Inbox."Message Type"), Inbox."Entry No.");
+
         if not this.ShouldProcessEntry(Inbox, IntMessageSetup) then
             exit;
+        if not this.ClaimForProcessing(Inbox) then
+            exit;
+
         this.ValidateSetupBeforeProcessingEntry(IntMessageSetup);
 
         MessageHandler := Inbox."Message Type";
         MessageHandler.ProcessResponse(Inbox);
         Inbox.Status := Inbox.Status::Processed;
         Inbox."Processed At" := this.ProcessOn;
+        Inbox."Attempt Count" += 1;
+        Inbox."Last Attempt At" := this.ProcessOn;
         Inbox.Modify(true);
+    end;
+
+    local procedure ClaimForProcessing(var Inbox: Record "AMC Int. Inbox Entry"): Boolean
+    begin
+        Inbox.LockTable();
+        if not Inbox.Get(Inbox."Entry No.") then
+            exit(false);
+
+        if (Inbox.Status <> Inbox.Status::ReadyToProcess) and (Inbox.Status <> Inbox.Status::Failed) then
+            exit(false);
+
+        Inbox.Status := Inbox.Status::Processing;
+        Inbox.Modify(true);
+        Commit();
+
+        exit(true);
     end;
 
     local procedure ShouldProcessEntry(Inbox: Record "AMC Int. Inbox Entry"; IntMessageSetup: Record "AMC Int. Message Setup"): Boolean

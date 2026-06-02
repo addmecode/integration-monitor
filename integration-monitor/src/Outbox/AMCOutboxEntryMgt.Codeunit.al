@@ -1,8 +1,31 @@
 namespace Addmecode.IntegrationMonitor.Outbox;
 using Addmecode.IntegrationMonitor.Inbox;
+using Addmecode.IntegrationMonitor.Message;
 
 codeunit 50119 "AMC Outbox Entry Mgt."
 {
+    internal procedure EnqueueEntry(MessageType: Enum "AMC Int. Message Type"; RequestPayloadInStream: InStream; SourceRecordId: RecordId): Integer
+    var
+        Outbox: Record "AMC Int. Outbox Entry";
+    begin
+        Outbox.Init();
+        Outbox.Validate("Message Type", MessageType);
+        Outbox.Status := Outbox.Status::ReadyToProcess;
+        Outbox."Source Record ID" := SourceRecordId;
+        this.SetRequestPayload(Outbox, RequestPayloadInStream);
+        Outbox.Insert(true);
+
+        exit(Outbox."Entry No.");
+    end;
+
+    local procedure SetRequestPayload(var Outbox: Record "AMC Int. Outbox Entry"; RequestPayloadInStream: InStream)
+    var
+        PayloadOutStream: OutStream;
+    begin
+        Outbox."Request Payload".CreateOutStream(PayloadOutStream);
+        CopyStream(PayloadOutStream, RequestPayloadInStream);
+    end;
+
     internal procedure OnInsertOutboxEntry(var Outbox: Record "AMC Int. Outbox Entry")
     begin
         if Outbox."Created At" = 0DT then

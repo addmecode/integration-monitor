@@ -16,13 +16,11 @@ codeunit 50117 "AMC Http Transport Default" implements "AMC IHttpTransportHandle
     end;
 
     /// <summary>
-    /// Sends an HTTP request and returns the response and response body.
+    /// Sends an HTTP request and returns the response.
     /// </summary>
     /// <param name="Request">HTTP request message to send.</param>
     /// <param name="Setup">Message setup for the entry.</param>
     /// <param name="Response">HTTP response message.</param>
-    /// <param name="ResponseBody">Response body stream, if available.</param>
-    /// <returns>True if the request was sent, otherwise false.</returns>
     procedure Send(Request: HttpRequestMessage; Setup: Record "AMC Int. Message Setup"; var Response: HttpResponseMessage)
     var
         Client: HttpClient;
@@ -44,12 +42,22 @@ codeunit 50117 "AMC Http Transport Default" implements "AMC IHttpTransportHandle
     local procedure SendRequest(var Client: HttpClient; var Request: HttpRequestMessage; Setup: Record "AMC Int. Message Setup"; var Response: HttpResponseMessage)
     var
         IsHandled: Boolean;
+        SendSucceeded: Boolean;
     begin
         this.OnBeforeSend(Client, Request, Setup, Response, IsHandled);
-        if not IsHandled then
-            Client.Send(Request, Response);
-
+        if not IsHandled then begin
+            SendSucceeded := Client.Send(Request, Response);
+            if not SendSucceeded then
+                this.RaiseSendFailedError(Request, Setup);
+        end;
         this.OnAfterSend(Client, Request, Setup, Response);
+    end;
+
+    local procedure RaiseSendFailedError(Request: HttpRequestMessage; Setup: Record "AMC Int. Message Setup")
+    var
+        SendFailedErr: Label 'HTTP request could not be sent. Message type: %1. Method: %2. URL: %3. Timeout (ms): %4. No HTTP response was available.', Comment = '%1 = integration message type, %2 = HTTP method, %3 = request URL, %4 = timeout in milliseconds';
+    begin
+        Error(SendFailedErr, Format(Setup."Message Type"), Request.Method(), Request.GetRequestUri(), Setup."Timeout (ms)");
     end;
 
     [IntegrationEvent(false, false)]

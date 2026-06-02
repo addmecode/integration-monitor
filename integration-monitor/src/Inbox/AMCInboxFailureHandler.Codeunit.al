@@ -16,19 +16,19 @@ codeunit 50128 "AMC Inbox Failure Handler"
     var
         IntMessageSetup: Record "AMC Int. Message Setup";
     begin
-        Inbox."Processed At" := CurrentDateTime;
+        Inbox."Processed At" := 0DT;
         Inbox."Attempt Count" += 1;
         Inbox."Last Attempt At" := CurrentDateTime;
 
         if IntMessageSetup.Get(Inbox."Message Type") then begin
             if Inbox."Attempt Count" >= IntMessageSetup."Max Attempts" then
-                Inbox.Status := Inbox.Status::Cancelled
+                Inbox.Status := Inbox.Status::Failed
             else begin
                 Inbox.Status := Inbox.Status::Failed;
                 Inbox."Next Attempt At" := this.GetNextAttemptAt(Inbox, IntMessageSetup);
             end;
         end else
-            Inbox.Status := Inbox.Status::Cancelled;
+            Inbox.Status := Inbox.Status::Failed;
 
         this.SetLastError(Inbox, ErrorText);
         Inbox.Modify(true);

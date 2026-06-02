@@ -20,11 +20,17 @@ codeunit 50116 "AMC Outbox Processor"
         TransportHandler: Interface "AMC IHttpTransportHandler";
         Request: HttpRequestMessage;
         Response: HttpResponseMessage;
+        MissingMessageSetupErr: Label 'Integration message setup for message type %1 does not exist. Outbox entry %2 cannot be processed.', Comment = '%1 = message type, %2 = outbox entry number';
     begin
         this.ProcessOn := CurrentDateTime();
-        IntMessageSetup.Get(Outbox."Message Type");
+        if not IntMessageSetup.Get(Outbox."Message Type") then
+            Error(MissingMessageSetupErr, Format(Outbox."Message Type"), Outbox."Entry No.");
+
         if not this.ShouldProcessEntry(Outbox, IntMessageSetup) then
             exit;
+        if not this.ClaimForProcessing(Outbox) then
+            exit;
+
         this.ValidateSetupBeforeProcessingEntry(IntMessageSetup);
 
         MessageHandler := Outbox."Message Type";
@@ -38,7 +44,25 @@ codeunit 50116 "AMC Outbox Processor"
 
         Outbox.Status := Outbox.Status::Processed;
         Outbox."Processed At" := this.ProcessOn;
+        Outbox."Attempt Count" += 1;
+        Outbox."Last Attempt At" := this.ProcessOn;
         Outbox.Modify(true);
+    end;
+
+    local procedure ClaimForProcessing(var Outbox: Record "AMC Int. Outbox Entry"): Boolean
+    begin
+        Outbox.LockTable();
+        if not Outbox.Get(Outbox."Entry No.") then
+            exit(false);
+
+        if (Outbox.Status <> Outbox.Status::ReadyToProcess) and (Outbox.Status <> Outbox.Status::Failed) then
+            exit(false);
+
+        Outbox.Status := Outbox.Status::Processing;
+        Outbox.Modify(true);
+        Commit();
+
+        exit(true);
     end;
 
     local procedure ShouldProcessEntry(Outbox: Record "AMC Int. Outbox Entry"; IntMessageSetup: Record "AMC Int. Message Setup"): Boolean

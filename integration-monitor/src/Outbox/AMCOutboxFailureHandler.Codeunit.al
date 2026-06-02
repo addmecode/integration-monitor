@@ -16,19 +16,19 @@ codeunit 50118 "AMC Outbox Failure Handler"
     var
         IntMessageSetup: Record "AMC Int. Message Setup";
     begin
-        Outbox."Processed At" := CurrentDateTime;
+        Outbox."Processed At" := 0DT;
         Outbox."Attempt Count" += 1;
         Outbox."Last Attempt At" := CurrentDateTime;
 
         if IntMessageSetup.Get(Outbox."Message Type") then begin
             if Outbox."Attempt Count" >= IntMessageSetup."Max Attempts" then
-                Outbox.Status := Outbox.Status::Cancelled
+                Outbox.Status := Outbox.Status::Failed
             else begin
                 Outbox.Status := Outbox.Status::Failed;
                 Outbox."Next Attempt At" := this.GetNextAttemptAt(Outbox, IntMessageSetup);
             end;
         end else
-            Outbox.Status := Outbox.Status::Cancelled;
+            Outbox.Status := Outbox.Status::Failed;
 
         this.SetLastError(Outbox, ErrorText);
         Outbox.Modify(true);
