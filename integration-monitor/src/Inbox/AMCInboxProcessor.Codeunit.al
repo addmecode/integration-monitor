@@ -25,6 +25,9 @@ codeunit 50127 "AMC Inbox Processor"
 
         if not this.ShouldProcessEntry(Inbox, IntMessageSetup) then
             exit;
+        if not this.ClaimForProcessing(Inbox) then
+            exit;
+
         this.ValidateSetupBeforeProcessingEntry(IntMessageSetup);
 
         MessageHandler := Inbox."Message Type";
@@ -34,6 +37,22 @@ codeunit 50127 "AMC Inbox Processor"
         Inbox."Attempt Count" += 1;
         Inbox."Last Attempt At" := this.ProcessOn;
         Inbox.Modify(true);
+    end;
+
+    local procedure ClaimForProcessing(var Inbox: Record "AMC Int. Inbox Entry"): Boolean
+    begin
+        Inbox.LockTable();
+        if not Inbox.Get(Inbox."Entry No.") then
+            exit(false);
+
+        if (Inbox.Status <> Inbox.Status::ReadyToProcess) and (Inbox.Status <> Inbox.Status::Failed) then
+            exit(false);
+
+        Inbox.Status := Inbox.Status::Processing;
+        Inbox.Modify(true);
+        Commit();
+
+        exit(true);
     end;
 
     local procedure ShouldProcessEntry(Inbox: Record "AMC Int. Inbox Entry"; IntMessageSetup: Record "AMC Int. Message Setup"): Boolean

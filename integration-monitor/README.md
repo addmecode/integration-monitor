@@ -159,7 +159,6 @@ The Business Central environment must allow outbound HTTPS requests to `https://
 - The postal-code validation demo can enqueue outbox entries and process responses through the inbox flow.
 
 ### Problems To Fix
-- `Processing` exists in both status enums, but neither dispatcher claims entries before processing. Two job queue sessions can still pick the same due entry.
 - The outbox flow still has no generic enqueue API. The demo inserts outbox records directly and writes the BLOB itself, so future callers would need to know the internal insert and payload rules.
 - `HttpClient.Send` result is ignored. Runtime send failures should become explicit processing errors with useful diagnostics.
 - HTTP diagnostics are still minimal. Entries do not store endpoint, method, status code, response summary, duration, or correlation/idempotency data.
