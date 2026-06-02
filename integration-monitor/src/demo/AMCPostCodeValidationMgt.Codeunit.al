@@ -1,7 +1,9 @@
 namespace Addmecode.IntegrationMonitor.Demo;
 using Addmecode.IntegrationMonitor.Inbox;
+using Addmecode.IntegrationMonitor.Message;
 using Addmecode.IntegrationMonitor.Outbox;
 using Microsoft.Foundation.Address;
+using System.Utilities;
 
 codeunit 50123 "AMC Post Code Validation Mgt"
 {
@@ -45,9 +47,12 @@ codeunit 50123 "AMC Post Code Validation Mgt"
     procedure EnqueueValidation(PostCode: Record "Post Code")
     var
         Outbox: Record "AMC Int. Outbox Entry";
+        TempBlob: Codeunit "Temp Blob";
+        MessageType: Enum "AMC Int. Message Type";
         Payload: JsonObject;
-        PayloadText: Text;
+        PayloadInStream: InStream;
         PayloadOutStream: OutStream;
+        PayloadText: Text;
     begin
         PostCode.TestField(Code);
         PostCode.TestField("Country/Region Code");
@@ -55,14 +60,12 @@ codeunit 50123 "AMC Post Code Validation Mgt"
         Payload.Add('code', PostCode.Code);
         Payload.Add('countryRegionCode', PostCode."Country/Region Code");
         Payload.WriteTo(PayloadText);
-
-        Outbox.Init();
-        Outbox."Message Type" := Outbox."Message Type"::AMCPostalCodeValidation;
-        Outbox.Status := Outbox.Status::ReadyToProcess;
-        Outbox."Source Record ID" := PostCode.RecordId();
-        Outbox."Request Payload".CreateOutStream(PayloadOutStream);
+        TempBlob.CreateOutStream(PayloadOutStream);
         PayloadOutStream.Write(PayloadText);
-        Outbox.Insert(true);
+        TempBlob.CreateInStream(PayloadInStream);
+
+        MessageType := MessageType::AMCPostalCodeValidation;
+        Outbox.EnqueueEntry(MessageType, PayloadInStream, PostCode.RecordId());
     end;
 
     procedure ResetValidation(var PostCode: Record "Post Code")

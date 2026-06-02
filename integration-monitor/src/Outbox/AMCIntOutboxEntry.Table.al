@@ -104,6 +104,13 @@ table 50107 "AMC Int. Outbox Entry"
         MessageMgt.TestMessageSetupExists(Rec."Message Type");
     end;
 
+    procedure EnqueueEntry(MessageType: Enum "AMC Int. Message Type"; RequestPayloadInStream: InStream; SourceRecordId: RecordId): Integer
+    var
+        OutboxEntryMgt: Codeunit "AMC Outbox Entry Mgt.";
+    begin
+        exit(OutboxEntryMgt.EnqueueEntry(MessageType, RequestPayloadInStream, SourceRecordId));
+    end;
+
     procedure ResetEntry()
     var
         OutboxEntryMgt: Codeunit "AMC Outbox Entry Mgt.";
