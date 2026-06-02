@@ -22,13 +22,13 @@ codeunit 50128 "AMC Inbox Failure Handler"
 
         if IntMessageSetup.Get(Inbox."Message Type") then begin
             if Inbox."Attempt Count" >= IntMessageSetup."Max Attempts" then
-                Inbox.Status := Inbox.Status::Cancelled
+                Inbox.Status := Inbox.Status::Failed
             else begin
                 Inbox.Status := Inbox.Status::Failed;
                 Inbox."Next Attempt At" := this.GetNextAttemptAt(Inbox, IntMessageSetup);
             end;
         end else
-            Inbox.Status := Inbox.Status::Cancelled;
+            Inbox.Status := Inbox.Status::Failed;
 
         this.SetLastError(Inbox, ErrorText);
         Inbox.Modify(true);
