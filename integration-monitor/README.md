@@ -159,8 +159,6 @@ The Business Central environment must allow outbound HTTPS requests to `https://
 - The postal-code validation demo can enqueue outbox entries and process responses through the inbox flow.
 
 ### Problems To Fix
-- Setup validation is now present when enabling a setup record, but runtime processor validation is still effectively a no-op and can be bypassed by direct data changes or code. Response-processing requirements also need clearer validation.
-- Reset actions clear error details and reset attempt count. `ResponseReceived` entries stay in the response retry path, but the guard against resetting `Processed` or `Sending` entries is commented out. Decide whether reset is a fresh retry, an operator override, or both.
 - Review the code for top-down readability and performance, especially the duplicated outbox/inbox processor and failure-handler patterns.
 - Rename the app
 - Add job queue setup guidance or assisted setup for the outbox, inbox, and cleanup dispatchers.
