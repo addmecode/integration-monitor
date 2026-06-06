@@ -71,6 +71,16 @@ table 50107 "AMC Int. Outbox Entry"
             DataClassification = SystemMetadata;
             ToolTip = 'Specifies the source record that created the integration outbox entry.';
         }
+        field(12; "Response Payload"; Blob)
+        {
+            DataClassification = CustomerContent;
+            ToolTip = 'Specifies the response payload received after successfully sending the integration outbox entry.';
+        }
+        field(13; "Response Received At"; DateTime)
+        {
+            DataClassification = SystemMetadata;
+            ToolTip = 'Specifies the date and time when a successful HTTP response was received for the integration outbox entry.';
+        }
     }
 
     keys

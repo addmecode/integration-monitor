@@ -22,13 +22,20 @@ codeunit 50116 "AMC Outbox Processor"
         Response: HttpResponseMessage;
         MissingMessageSetupErr: Label 'Integration message setup for message type %1 does not exist. Outbox entry %2 cannot be processed.', Comment = '%1 = message type, %2 = outbox entry number';
     begin
+        //todo: refactor
         this.ProcessOn := CurrentDateTime();
         if not IntMessageSetup.Get(Outbox."Message Type") then
             Error(MissingMessageSetupErr, Format(Outbox."Message Type"), Outbox."Entry No.");
 
         if not this.ShouldProcessEntry(Outbox, IntMessageSetup) then
             exit;
-        if not this.ClaimForProcessing(Outbox) then
+        if Outbox.Status = Outbox.Status::ResponseReceived then begin
+            this.CreateInboxEntry(Outbox);
+            this.MarkOutboxAsProcessed(Outbox);
+            exit;
+        end;
+
+        if not this.ClaimForSending(Outbox) then
             exit;
 
         this.ValidateSetupBeforeProcessingEntry(IntMessageSetup);
@@ -39,9 +46,16 @@ codeunit 50116 "AMC Outbox Processor"
         TransportHandler.Send(Request, IntMessageSetup, Response);
         this.ValidateResponse(Response);
 
-        if IntMessageSetup."Process Response" then
-            this.CreateInboxEntry(Outbox, Response);
+        if IntMessageSetup."Process Response" then begin
+            this.StoreResponse(Outbox, Response);
+            this.CreateInboxEntry(Outbox);
+        end;
 
+        this.MarkOutboxAsProcessed(Outbox);
+    end;
+
+    local procedure MarkOutboxAsProcessed(var Outbox: Record "AMC Int. Outbox Entry")
+    begin
         Outbox.Status := Outbox.Status::Processed;
         Outbox."Processed At" := this.ProcessOn;
         Outbox."Attempt Count" += 1;
@@ -49,7 +63,7 @@ codeunit 50116 "AMC Outbox Processor"
         Outbox.Modify(true);
     end;
 
-    local procedure ClaimForProcessing(var Outbox: Record "AMC Int. Outbox Entry"): Boolean
+    local procedure ClaimForSending(var Outbox: Record "AMC Int. Outbox Entry"): Boolean
     begin
         Outbox.LockTable();
         if not Outbox.Get(Outbox."Entry No.") then
@@ -58,7 +72,7 @@ codeunit 50116 "AMC Outbox Processor"
         if (Outbox.Status <> Outbox.Status::ReadyToProcess) and (Outbox.Status <> Outbox.Status::Failed) then
             exit(false);
 
-        Outbox.Status := Outbox.Status::Processing;
+        Outbox.Status := Outbox.Status::Sending;
         Outbox.Modify(true);
         Commit();
 
@@ -120,22 +134,38 @@ codeunit 50116 "AMC Outbox Processor"
         end;
     end;
 
-    local procedure CreateInboxEntry(Outbox: Record "AMC Int. Outbox Entry"; Response: HttpResponseMessage)
+    local procedure StoreResponse(var Outbox: Record "AMC Int. Outbox Entry"; Response: HttpResponseMessage)
+    var
+        ResponseBody: Text;
+        ResponseOutStream: OutStream;
+    begin
+        //todo: use helper
+        Response.Content.ReadAs(ResponseBody);
+        Clear(Outbox."Response Payload");
+        Outbox."Response Payload".CreateOutStream(ResponseOutStream);
+        ResponseOutStream.Write(ResponseBody);
+        Outbox."Response Received At" := this.ProcessOn;
+        Outbox.Status := Outbox.Status::ResponseReceived;
+        Outbox.Modify(true);
+        Commit();
+    end;
+
+    local procedure CreateInboxEntry(var Outbox: Record "AMC Int. Outbox Entry")
     var
         IsHandled: Boolean;
     begin
-        this.OnBeforeCreateInboxEntry(Outbox, Response, IsHandled);
+        this.OnBeforeCreateInboxEntry(Outbox, IsHandled);
         if IsHandled then
             exit;
 
-        this.DoCreateInboxEntry(Outbox, Response);
-        this.OnAfterCreateInboxEntry(Outbox, Response);
+        this.DoCreateInboxEntry(Outbox);
+        this.OnAfterCreateInboxEntry(Outbox);
     end;
 
-    local procedure DoCreateInboxEntry(Outbox: Record "AMC Int. Outbox Entry"; Response: HttpResponseMessage)
+    local procedure DoCreateInboxEntry(var Outbox: Record "AMC Int. Outbox Entry")
     var
         Inbox: Record "AMC Int. Inbox Entry";
-        ResponseBody: Text;
+        ResponseInStream: InStream;
         ResponseOutStream: OutStream;
     begin
         // todo: use validate
@@ -149,9 +179,10 @@ codeunit 50116 "AMC Outbox Processor"
         Inbox."Source Record ID" := Outbox."Source Record ID";
 
         //todo: move to inbox table
-        Response.Content.ReadAs(ResponseBody);
+        Outbox.CalcFields("Response Payload");
+        Outbox."Response Payload".CreateInStream(ResponseInStream);
         Inbox."Response Payload".CreateOutStream(ResponseOutStream);
-        ResponseOutStream.Write(ResponseBody);
+        CopyStream(ResponseOutStream, ResponseInStream);
 
         Inbox.Insert(true);
     end;
@@ -177,12 +208,12 @@ codeunit 50116 "AMC Outbox Processor"
     end;
 
     [IntegrationEvent(false, false)]
-    local procedure OnBeforeCreateInboxEntry(Outbox: Record "AMC Int. Outbox Entry"; Response: HttpResponseMessage; var IsHandled: Boolean)
+    local procedure OnBeforeCreateInboxEntry(Outbox: Record "AMC Int. Outbox Entry"; var IsHandled: Boolean)
     begin
     end;
 
     [IntegrationEvent(false, false)]
-    local procedure OnAfterCreateInboxEntry(Outbox: Record "AMC Int. Outbox Entry"; Response: HttpResponseMessage)
+    local procedure OnAfterCreateInboxEntry(Outbox: Record "AMC Int. Outbox Entry")
     begin
     end;
 

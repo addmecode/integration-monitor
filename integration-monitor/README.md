@@ -1,6 +1,6 @@
 # Integration Monitor
 
-Integration Monitor is an early-stage Microsoft Dynamics 365 Business Central extension for monitoring and processing integration traffic through explicit inbox and outbox queues. The current codebase contains active outbox and inbox processing flows, retention cleanup for completed outbox traffic, a default HTTP/HTTPS transport, basic authentication profile storage, and a postal-code validation demo. It is still not production-ready: retry semantics, concurrency control, diagnostics, cleanup scheduling, permissions, and automated tests need hardening.
+Integration Monitor is an early-stage Microsoft Dynamics 365 Business Central extension for monitoring and processing integration traffic through explicit inbox and outbox queues. The current codebase contains active outbox and inbox processing flows, retention cleanup for completed outbox traffic, a default HTTP/HTTPS transport, basic authentication profile storage, and a postal-code validation demo.
 
 ## Main Assumptions
 
@@ -40,7 +40,7 @@ Translations/
 
 | Object | Type | Status | Purpose |
 | --- | --- | --- | --- |
-| `AMC Int. Outbox Status` | Enum 50102 | Active | Defines the outbox lifecycle values: ready to process, processing, processed, failed, and cancelled. `Processing` exists but is not claimed by the processors yet. |
+| `AMC Int. Outbox Status` | Enum 50102 | Active | Defines the outbox lifecycle values: ready to process, sending, response received, processed, failed, and cancelled. |
 | `AMC Int. Blob Helper` | Codeunit 50113 | Active | Provides helper procedures for reading text from BLOB fields and writing text into BLOB fields through `RecordRef`. It is used by the generic BLOB viewer and error display actions. |
 | `AMC Int. Blob Viewer` | Page 50115 | Active | Generic card page for viewing or editing a selected BLOB field as text. It is reused by outbox and inbox payload actions. |
 | `AMC Int. Message Type` | Enum 50103 | Active | Defines extensible integration message types and maps each enum value to an `AMC IMessageHandler` implementation. The current default value is `Default`; the demo extends it with `Postal Code Validation`. |
@@ -60,10 +60,10 @@ Translations/
 | `AMC Int. Message Setup Mgt.` | Codeunit 50122 | Active | Validates transport and authentication setup before a setup record can be enabled, and validates that configured outbox retention formulas resolve to a date before today. |
 | `AMC Int. Message Setup List` | Page 50116 | Active | Read-only administration list page for browsing integration message setup records. It opens `AMC Int. Message Setup Card` for record editing. |
 | `AMC Int. Message Setup Card` | Page 50117 | Active | Editable card page for maintaining one integration message setup record. It exposes the key processing, endpoint, retry, authentication, transport, and outbox retention settings. |
-| `AMC Int. Outbox Entry` | Table 50107 | Active | Stores outbound integration messages, processing status, timestamps, retry count, request payload, error message, and source record reference. Exposes the generic enqueue wrapper. Insert triggers initialize creation and next attempt timestamps. Delete triggers validate processing state and delete related inbox entries. |
+| `AMC Int. Outbox Entry` | Table 50107 | Active | Stores outbound integration messages, processing status, timestamps, retry count, request payload, stored response payload, error message, and source record reference. Exposes the generic enqueue wrapper. Insert triggers initialize creation and next attempt timestamps. Delete triggers validate sending state and delete related inbox entries. |
 | `AMC Int. Outbox Entries` | Page 50113 | Active | List page for monitoring outbox entries. It provides actions to process, reset, cancel, view payload, edit payload, view error details, and open related inbox entries. |
-| `AMC Outbox Dispatcher Job` | Codeunit 50115 | Active | Job entry point for finding outbox entries that are ready or failed and due for processing. It runs the outbox processor and delegates failures to the failure handler. |
-| `AMC Outbox Processor` | Codeunit 50116 | Active | Processes a single outbox entry by loading setup, validating eligibility, building the request, sending it through the selected transport, validating the response, optionally creating an inbox entry, and marking the outbox entry as processed. |
+| `AMC Outbox Dispatcher Job` | Codeunit 50115 | Active | Job entry point for finding outbox entries that are ready, failed, or response received and due for processing. It runs the outbox processor and delegates failures to the failure handler. |
+| `AMC Outbox Processor` | Codeunit 50116 | Active | Processes a single outbox entry by loading setup, validating eligibility, building the request, sending it through the selected transport, validating and storing the response, optionally creating an inbox entry, and marking the outbox entry as processed. Entries in `ResponseReceived` retry inbox creation without sending another HTTP request. |
 | `AMC Outbox Failure Handler` | Codeunit 50118 | Active | Marks failed outbox processing attempts, increments attempt count, stores last error text, schedules the next attempt, or marks the entry as cancelled after max attempts. |
 | `AMC Outbox Entry Mgt.` | Codeunit 50119 | Active | Centralizes outbox enqueue, insert defaults, payload writing, delete validation, related inbox cleanup, and page actions such as reset, cancel, process, payload view/edit, and error details. |
 | `AMC Outbox Cleanup Job` | Codeunit 50131 | Active | Deletes processed or cancelled outbox entries older than the retention threshold configured on each message setup. Blank retention formulas disable cleanup for that message type. |
@@ -101,7 +101,7 @@ For example, with `Endpoint URL` set to `https://public.opendatasoft.com/api/exp
 GET https://public.opendatasoft.com/api/explore/v2.1/catalog/datasets/geonames-postal-code/records?where=country_code%3D%22US%22%20AND%20postal_code%3D%2290210%22&limit=10
 ```
 
-If `Process Response` is enabled in the message setup, the HTTP response is stored in the inbox. Processing that inbox response validates the source `Post Code` record. `Validation Status` becomes `Invalid` when OpenDataSoft returns an empty `results` array. It becomes `Valid` only when one result has `country_code` matching `Country/Region Code`, `postal_code` matching `Code`, `admin_code1` matching `County`, and `City` matching either `place_name` or `admin_name1`.
+If `Process Response` is enabled in the message setup, the HTTP response is stored on the outbox first and then materialized as an inbox entry. Processing that inbox response validates the source `Post Code` record. `Validation Status` becomes `Invalid` when OpenDataSoft returns an empty `results` array. It becomes `Valid` only when one result has `country_code` matching `Country/Region Code`, `postal_code` matching `Code`, `admin_code1` matching `County`, and `City` matching either `place_name` or `admin_name1`.
 
 Example response:
 
@@ -159,10 +159,8 @@ The Business Central environment must allow outbound HTTPS requests to `https://
 - The postal-code validation demo can enqueue outbox entries and process responses through the inbox flow.
 
 ### Problems To Fix
-- HTTP diagnostics are still minimal. Entries do not store endpoint, method, status code, response summary, duration, or correlation/idempotency data.
-- If the HTTP call succeeds but inbox entry creation fails, the dispatcher can retry the outbound call and create a duplicate external side effect.
 - Setup validation is now present when enabling a setup record, but runtime processor validation is still effectively a no-op and can be bypassed by direct data changes or code. Response-processing requirements also need clearer validation.
-- Reset actions clear error details, reset attempt count, and make entries ready again, but the guard against resetting `Processed` or `Processing` entries is commented out. Decide whether reset is a fresh retry, an operator override, or both.
+- Reset actions clear error details and reset attempt count. `ResponseReceived` entries stay in the response retry path, but the guard against resetting `Processed` or `Sending` entries is commented out. Decide whether reset is a fresh retry, an operator override, or both.
 - Review the code for top-down readability and performance, especially the duplicated outbox/inbox processor and failure-handler patterns.
 - Rename the app
 - Add job queue setup guidance or assisted setup for the outbox, inbox, and cleanup dispatchers.

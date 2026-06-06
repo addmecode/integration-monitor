@@ -15,20 +15,21 @@ codeunit 50118 "AMC Outbox Failure Handler"
     local procedure MarkOutboxAsFailed(var Outbox: Record "AMC Int. Outbox Entry"; ErrorText: Text)
     var
         IntMessageSetup: Record "AMC Int. Message Setup";
+        ResponseAlreadyReceived: Boolean;
     begin
+        Outbox.LockTable();
+        if not Outbox.Get(Outbox."Entry No.") then
+            exit;
+
+        ResponseAlreadyReceived := Outbox.Status = Outbox.Status::ResponseReceived;
         Outbox."Processed At" := 0DT;
         Outbox."Attempt Count" += 1;
         Outbox."Last Attempt At" := CurrentDateTime;
-
-        if IntMessageSetup.Get(Outbox."Message Type") then begin
-            if Outbox."Attempt Count" >= IntMessageSetup."Max Attempts" then
-                Outbox.Status := Outbox.Status::Failed
-            else begin
-                Outbox.Status := Outbox.Status::Failed;
-                Outbox."Next Attempt At" := this.GetNextAttemptAt(Outbox, IntMessageSetup);
-            end;
-        end else
+        if not ResponseAlreadyReceived then
             Outbox.Status := Outbox.Status::Failed;
+        if IntMessageSetup.Get(Outbox."Message Type") then
+            if Outbox."Attempt Count" < IntMessageSetup."Max Attempts" then
+                Outbox."Next Attempt At" := this.GetNextAttemptAt(Outbox, IntMessageSetup);
 
         this.SetLastError(Outbox, ErrorText);
         Outbox.Modify(true);
