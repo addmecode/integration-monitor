@@ -149,8 +149,6 @@ The Business Central environment must allow outbound HTTPS requests to `https://
 5. Run or schedule `AMC Outbox Dispatcher Job`.
 6. Inspect the inbox payload if response processing is enabled.
 
-## TODO
-
 ### Current Status
 
 - Outbox and inbox are active flows, not commented drafts. Both have entry tables, status enums, dispatcher jobs, processors, failure handlers, list pages, and payload/error actions through the generic BLOB viewer.
@@ -159,9 +157,10 @@ The Business Central environment must allow outbound HTTPS requests to `https://
 - The postal-code validation demo can enqueue outbox entries and process responses through the inbox flow.
 
 ### Problems To Fix
-- Rename the app
+- implement todos in code
 - Review the code for performance
 - refactor code in best practice style
 - Add job queue setup guidance or assisted setup for the outbox, inbox, and cleanup dispatchers.
 - Add permissions, role center/search discoverability, and any required page actions for normal users.
+- Rename the app
 - Automated tests are still missing for outbox eligibility, request building, successful dispatch, HTTP failure, retry scheduling, max attempts, manual reset/cancel, response-to-inbox creation, inbox response processing, and auth validation.

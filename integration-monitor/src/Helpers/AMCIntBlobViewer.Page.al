@@ -1,4 +1,4 @@
-namespace Addmecode.IntegrationMonitor.Outbox;
+namespace Addmecode.IntegrationMonitor.Helpers;
 
 page 50115 "AMC Int. Blob Viewer"
 {

@@ -97,7 +97,7 @@ codeunit 50127 "AMC Inbox Processor"
 
     local procedure DoValidateSetupBeforeProcessingEntry(IntMessageSetup: Record "AMC Int. Message Setup")
     begin
-        //todo: nothing for now. All the mandatory fields are handled by properties on the table
+        //nothing for now. All the mandatory fields are handled by properties on the table
         if IntMessageSetup.Enabled then
             exit;
     end;

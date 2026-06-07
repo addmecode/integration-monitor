@@ -1,4 +1,5 @@
 namespace Addmecode.IntegrationMonitor.Message;
+using Addmecode.IntegrationMonitor.Helpers;
 using Addmecode.IntegrationMonitor.Inbox;
 using Addmecode.IntegrationMonitor.Outbox;
 using Addmecode.IntegrationMonitor.Setup;

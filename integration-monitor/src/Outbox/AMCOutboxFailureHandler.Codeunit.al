@@ -47,7 +47,6 @@ codeunit 50118 "AMC Outbox Failure Handler"
     var
         LastErrorResponseOutStream: OutStream;
     begin
-        //todo: test this
         Outbox."Last Error".CreateOutStream(LastErrorResponseOutStream);
         LastErrorResponseOutStream.Write(ErrorText);
     end;

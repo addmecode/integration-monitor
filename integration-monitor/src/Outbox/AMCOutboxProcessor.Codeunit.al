@@ -1,4 +1,5 @@
 namespace Addmecode.IntegrationMonitor.Outbox;
+using Addmecode.IntegrationMonitor.Helpers;
 using Addmecode.IntegrationMonitor.Inbox;
 using Addmecode.IntegrationMonitor.Message;
 using Addmecode.IntegrationMonitor.Setup;
@@ -111,7 +112,7 @@ codeunit 50116 "AMC Outbox Processor"
 
     local procedure DoValidateSetupBeforeProcessingEntry(IntMessageSetup: Record "AMC Int. Message Setup")
     begin
-        //todo: nothing for now. All the mandatory fields are handled by properties on the table
+        //nothing for now. All the mandatory fields are handled by properties on the table
         if IntMessageSetup.Enabled then
             exit;
     end;
@@ -147,17 +148,15 @@ codeunit 50116 "AMC Outbox Processor"
 
     local procedure StoreResponse(var Outbox: Record "AMC Int. Outbox Entry"; Response: HttpResponseMessage)
     var
+        BlobHelper: Codeunit "AMC Int. Blob Helper";
+        OutboxRef: RecordRef;
         ResponseBody: Text;
-        ResponseOutStream: OutStream;
     begin
-        //todo: use helper
         Response.Content.ReadAs(ResponseBody);
-        Clear(Outbox."Response Payload");
-        Outbox."Response Payload".CreateOutStream(ResponseOutStream);
-        ResponseOutStream.Write(ResponseBody);
         Outbox."Response Received At" := this.ProcessOn;
         Outbox.Status := Outbox.Status::ResponseReceived;
-        Outbox.Modify(true);
+        OutboxRef.GetTable(Outbox);
+        BlobHelper.WriteTextToBlob(OutboxRef, Outbox.FieldNo("Response Payload"), ResponseBody);
         Commit();
     end;
 
