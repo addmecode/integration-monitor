@@ -71,7 +71,7 @@ codeunit 50119 "AMC Outbox Entry Mgt."
     var
         CannotResetEntryErr: label 'Cannot reset entry with status = %1', Comment = '%1 is entry status';
     begin
-        //todo
+        //todo: only for testing
         // if (Outbox.Status = Outbox.Status::Processed) or (Outbox.Status = Outbox.Status::Sending) or (Outbox.Status = Outbox.Status::ResponseReceived) then
         //     Error(CannotResetEntryErr, Outbox.Status);
         Outbox.Status := Outbox.Status::ReadyToProcess;
