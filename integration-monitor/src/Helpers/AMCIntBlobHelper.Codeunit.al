@@ -1,3 +1,6 @@
+namespace Addmecode.IntegrationMonitor.Helpers;
+using System.Utilities;
+
 codeunit 50113 "AMC Int. Blob Helper"
 {
     // TODO: move to utils

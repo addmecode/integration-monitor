@@ -8,9 +8,9 @@ enum 50102 "AMC Int. Outbox Status"
     {
         Caption = 'Ready To Process';
     }
-    value(1; Processing)
+    value(1; Sending)
     {
-        Caption = 'Processing';
+        Caption = 'Sending';
     }
     value(2; Processed)
     {
@@ -24,5 +24,8 @@ enum 50102 "AMC Int. Outbox Status"
     {
         Caption = 'Cancelled';
     }
+    value(5; ResponseReceived)
+    {
+        Caption = 'Response Received';
+    }
 }
-

@@ -13,7 +13,7 @@ codeunit 50115 "AMC Outbox Dispatcher Job"
         OutboxFailureHandler: Codeunit "AMC Outbox Failure Handler";
         OutboxProcessor: Codeunit "AMC Outbox Processor";
     begin
-        Outbox.SetFilter(Status, '%1|%2', Outbox.Status::ReadyToProcess, Outbox.Status::Failed);
+        Outbox.SetFilter(Status, '%1|%2|%3', Outbox.Status::ReadyToProcess, Outbox.Status::Failed, Outbox.Status::ResponseReceived);
         Outbox.SetFilter("Next Attempt At", '<=%1', CurrentDateTime());
         if Outbox.FindSet() then
             repeat

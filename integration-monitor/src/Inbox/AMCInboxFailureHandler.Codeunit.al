@@ -46,7 +46,6 @@ codeunit 50128 "AMC Inbox Failure Handler"
     var
         LastErrorResponseOutStream: OutStream;
     begin
-        //todo: test this
         Inbox."Last Error".CreateOutStream(LastErrorResponseOutStream);
         LastErrorResponseOutStream.Write(ErrorText);
     end;

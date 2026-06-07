@@ -1,4 +1,5 @@
 namespace Addmecode.IntegrationMonitor.Outbox;
+using Addmecode.IntegrationMonitor.Helpers;
 using Addmecode.IntegrationMonitor.Inbox;
 using Addmecode.IntegrationMonitor.Message;
 
@@ -48,10 +49,10 @@ codeunit 50119 "AMC Outbox Entry Mgt."
     var
         Inbox: Record "AMC Int. Inbox Entry";
         InboxEntryIsBeingProcessedErr: Label 'Cannot delete record because a related Inbox Entry is being processed.';
-        OutboxEntryIsBeingProcessedErr: Label 'Cannot delete record because is being processed.';
+        OutboxEntryIsBeingSendingErr: Label 'Cannot delete record because is being sending.';
     begin
-        if Outbox.Status = Outbox.Status::Processing then
-            Error(OutboxEntryIsBeingProcessedErr);
+        if Outbox.Status = Outbox.Status::Sending then
+            Error(OutboxEntryIsBeingSendingErr);
         Inbox.SetRange("Outbox Entry No.", Outbox."Entry No.");
         Inbox.SetRange(Status, Inbox.Status::Processing);
         if not Inbox.IsEmpty() then
@@ -70,8 +71,8 @@ codeunit 50119 "AMC Outbox Entry Mgt."
     var
         CannotResetEntryErr: label 'Cannot reset entry with status = %1', Comment = '%1 is entry status';
     begin
-        //todo
-        // if (Outbox.Status = Outbox.Status::Processed) or (Outbox.Status = Outbox.Status::Processing) then
+        //todo: only for testing
+        // if (Outbox.Status = Outbox.Status::Processed) or (Outbox.Status = Outbox.Status::Sending) or (Outbox.Status = Outbox.Status::ResponseReceived) then
         //     Error(CannotResetEntryErr, Outbox.Status);
         Outbox.Status := Outbox.Status::ReadyToProcess;
         Outbox."Next Attempt At" := CurrentDateTime();
@@ -79,6 +80,8 @@ codeunit 50119 "AMC Outbox Entry Mgt."
         Outbox."Processed At" := 0DT;
         Outbox."Attempt Count" := 0;
         Clear(Outbox."Last Error");
+        Clear(Outbox."Response Payload");
+        Outbox."Response Received At" := 0DT;
         Outbox.Modify(true);
     end;
 

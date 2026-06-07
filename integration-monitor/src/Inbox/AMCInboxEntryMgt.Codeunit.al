@@ -1,4 +1,5 @@
 namespace Addmecode.IntegrationMonitor.Outbox;
+using Addmecode.IntegrationMonitor.Helpers;
 using Addmecode.IntegrationMonitor.Inbox;
 
 codeunit 50126 "AMC Inbox Entry Mgt."

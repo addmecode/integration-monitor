@@ -89,6 +89,9 @@ table 50106 "AMC Int. Inbox Entry"
         key(StatusNextAttempt; Status, "Next Attempt At")
         {
         }
+        key(OutboxEntryNoStatus; "Outbox Entry No.", Status)
+        {
+        }
     }
 
     trigger OnInsert()

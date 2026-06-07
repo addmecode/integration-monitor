@@ -16,7 +16,6 @@ codeunit 50127 "AMC Inbox Processor"
     local procedure ProcessEntry(var Inbox: Record "AMC Int. Inbox Entry")
     var
         IntMessageSetup: Record "AMC Int. Message Setup";
-        MessageHandler: Interface "AMC IMessageHandler";
         MissingMessageSetupErr: Label 'Integration message setup for message type %1 does not exist. Inbox entry %2 cannot be processed.', Comment = '%1 = message type, %2 = inbox entry number';
     begin
         this.ProcessOn := CurrentDateTime();
@@ -25,34 +24,11 @@ codeunit 50127 "AMC Inbox Processor"
 
         if not this.ShouldProcessEntry(Inbox, IntMessageSetup) then
             exit;
+
         if not this.ClaimForProcessing(Inbox) then
             exit;
 
-        this.ValidateSetupBeforeProcessingEntry(IntMessageSetup);
-
-        MessageHandler := Inbox."Message Type";
-        MessageHandler.ProcessResponse(Inbox);
-        Inbox.Status := Inbox.Status::Processed;
-        Inbox."Processed At" := this.ProcessOn;
-        Inbox."Attempt Count" += 1;
-        Inbox."Last Attempt At" := this.ProcessOn;
-        Inbox.Modify(true);
-    end;
-
-    local procedure ClaimForProcessing(var Inbox: Record "AMC Int. Inbox Entry"): Boolean
-    begin
-        Inbox.LockTable();
-        if not Inbox.Get(Inbox."Entry No.") then
-            exit(false);
-
-        if (Inbox.Status <> Inbox.Status::ReadyToProcess) and (Inbox.Status <> Inbox.Status::Failed) then
-            exit(false);
-
-        Inbox.Status := Inbox.Status::Processing;
-        Inbox.Modify(true);
-        Commit();
-
-        exit(true);
+        this.ProcessClaimedEntry(Inbox, IntMessageSetup);
     end;
 
     local procedure ShouldProcessEntry(Inbox: Record "AMC Int. Inbox Entry"; IntMessageSetup: Record "AMC Int. Message Setup"): Boolean
@@ -80,6 +56,33 @@ codeunit 50127 "AMC Inbox Processor"
         exit(true);
     end;
 
+    local procedure ClaimForProcessing(var Inbox: Record "AMC Int. Inbox Entry"): Boolean
+    begin
+        Inbox.LockTable();
+        if not Inbox.Get(Inbox."Entry No.") then
+            exit(false);
+
+        if (Inbox.Status <> Inbox.Status::ReadyToProcess) and (Inbox.Status <> Inbox.Status::Failed) then
+            exit(false);
+
+        Inbox.Status := Inbox.Status::Processing;
+        Inbox.Modify(true);
+        Commit();
+
+        exit(true);
+    end;
+
+    local procedure ProcessClaimedEntry(var Inbox: Record "AMC Int. Inbox Entry"; IntMessageSetup: Record "AMC Int. Message Setup")
+    var
+        MessageHandler: Interface "AMC IMessageHandler";
+    begin
+        this.ValidateSetupBeforeProcessingEntry(IntMessageSetup);
+
+        MessageHandler := Inbox."Message Type";
+        MessageHandler.ProcessResponse(Inbox);
+        this.MarkInboxAsProcessed(Inbox);
+    end;
+
     local procedure ValidateSetupBeforeProcessingEntry(IntMessageSetup: Record "AMC Int. Message Setup")
     var
         IsHandled: Boolean;
@@ -94,20 +97,18 @@ codeunit 50127 "AMC Inbox Processor"
 
     local procedure DoValidateSetupBeforeProcessingEntry(IntMessageSetup: Record "AMC Int. Message Setup")
     begin
-        //todo: nothing for now. All the mandatory fields are handled by properties on the table
+        //nothing for now. All the mandatory fields are handled by properties on the table
         if IntMessageSetup.Enabled then
             exit;
     end;
 
-    procedure ValidateResponse(Response: HttpResponseMessage)
-    var
-        ResponseBody: Text;
-        HttpStatusErr: Label 'HTTP request failed with status %1. Full response: \ %2', Comment = '%1 = HTTP status code, %2 = Response body';
+    local procedure MarkInboxAsProcessed(var Inbox: Record "AMC Int. Inbox Entry")
     begin
-        if not Response.IsSuccessStatusCode then begin
-            Response.Content.ReadAs(ResponseBody);
-            Error(HttpStatusErr, Format(Response.HttpStatusCode), ResponseBody);
-        end;
+        Inbox.Status := Inbox.Status::Processed;
+        Inbox."Processed At" := this.ProcessOn;
+        Inbox."Attempt Count" += 1;
+        Inbox."Last Attempt At" := this.ProcessOn;
+        Inbox.Modify(true);
     end;
 
     [IntegrationEvent(false, false)]

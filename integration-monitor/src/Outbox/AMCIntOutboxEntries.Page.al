@@ -46,6 +46,10 @@ page 50113 "AMC Int. Outbox Entries"
                 {
                     ApplicationArea = All;
                 }
+                field("Response Received At"; Rec."Response Received At")
+                {
+                    ApplicationArea = All;
+                }
                 field("Attempt Count"; Rec."Attempt Count")
                 {
                     ApplicationArea = All;
