@@ -178,15 +178,14 @@ codeunit 50116 "AMC Outbox Processor"
         ResponseInStream: InStream;
         ResponseOutStream: OutStream;
     begin
-        // todo: use validate
         Inbox.Init();
-        Inbox."Outbox Entry No." := Outbox."Entry No.";
+        Inbox.Validate("Outbox Entry No.", Outbox."Entry No.");
         Inbox.Validate("Message Type", Outbox."Message Type");
-        Inbox.Status := Inbox.Status::ReadyToProcess;
-        Inbox."Created At" := this.ProcessOn;
-        Inbox."Next Attempt At" := Inbox."Created At";
-        Inbox."Attempt Count" := 0;
-        Inbox."Source Record ID" := Outbox."Source Record ID";
+        Inbox.Validate(Status, Inbox.Status::ReadyToProcess);
+        Inbox.Validate("Created At", this.ProcessOn);
+        Inbox.Validate("Next Attempt At", Inbox."Created At");
+        Inbox.Validate("Attempt Count", 0);
+        Inbox.Validate("Source Record ID", Outbox."Source Record ID");
 
         //todo: move to inbox table
         Outbox.CalcFields("Response Payload");
