@@ -175,8 +175,6 @@ codeunit 50116 "AMC Outbox Processor"
     local procedure DoCreateInboxEntry(var Outbox: Record "AMC Int. Outbox Entry")
     var
         Inbox: Record "AMC Int. Inbox Entry";
-        ResponseInStream: InStream;
-        ResponseOutStream: OutStream;
     begin
         Inbox.Init();
         Inbox.Validate("Outbox Entry No.", Outbox."Entry No.");
@@ -187,13 +185,19 @@ codeunit 50116 "AMC Outbox Processor"
         Inbox.Validate("Attempt Count", 0);
         Inbox.Validate("Source Record ID", Outbox."Source Record ID");
 
-        //todo: move to inbox table
+        this.SetResponsePayloadFromOutbox(Inbox, Outbox);
+        Inbox.Insert(true);
+    end;
+
+    local procedure SetResponsePayloadFromOutbox(var Inbox: Record "AMC Int. Inbox Entry"; Outbox: Record "AMC Int. Outbox Entry")
+    var
+        ResponseInStream: InStream;
+        ResponseOutStream: OutStream;
+    begin
         Outbox.CalcFields("Response Payload");
         Outbox."Response Payload".CreateInStream(ResponseInStream);
         Inbox."Response Payload".CreateOutStream(ResponseOutStream);
         CopyStream(ResponseOutStream, ResponseInStream);
-
-        Inbox.Insert(true);
     end;
 
     local procedure MarkOutboxAsProcessed(var Outbox: Record "AMC Int. Outbox Entry")
