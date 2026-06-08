@@ -6,13 +6,14 @@ codeunit 50120 "AMC Int. Auth Profile Mgt."
     [NonDebuggable]
     procedure SetSecret(var AuthProfile: Record "AMC Int. Auth Profile"; SecretValue: SecretText)
     var
+        AuthSecretStore: Codeunit "AMC Int. Auth Secret Store";
         EmptySecretErr: Label 'The secret value cannot be empty.';
     begin
         AuthProfile.TestField(Code);
         if SecretValue.IsEmpty() then
             Error(EmptySecretErr);
 
-        IsolatedStorage.Set(this.GetSecretKey(AuthProfile.Code), SecretValue, DataScope::Company);
+        AuthSecretStore.SetSecret(AuthProfile.Code, SecretValue);
         this.SetSecretStored(AuthProfile);
         AuthProfile.Modify(true);
     end;
@@ -26,29 +27,24 @@ codeunit 50120 "AMC Int. Auth Profile Mgt."
 
     [NonDebuggable]
     procedure GetSecret(AuthProfileCode: Code[20]; var SecretValue: SecretText): Boolean
+    var
+        AuthSecretStore: Codeunit "AMC Int. Auth Secret Store";
     begin
-        if AuthProfileCode = '' then
-            exit(false);
-
-        exit(IsolatedStorage.Get(this.GetSecretKey(AuthProfileCode), DataScope::Company, SecretValue));
+        exit(AuthSecretStore.GetSecret(AuthProfileCode, SecretValue));
     end;
 
     procedure HasSecret(AuthProfileCode: Code[20]): Boolean
+    var
+        AuthSecretStore: Codeunit "AMC Int. Auth Secret Store";
     begin
-        if AuthProfileCode = '' then
-            exit(false);
-
-        exit(IsolatedStorage.Contains(this.GetSecretKey(AuthProfileCode), DataScope::Company));
+        exit(AuthSecretStore.HasSecret(AuthProfileCode));
     end;
 
     procedure DeleteSecret(var AuthProfile: Record "AMC Int. Auth Profile")
+    var
+        AuthSecretStore: Codeunit "AMC Int. Auth Secret Store";
     begin
-        if AuthProfile.Code = '' then
-            exit;
-
-        if IsolatedStorage.Contains(this.GetSecretKey(AuthProfile.Code), DataScope::Company) then
-            IsolatedStorage.Delete(this.GetSecretKey(AuthProfile.Code), DataScope::Company);
-
+        AuthSecretStore.DeleteSecret(AuthProfile.Code);
         this.ClearSecretStored(AuthProfile);
     end;
 
@@ -135,12 +131,5 @@ codeunit 50120 "AMC Int. Auth Profile Mgt."
 
         if not this.HasSecret(AuthProfile.Code) then
             Error(MissingSecretErr, AuthProfile.Code);
-    end;
-
-    local procedure GetSecretKey(AuthProfileCode: Code[20]): Text
-    var
-        KeyLbl: label 'AMC:IntegrationMonitor:AuthProfile:%1:Secret', Locked = true;
-    begin
-        exit(StrSubstNo(KeyLbl, AuthProfileCode));
     end;
 }
