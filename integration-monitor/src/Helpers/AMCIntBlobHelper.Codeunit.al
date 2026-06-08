@@ -39,4 +39,33 @@ codeunit 50113 "AMC Int. Blob Helper"
         TempBlob.ToRecordRef(AnyRecord, FieldNo);
         AnyRecord.Modify(true);
     end;
+
+    /// <summary>
+    /// Reads a BLOB field from the provided record and parses it as a JSON object.
+    /// </summary>
+    /// <param name="AnyRecord">Record containing the BLOB field.</param>
+    /// <param name="FieldNo">Field number of the BLOB to read.</param>
+    /// <param name="BlobJsonObject">Parsed JSON object from the BLOB field.</param>
+    procedure ReadBlobAsJsonObject(AnyRecord: RecordRef; FieldNo: Integer; var BlobJsonObject: JsonObject)
+    var
+        BlobValueAsText: Text;
+    begin
+        BlobValueAsText := this.ReadBlobAsText(AnyRecord, FieldNo);
+        BlobJsonObject.ReadFrom(BlobValueAsText);
+    end;
+
+    /// <summary>
+    /// Creates an input stream from text content
+    /// </summary>
+    /// <param name="Value">Text content to expose through the input stream.</param>
+    /// <param name="ValueInStream">Input stream created from the text content.</param>
+    procedure CreateTextInStream(Value: Text; var ValueInStream: InStream)
+    var
+        TextTempBlob: Codeunit "Temp Blob";
+        ValueOutStream: OutStream;
+    begin
+        TextTempBlob.CreateOutStream(ValueOutStream);
+        ValueOutStream.Write(Value);
+        TextTempBlob.CreateInStream(ValueInStream);
+    end;
 }

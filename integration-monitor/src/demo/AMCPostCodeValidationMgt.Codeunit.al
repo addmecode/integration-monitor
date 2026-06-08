@@ -1,5 +1,5 @@
 namespace Addmecode.IntegrationMonitor.Demo;
-using Addmecode.IntegrationMonitor.Inbox;
+using Addmecode.IntegrationMonitor.Helpers;
 using Addmecode.IntegrationMonitor.Message;
 using Addmecode.IntegrationMonitor.Outbox;
 using Microsoft.Foundation.Address;
@@ -7,31 +7,35 @@ using System.Utilities;
 
 codeunit 50123 "AMC Post Code Validation Mgt"
 {
-    procedure ResetValidationForSelection(var SelectedPostCode: Record "Post Code"): Integer
+    internal procedure ResetValidationForSelection(var SelectedPostCode: Record "Post Code"): Integer
     var
         PostCode: Record "Post Code";
+        PostCodeToReset: Record "Post Code";
         ResetCount: Integer;
     begin
         PostCode.Copy(SelectedPostCode);
-        if PostCode.FindSet() then
+        if PostCode.FindSet(true) then
             repeat
-                PostCode.ResetValidation();
-                PostCode.Modify(true);
+                PostCodeToReset := PostCode;
+                PostCodeToReset.ResetValidation();
+                PostCodeToReset.Modify(true);
                 ResetCount += 1;
             until PostCode.Next() = 0;
 
         exit(ResetCount);
     end;
 
-    procedure EnqueueValidationForSelection(var SelectedPostCode: Record "Post Code"): Integer
+    internal procedure EnqueueValidationForSelection(var SelectedPostCode: Record "Post Code"): Integer
     var
         PostCode: Record "Post Code";
+        PostCodeToValidate: Record "Post Code";
         CreatedCount: Integer;
     begin
         PostCode.Copy(SelectedPostCode);
-        if PostCode.FindSet() then
+        if PostCode.FindSet(true) then
             repeat
-                this.ValidatePostCode(PostCode);
+                PostCodeToValidate := PostCode;
+                this.ValidatePostCode(PostCodeToValidate);
                 CreatedCount += 1;
             until PostCode.Next() = 0;
 
@@ -44,38 +48,31 @@ codeunit 50123 "AMC Post Code Validation Mgt"
         this.MarkValidationAsSent(PostCode);
     end;
 
-    procedure EnqueueValidation(PostCode: Record "Post Code")
+    local procedure EnqueueValidation(PostCode: Record "Post Code")
     var
         Outbox: Record "AMC Int. Outbox Entry";
-        TempBlob: Codeunit "Temp Blob";
+        BlobHelper: Codeunit "AMC Int. Blob Helper";
         MessageType: Enum "AMC Int. Message Type";
-        Payload: JsonObject;
         PayloadInStream: InStream;
-        PayloadOutStream: OutStream;
         PayloadText: Text;
     begin
         PostCode.TestField(Code);
         PostCode.TestField("Country/Region Code");
 
-        Payload.Add('code', PostCode.Code);
-        Payload.Add('countryRegionCode', PostCode."Country/Region Code");
-        Payload.WriteTo(PayloadText);
-        TempBlob.CreateOutStream(PayloadOutStream);
-        PayloadOutStream.Write(PayloadText);
-        TempBlob.CreateInStream(PayloadInStream);
+        PayloadText := this.BuildValidationPayload(PostCode);
+        BlobHelper.CreateTextInStream(PayloadText, PayloadInStream);
 
         MessageType := MessageType::AMCPostalCodeValidation;
         Outbox.EnqueueEntry(MessageType, PayloadInStream, PostCode.RecordId());
     end;
 
-    procedure ResetValidation(var PostCode: Record "Post Code")
+    internal procedure ResetValidation(var PostCode: Record "Post Code")
     begin
         this.DeleteNotProcessedEntries(PostCode.RecordId());
-
         PostCode.Validate("AMC Validation Status", PostCode."AMC Validation Status"::" ");
     end;
 
-    procedure UpdateValidationAudit(var PostCode: Record "Post Code")
+    internal procedure UpdateValidationAudit(var PostCode: Record "Post Code")
     begin
         if PostCode."AMC Validation Status" = PostCode."AMC Validation Status"::" " then begin
             Clear(PostCode."AMC Validated At");
@@ -87,6 +84,19 @@ codeunit 50123 "AMC Post Code Validation Mgt"
         PostCode."AMC Validated By" := CopyStr(UserId(), 1, MaxStrLen(PostCode."AMC Validated By"));
     end;
 
+    local procedure BuildValidationPayload(PostCode: Record "Post Code"): Text
+    var
+        Payload: JsonObject;
+        PayloadText: Text;
+        CodePropertyNameLbl: Label 'code', Locked = true;
+        CountryRegionCodePropertyNameLbl: Label 'countryRegionCode', Locked = true;
+    begin
+        Payload.Add(CodePropertyNameLbl, PostCode.Code);
+        Payload.Add(CountryRegionCodePropertyNameLbl, PostCode."Country/Region Code");
+        Payload.WriteTo(PayloadText);
+        exit(PayloadText);
+    end;
+
     local procedure DeleteNotProcessedEntries(SourceRecordId: RecordId)
     var
         Outbox: Record "AMC Int. Outbox Entry";
@@ -94,10 +104,8 @@ codeunit 50123 "AMC Post Code Validation Mgt"
         Outbox.SetRange("Message Type", Outbox."Message Type"::AMCPostalCodeValidation);
         Outbox.SetRange("Source Record ID", SourceRecordId);
         Outbox.SetFilter(Status, '%1|%2', Outbox.Status::ReadyToProcess, Outbox.Status::Cancelled);
-        if Outbox.FindSet(true) then
-            repeat
-                Outbox.Delete(true);
-            until Outbox.Next() = 0;
+        if not Outbox.IsEmpty() then
+            Outbox.DeleteAll(true);
     end;
 
     local procedure MarkValidationAsSent(var PostCode: Record "Post Code")
@@ -107,12 +115,15 @@ codeunit 50123 "AMC Post Code Validation Mgt"
     end;
 
     internal procedure GetValidationStyle(PostCode: Record "Post Code"): Text
+    var
+        FavorableStyleLbl: Label 'Favorable', Locked = true;
+        UnfavorableStyleLbl: Label 'Unfavorable', Locked = true;
     begin
         case PostCode."AMC Validation Status" of
             PostCode."AMC Validation Status"::Valid:
-                exit('Favorable');
+                exit(FavorableStyleLbl);
             PostCode."AMC Validation Status"::Invalid:
-                exit('Unfavorable');
+                exit(UnfavorableStyleLbl);
             else
                 exit('');
         end
