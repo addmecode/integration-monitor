@@ -30,10 +30,7 @@ table 50109 "AMC Int. Auth Profile"
 
             trigger OnValidate()
             begin
-                if "Auth Type" = xRec."Auth Type" then
-                    exit;
-
-                this.DeleteSecret();
+                this.AuthTypeOnValidate();
             end;
         }
         field(4; Username; Text[250])
@@ -80,13 +77,16 @@ table 50109 "AMC Int. Auth Profile"
 
     trigger OnRename()
     var
-        CannotRenameProfileWithSecretErr: Label 'Authentication profile %1 cannot be renamed because it has a stored secret. Clear the secret before renaming the profile.', Comment = '%1 = authentication profile code';
+        AuthProfileMgt: Codeunit "AMC Int. Auth Profile Mgt.";
     begin
-        if Code = xRec.Code then
-            exit;
+        AuthProfileMgt.OnRename(Rec, xRec);
+    end;
 
-        if xRec.HasSecret() then
-            Error(CannotRenameProfileWithSecretErr, xRec.Code);
+    local procedure AuthTypeOnValidate()
+    var
+        AuthProfileMgt: Codeunit "AMC Int. Auth Profile Mgt.";
+    begin
+        AuthProfileMgt.AuthTypeOnValidate(Rec, xRec);
     end;
 
     [NonDebuggable]
