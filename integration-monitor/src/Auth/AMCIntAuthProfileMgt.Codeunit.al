@@ -15,7 +15,6 @@ codeunit 50120 "AMC Int. Auth Profile Mgt."
     end;
 
     internal procedure AuthTypeOnValidate(var AuthProfileCurr: Record "AMC Int. Auth Profile"; AuthProfilePrev: Record "AMC Int. Auth Profile")
-    var
     begin
         if AuthProfileCurr."Auth Type" = AuthProfilePrev."Auth Type" then
             exit;
@@ -137,16 +136,13 @@ codeunit 50120 "AMC Int. Auth Profile Mgt."
 
     procedure TestProfile(AuthProfile: Record "AMC Int. Auth Profile")
     var
+        AuthHandler: Interface "AMC IAuthHandler";
         MissingSecretErr: Label 'Authentication profile %1 does not have a stored secret.', Comment = '%1 = authentication profile code';
     begin
         AuthProfile.TestField(Code);
 
-        case AuthProfile."Auth Type" of
-            AuthProfile."Auth Type"::Basic:
-                AuthProfile.TestField(Username);
-            AuthProfile."Auth Type"::"Bearer Token":
-                ;
-        end;
+        AuthHandler := AuthProfile."Auth Type";
+        AuthHandler.ValidateProfile(AuthProfile);
 
         if not this.HasSecret(AuthProfile.Code) then
             Error(MissingSecretErr, AuthProfile.Code);
