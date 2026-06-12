@@ -1,6 +1,6 @@
-namespace Addmecode.IntegrationMonitor.Outbox;
+namespace Addmecode.IntegrationMonitor.Inbox;
 using Addmecode.IntegrationMonitor.Helpers;
-using Addmecode.IntegrationMonitor.Inbox;
+using Addmecode.IntegrationMonitor.Outbox;
 
 codeunit 50126 "AMC Inbox Entry Mgt."
 {
@@ -13,11 +13,14 @@ codeunit 50126 "AMC Inbox Entry Mgt."
             Inbox."Next Attempt At" := CurrentDateTime();
     end;
 
-    internal procedure OnDeleteInboxEntry(Inbox: Record "AMC Int. Inbox Entry"): Boolean
+    internal procedure OnDeleteInboxEntry(Inbox: Record "AMC Int. Inbox Entry")
     var
         Outbox: Record "AMC Int. Outbox Entry";
         OutboxEntryExistsErr: Label 'Cannot delete record because related outbox entry exists.';
     begin
+        if Inbox."Outbox Entry No." = 0 then
+            exit;
+
         Outbox.SetRange("Entry No.", Inbox."Outbox Entry No.");
         if not Outbox.IsEmpty() then
             Error(OutboxEntryExistsErr);
@@ -27,9 +30,9 @@ codeunit 50126 "AMC Inbox Entry Mgt."
     var
         CannotResetEntryErr: label 'Cannot reset entry with status = %1', Comment = '%1 is entry status';
     begin
-        //todo only for testing
-        // if (Inbox.Status = Inbox.Status::Processed) or (Inbox.Status = Inbox.Status::Processing) then
-        //     Error(CannotResetEntryErr, Inbox.Status);
+        if (Inbox.Status = Inbox.Status::Processed) or (Inbox.Status = Inbox.Status::Processing) then
+            Error(CannotResetEntryErr, Inbox.Status);
+
         Inbox.Status := Inbox.Status::ReadyToProcess;
         Inbox."Next Attempt At" := CurrentDateTime();
         Inbox."Last Attempt At" := 0DT;
@@ -76,6 +79,7 @@ codeunit 50126 "AMC Inbox Entry Mgt."
     begin
         if Inbox.Status <> Inbox.Status::Cancelled then
             Error(StatusMustBeCancelledForEditingPayloadErr);
+
         InboxRef.GetTable(Inbox);
         PayloadPage.SetBlob(InboxRef, Inbox.FieldNo("Response Payload"));
         PayloadPage.SetReadOnly(false);

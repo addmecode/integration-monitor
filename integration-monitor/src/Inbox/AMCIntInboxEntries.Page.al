@@ -91,7 +91,7 @@ page 50114 "AMC Int. Inbox Entries"
                 ApplicationArea = All;
                 Caption = 'Reset';
                 Image = Redo;
-                ToolTip = 'Reset entry the selected integration inbox entry.';
+                ToolTip = 'Resets the selected integration inbox entry.';
                 trigger OnAction()
                 begin
                     Rec.ResetEntry();
@@ -113,7 +113,7 @@ page 50114 "AMC Int. Inbox Entries"
                 ApplicationArea = All;
                 Caption = 'View Payload';
                 Image = View;
-                ToolTip = 'Opens the request payload for the selected integration inbox entry in read-only mode.';
+                ToolTip = 'Opens the response payload for the selected integration inbox entry in read-only mode.';
                 trigger OnAction()
                 begin
                     Rec.ViewPayload();
@@ -124,7 +124,7 @@ page 50114 "AMC Int. Inbox Entries"
                 ApplicationArea = All;
                 Caption = 'Edit Payload';
                 Image = Edit;
-                ToolTip = 'Opens the request payload for the selected integration inbox entry for editing.';
+                ToolTip = 'Opens the response payload for the selected integration inbox entry for editing.';
                 trigger OnAction()
                 begin
                     Rec.EditPayload();
@@ -144,4 +144,3 @@ page 50114 "AMC Int. Inbox Entries"
         }
     }
 }
-

@@ -7,7 +7,7 @@ codeunit 50128 "AMC Inbox Failure Handler"
 
     trigger OnRun()
     var
-        InboxErrorMessageLbl: Label 'Error:\ %1 \Call Stack:\ %2', Comment = '%1 = Error text, %2 = Error call stack', Locked = true;
+        InboxErrorMessageLbl: Label 'Error:\%1\Call Stack:\%2', Comment = '%1 = error text, %2 = error call stack', Locked = true;
     begin
         this.MarkInboxAsFailed(Rec, StrSubstNo(InboxErrorMessageLbl, GetLastErrorText(), GetLastErrorCallStack()));
     end;
@@ -18,17 +18,13 @@ codeunit 50128 "AMC Inbox Failure Handler"
     begin
         Inbox."Processed At" := 0DT;
         Inbox."Attempt Count" += 1;
-        Inbox."Last Attempt At" := CurrentDateTime;
+        Inbox."Last Attempt At" := CurrentDateTime();
+        Inbox.Status := Inbox.Status::Failed;
+        Inbox."Next Attempt At" := 0DT;
 
-        if IntMessageSetup.Get(Inbox."Message Type") then begin
-            if Inbox."Attempt Count" >= IntMessageSetup."Max Attempts" then
-                Inbox.Status := Inbox.Status::Failed
-            else begin
-                Inbox.Status := Inbox.Status::Failed;
+        if IntMessageSetup.Get(Inbox."Message Type") then
+            if Inbox."Attempt Count" < IntMessageSetup."Max Attempts" then
                 Inbox."Next Attempt At" := this.GetNextAttemptAt(Inbox, IntMessageSetup);
-            end;
-        end else
-            Inbox.Status := Inbox.Status::Failed;
 
         this.SetLastError(Inbox, ErrorText);
         Inbox.Modify(true);

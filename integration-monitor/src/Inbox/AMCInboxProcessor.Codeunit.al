@@ -33,15 +33,11 @@ codeunit 50127 "AMC Inbox Processor"
 
     local procedure ShouldProcessEntry(Inbox: Record "AMC Int. Inbox Entry"; IntMessageSetup: Record "AMC Int. Message Setup"): Boolean
     var
-        IsHandled: Boolean;
         ShouldProcess: Boolean;
     begin
-        this.OnBeforeShouldProcessEntry(Inbox, IntMessageSetup, ShouldProcess, IsHandled);
-        if IsHandled then
-            exit(ShouldProcess);
-
         ShouldProcess := this.DoShouldProcessEntry(Inbox, IntMessageSetup);
         this.OnAfterShouldProcessEntry(Inbox, IntMessageSetup, ShouldProcess);
+
         exit(ShouldProcess);
     end;
 
@@ -49,10 +45,13 @@ codeunit 50127 "AMC Inbox Processor"
     begin
         if not IntMessageSetup.Enabled then
             exit(false);
+        if (Inbox.Status <> Inbox.Status::ReadyToProcess) and (Inbox.Status <> Inbox.Status::Failed) then
+            exit(false);
         if Inbox."Next Attempt At" > this.ProcessOn then
             exit(false);
-        if Inbox."Attempt Count" > IntMessageSetup."Max Attempts" then
+        if Inbox."Attempt Count" >= IntMessageSetup."Max Attempts" then
             exit(false);
+
         exit(true);
     end;
 
@@ -84,22 +83,17 @@ codeunit 50127 "AMC Inbox Processor"
     end;
 
     local procedure ValidateSetupBeforeProcessingEntry(IntMessageSetup: Record "AMC Int. Message Setup")
-    var
-        IsHandled: Boolean;
     begin
-        this.OnBeforeValidateSetupBeforeProcessingEntry(IntMessageSetup, IsHandled);
-        if IsHandled then
-            exit;
-
         this.DoValidateSetupBeforeProcessingEntry(IntMessageSetup);
         this.OnAfterValidateSetupBeforeProcessingEntry(IntMessageSetup);
     end;
 
     local procedure DoValidateSetupBeforeProcessingEntry(IntMessageSetup: Record "AMC Int. Message Setup")
+    var
+        MessageSetupDisabledErr: Label 'Integration message setup for message type %1 is disabled.', Comment = '%1 = message type';
     begin
-        //nothing for now. All the mandatory fields are handled by properties on the table
-        if IntMessageSetup.Enabled then
-            exit;
+        if not IntMessageSetup.Enabled then
+            Error(MessageSetupDisabledErr, Format(IntMessageSetup."Message Type"));
     end;
 
     local procedure MarkInboxAsProcessed(var Inbox: Record "AMC Int. Inbox Entry")
@@ -112,17 +106,7 @@ codeunit 50127 "AMC Inbox Processor"
     end;
 
     [IntegrationEvent(false, false)]
-    local procedure OnBeforeShouldProcessEntry(Inbox: Record "AMC Int. Inbox Entry"; IntMessageSetup: Record "AMC Int. Message Setup"; var ShouldProcess: Boolean; var IsHandled: Boolean)
-    begin
-    end;
-
-    [IntegrationEvent(false, false)]
     local procedure OnAfterShouldProcessEntry(Inbox: Record "AMC Int. Inbox Entry"; IntMessageSetup: Record "AMC Int. Message Setup"; var ShouldProcess: Boolean)
-    begin
-    end;
-
-    [IntegrationEvent(false, false)]
-    local procedure OnBeforeValidateSetupBeforeProcessingEntry(IntMessageSetup: Record "AMC Int. Message Setup"; var IsHandled: Boolean)
     begin
     end;
 

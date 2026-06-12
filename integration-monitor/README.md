@@ -158,7 +158,7 @@ The Business Central environment must allow outbound HTTPS requests to `https://
 
 ### Problems To Fix
 - refactor code in best practice style
-    auth, demo done
+    auth, demo, helpers. inbox done
 - Add job queue setup guidance or assisted setup for the outbox, inbox, and cleanup dispatchers.
 - Add permissions, role center/search discoverability, and any required page actions for normal users.
 - Rename the app
