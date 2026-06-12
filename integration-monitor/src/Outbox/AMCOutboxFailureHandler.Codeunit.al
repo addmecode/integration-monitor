@@ -7,7 +7,7 @@ codeunit 50118 "AMC Outbox Failure Handler"
 
     trigger OnRun()
     var
-        OutboxErrorMessageLbl: Label 'Error: %1 /Call Stack: %2', Comment = '%1 = Error text, %2 = Error call stack', Locked = true;
+        OutboxErrorMessageLbl: Label 'Error:\%1\Call Stack:\%2', Comment = '%1 = error text, %2 = error call stack', Locked = true;
     begin
         this.MarkOutboxAsFailed(Rec, StrSubstNo(OutboxErrorMessageLbl, GetLastErrorText(), GetLastErrorCallStack()));
     end;
@@ -24,7 +24,8 @@ codeunit 50118 "AMC Outbox Failure Handler"
         ResponseAlreadyReceived := Outbox.Status = Outbox.Status::ResponseReceived;
         Outbox."Processed At" := 0DT;
         Outbox."Attempt Count" += 1;
-        Outbox."Last Attempt At" := CurrentDateTime;
+        Outbox."Last Attempt At" := CurrentDateTime();
+        Outbox."Next Attempt At" := 0DT;
         if not ResponseAlreadyReceived then
             Outbox.Status := Outbox.Status::Failed;
         if IntMessageSetup.Get(Outbox."Message Type") then

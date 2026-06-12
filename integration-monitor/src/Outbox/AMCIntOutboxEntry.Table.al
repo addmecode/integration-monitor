@@ -92,7 +92,11 @@ table 50107 "AMC Int. Outbox Entry"
         key(StatusNextAttempt; Status, "Next Attempt At")
         {
         }
+        key(MessageTypeStatusCreatedAt; "Message Type", Status, "Created At")
+        {
+        }
     }
+
     trigger OnInsert()
     var
         OutboxEntryMgt: Codeunit "AMC Outbox Entry Mgt.";

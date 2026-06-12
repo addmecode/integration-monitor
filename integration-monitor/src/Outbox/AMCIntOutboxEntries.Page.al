@@ -91,7 +91,7 @@ page 50113 "AMC Int. Outbox Entries"
                 ApplicationArea = All;
                 Caption = 'Reset';
                 Image = Redo;
-                ToolTip = 'Reset entry the selected integration outbox entry.';
+                ToolTip = 'Resets the selected integration outbox entry.';
                 trigger OnAction()
                 begin
                     Rec.ResetEntry();

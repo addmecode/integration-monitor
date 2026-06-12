@@ -10,16 +10,14 @@ codeunit 50115 "AMC Outbox Dispatcher Job"
     local procedure ProcessEntries()
     var
         Outbox: Record "AMC Int. Outbox Entry";
-        OutboxFailureHandler: Codeunit "AMC Outbox Failure Handler";
-        OutboxProcessor: Codeunit "AMC Outbox Processor";
+        OutboxEntryMgt: Codeunit "AMC Outbox Entry Mgt.";
     begin
+        Outbox.SetCurrentKey(Status, "Next Attempt At");
         Outbox.SetFilter(Status, '%1|%2|%3', Outbox.Status::ReadyToProcess, Outbox.Status::Failed, Outbox.Status::ResponseReceived);
         Outbox.SetFilter("Next Attempt At", '<=%1', CurrentDateTime());
         if Outbox.FindSet() then
             repeat
-                if not OutboxProcessor.Run(Outbox) then
-                    if not OutboxFailureHandler.Run(Outbox) then
-                        ClearLastError();
+                OutboxEntryMgt.ProcessEntry(Outbox);
             until Outbox.Next() = 0;
     end;
 }
