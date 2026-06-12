@@ -17,7 +17,7 @@ codeunit 50131 "AMC Outbox Cleanup Job"
     begin
         if MessageSetup.FindSet() then
             repeat
-                if not this.ShouldDeleteOutboxEntries(MessageSetup, DeleteCreatedBefore) then
+                if not this.ShouldDeleteOutboxEntries(MessageSetup) then
                     continue;
                 DeleteCreatedBefore := CreateDateTime(CalcDate(MessageSetup."Delete Outbox Entr. Older Than", Today), 0T);
 
@@ -32,7 +32,7 @@ codeunit 50131 "AMC Outbox Cleanup Job"
             until MessageSetup.Next() = 0;
     end;
 
-    local procedure ShouldDeleteOutboxEntries(MessageSetup: Record "AMC Int. Message Setup"; var DeleteCreatedBefore: DateTime): Boolean
+    local procedure ShouldDeleteOutboxEntries(MessageSetup: Record "AMC Int. Message Setup"): Boolean
     begin
         exit(Format(MessageSetup."Delete Outbox Entr. Older Than") <> '');
     end;
