@@ -5,7 +5,7 @@ using Addmecode.IntegrationMonitor.Transport;
 
 codeunit 50122 "AMC Int. Message Setup Mgt."
 {
-    procedure TestRequiredFieldsForEnabled(IntMessageSetup: Record "AMC Int. Message Setup")
+    internal procedure TestRequiredFieldsForEnabled(IntMessageSetup: Record "AMC Int. Message Setup")
     var
         AuthProfileMgt: Codeunit "AMC Int. Auth Profile Mgt.";
         TransportHandler: Interface "AMC IHttpTransportHandler";
@@ -15,14 +15,12 @@ codeunit 50122 "AMC Int. Message Setup Mgt."
         AuthProfileMgt.TestProfileCode(IntMessageSetup."Auth Profile Code");
     end;
 
-    procedure ValidateDeleteOutboxEntriesOlderThan(IntMessageSetup: Record "AMC Int. Message Setup")
+    internal procedure ValidateDeleteOutboxEntriesOlderThan(IntMessageSetup: Record "AMC Int. Message Setup")
     var
         DateFormulaMustBeBeforeTodayErr: Label 'must calculate to a date before today';
         DeleteOutboxEntrOlderThanDate: Date;
-        DeleteOutboxEntrOlderThanAsText: Text;
     begin
-        DeleteOutboxEntrOlderThanAsText := Format(IntMessageSetup."Delete Outbox Entr. Older Than");
-        if DeleteOutboxEntrOlderThanAsText = '' then
+        if Format(IntMessageSetup."Delete Outbox Entr. Older Than") = '' then
             exit;
 
         DeleteOutboxEntrOlderThanDate := CalcDate(IntMessageSetup."Delete Outbox Entr. Older Than", Today);

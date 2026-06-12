@@ -1,4 +1,4 @@
-namespace Addmecode.IntegrationMonitor.Outbox;
+namespace Addmecode.IntegrationMonitor.Inbox;
 
 enum 50106 "AMC Int. Inbox Status"
 {
@@ -25,4 +25,3 @@ enum 50106 "AMC Int. Inbox Status"
         Caption = 'Cancelled';
     }
 }
-

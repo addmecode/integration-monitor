@@ -36,7 +36,7 @@ codeunit 50119 "AMC Outbox Entry Mgt."
             Outbox."Next Attempt At" := CurrentDateTime();
     end;
 
-    internal procedure OnDeleteOutboxEntry(var Outbox: Record "AMC Int. Outbox Entry"): Boolean
+    internal procedure OnDeleteOutboxEntry(var Outbox: Record "AMC Int. Outbox Entry")
     var
         Inbox: Record "AMC Int. Inbox Entry";
     begin
@@ -45,35 +45,36 @@ codeunit 50119 "AMC Outbox Entry Mgt."
         this.DeleteRelatedInboxEntry(Outbox);
     end;
 
-    local procedure ValidateOutboxDeletion(Outbox: Record "AMC Int. Outbox Entry"): Boolean
+    local procedure ValidateOutboxDeletion(Outbox: Record "AMC Int. Outbox Entry")
     var
         Inbox: Record "AMC Int. Inbox Entry";
         InboxEntryIsBeingProcessedErr: Label 'Cannot delete record because a related Inbox Entry is being processed.';
-        OutboxEntryIsBeingSendingErr: Label 'Cannot delete record because is being sending.';
+        OutboxEntryIsSendingErr: Label 'Cannot delete record because the outbox entry is being sent.';
     begin
         if Outbox.Status = Outbox.Status::Sending then
-            Error(OutboxEntryIsBeingSendingErr);
+            Error(OutboxEntryIsSendingErr);
+
         Inbox.SetRange("Outbox Entry No.", Outbox."Entry No.");
         Inbox.SetRange(Status, Inbox.Status::Processing);
         if not Inbox.IsEmpty() then
             Error(InboxEntryIsBeingProcessedErr);
     end;
 
-    internal procedure DeleteRelatedInboxEntry(Outbox: Record "AMC Int. Outbox Entry"): Boolean
+    internal procedure DeleteRelatedInboxEntry(Outbox: Record "AMC Int. Outbox Entry")
     var
         Inbox: Record "AMC Int. Inbox Entry";
     begin
         Inbox.SetRange("Outbox Entry No.", Outbox."Entry No.");
-        Inbox.DeleteAll();
+        Inbox.DeleteAll(false);
     end;
 
     procedure ResetEntry(var Outbox: Record "AMC Int. Outbox Entry")
     var
-        CannotResetEntryErr: label 'Cannot reset entry with status = %1', Comment = '%1 is entry status';
+        CannotResetEntryErr: Label 'Cannot reset entry with status = %1', Comment = '%1 = entry status';
     begin
-        //todo: only for testing
-        // if (Outbox.Status = Outbox.Status::Processed) or (Outbox.Status = Outbox.Status::Sending) or (Outbox.Status = Outbox.Status::ResponseReceived) then
-        //     Error(CannotResetEntryErr, Outbox.Status);
+        if (Outbox.Status = Outbox.Status::Processed) or (Outbox.Status = Outbox.Status::Sending) or (Outbox.Status = Outbox.Status::ResponseReceived) then
+            Error(CannotResetEntryErr, Outbox.Status);
+
         Outbox.Status := Outbox.Status::ReadyToProcess;
         Outbox."Next Attempt At" := CurrentDateTime();
         Outbox."Last Attempt At" := 0DT;
@@ -98,9 +99,11 @@ codeunit 50119 "AMC Outbox Entry Mgt."
         OutboxFailureHandler: Codeunit "AMC Outbox Failure Handler";
         OutboxProcessor: Codeunit "AMC Outbox Processor";
     begin
-        if not OutboxProcessor.Run(Outbox) then
-            if not OutboxFailureHandler.Run(Outbox) then
-                ClearLastError();
+        if OutboxProcessor.Run(Outbox) then
+            exit;
+
+        if not OutboxFailureHandler.Run(Outbox) then
+            ClearLastError();
     end;
 
     procedure ViewPayload(Outbox: Record "AMC Int. Outbox Entry")
@@ -122,6 +125,7 @@ codeunit 50119 "AMC Outbox Entry Mgt."
     begin
         if Outbox.Status <> Outbox.Status::Cancelled then
             Error(StatusMustBeCancelledForEditingPayloadErr);
+
         OutboxRef.GetTable(Outbox);
         PayloadPage.SetBlob(OutboxRef, Outbox.FieldNo("Request Payload"));
         PayloadPage.SetReadOnly(false);

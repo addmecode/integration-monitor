@@ -52,10 +52,13 @@ codeunit 50116 "AMC Outbox Processor"
     begin
         if not IntMessageSetup.Enabled then
             exit(false);
+        if not (Outbox.Status in [Outbox.Status::ReadyToProcess, Outbox.Status::Failed, Outbox.Status::ResponseReceived]) then
+            exit(false);
         if Outbox."Next Attempt At" > this.ProcessOn then
             exit(false);
-        if Outbox."Attempt Count" > IntMessageSetup."Max Attempts" then
+        if Outbox."Attempt Count" >= IntMessageSetup."Max Attempts" then
             exit(false);
+
         exit(true);
     end;
 
@@ -112,7 +115,7 @@ codeunit 50116 "AMC Outbox Processor"
 
     local procedure DoValidateSetupBeforeProcessingEntry(IntMessageSetup: Record "AMC Int. Message Setup")
     begin
-        //nothing for now. All the mandatory fields are handled by properties on the table
+        // Mandatory fields are validated by table properties
         if IntMessageSetup.Enabled then
             exit;
     end;
@@ -134,10 +137,11 @@ codeunit 50116 "AMC Outbox Processor"
         ResponseBody: Text;
         HttpStatusErr: Label 'HTTP request failed with status %1. Full response: \ %2', Comment = '%1 = HTTP status code, %2 = Response body';
     begin
-        if not Response.IsSuccessStatusCode then begin
-            Response.Content.ReadAs(ResponseBody);
-            Error(HttpStatusErr, Format(Response.HttpStatusCode), ResponseBody);
-        end;
+        if Response.IsSuccessStatusCode then
+            exit;
+
+        Response.Content.ReadAs(ResponseBody);
+        Error(HttpStatusErr, Format(Response.HttpStatusCode), ResponseBody);
     end;
 
     local procedure StoreResponseAndCreateInboxEntry(var Outbox: Record "AMC Int. Outbox Entry"; Response: HttpResponseMessage)

@@ -4,6 +4,7 @@ using Addmecode.IntegrationMonitor.Setup;
 codeunit 50132 "AMC Outbox Cleanup Processor"
 {
     TableNo = "AMC Int. Outbox Entry";
+
     trigger OnRun()
     begin
         this.DeleteOutboxEntry(Rec);

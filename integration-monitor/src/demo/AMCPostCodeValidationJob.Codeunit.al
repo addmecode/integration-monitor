@@ -14,17 +14,16 @@ codeunit 50129 "AMC Post Code Validation Job"
         PostCodeToValidate: Record "Post Code";
         PostCodeValidationMgt: Codeunit "AMC Post Code Validation Mgt";
         ProcessedCount: Integer;
-        COMMIT_BATCH_SIZE: Integer;
+        CommitBatchSize: Integer;
     begin
-        COMMIT_BATCH_SIZE := 100;
-
+        CommitBatchSize := 100;
         PostCode.SetRange("AMC Validation Status", PostCode."AMC Validation Status"::" ");
-        if PostCode.FindSet() then
+        if PostCode.FindSet(true) then
             repeat
                 PostCodeToValidate := PostCode;
                 PostCodeValidationMgt.ValidatePostCode(PostCodeToValidate);
                 ProcessedCount += 1;
-                if ProcessedCount mod COMMIT_BATCH_SIZE = 0 then
+                if ProcessedCount mod CommitBatchSize = 0 then
                     Commit();
             until PostCode.Next() = 0;
     end;

@@ -17,10 +17,11 @@ codeunit 50131 "AMC Outbox Cleanup Job"
     begin
         if MessageSetup.FindSet() then
             repeat
-                if Format(MessageSetup."Delete Outbox Entr. Older Than") = '' then
+                if not this.ShouldDeleteOutboxEntries(MessageSetup) then
                     continue;
-
                 DeleteCreatedBefore := CreateDateTime(CalcDate(MessageSetup."Delete Outbox Entr. Older Than", Today), 0T);
+
+                Outbox.SetCurrentKey("Message Type", Status, "Created At");
                 Outbox.SetRange("Message Type", MessageSetup."Message Type");
                 Outbox.SetFilter(Status, '%1|%2', Outbox.Status::Cancelled, Outbox.Status::Processed);
                 Outbox.SetFilter("Created At", '<%1', DeleteCreatedBefore);
@@ -29,5 +30,10 @@ codeunit 50131 "AMC Outbox Cleanup Job"
                         if OutboxCleanupProcessor.Run(Outbox) then;
                     until Outbox.Next() = 0;
             until MessageSetup.Next() = 0;
+    end;
+
+    local procedure ShouldDeleteOutboxEntries(MessageSetup: Record "AMC Int. Message Setup"): Boolean
+    begin
+        exit(Format(MessageSetup."Delete Outbox Entr. Older Than") <> '');
     end;
 }

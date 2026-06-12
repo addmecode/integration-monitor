@@ -45,15 +45,8 @@ pageextension 50123 "AMC Post Codes Demo" extends "Post Codes"
                 ToolTip = 'Create postal code validation outbox entries for the selected post code records.';
 
                 trigger OnAction()
-                var
-                    SelectedPostCode: Record "Post Code";
-                    PostalCodeValidationMgt: Codeunit "AMC Post Code Validation Mgt";
-                    CreatedCount: Integer;
-                    EntriesCreatedMsg: Label '%1 postal code validation outbox entries were created.', Comment = '%1 = number of created outbox entries';
                 begin
-                    CurrPage.SetSelectionFilter(SelectedPostCode);
-                    CreatedCount := PostalCodeValidationMgt.EnqueueValidationForSelection(SelectedPostCode);
-                    Message(EntriesCreatedMsg, CreatedCount);
+                    this.ValidateSelectedPostCodes();
                 end;
             }
             action("AMC Reset Validation")
@@ -64,15 +57,8 @@ pageextension 50123 "AMC Post Codes Demo" extends "Post Codes"
                 ToolTip = 'Clear postal code validation fields and delete unprocessed postal code validation queue entries for the selected records.';
 
                 trigger OnAction()
-                var
-                    SelectedPostCode: Record "Post Code";
-                    PostalCodeValidationMgt: Codeunit "AMC Post Code Validation Mgt";
-                    ResetCount: Integer;
-                    EntriesResetMsg: Label '%1 postal code validation records were reset. Outbox and inbox entries were deleted if they existed.', Comment = '%1 = number of reset post code records';
                 begin
-                    CurrPage.SetSelectionFilter(SelectedPostCode);
-                    ResetCount := PostalCodeValidationMgt.ResetValidationForSelection(SelectedPostCode);
-                    Message(EntriesResetMsg, ResetCount);
+                    this.ResetSelectedPostCodeValidation();
                 end;
             }
         }
@@ -81,6 +67,30 @@ pageextension 50123 "AMC Post Codes Demo" extends "Post Codes"
     trigger OnAfterGetRecord()
     begin
         ValidationStyle := Rec.GetValidationStyle();
+    end;
+
+    local procedure ValidateSelectedPostCodes()
+    var
+        SelectedPostCode: Record "Post Code";
+        PostalCodeValidationMgt: Codeunit "AMC Post Code Validation Mgt";
+        CreatedCount: Integer;
+        EntriesCreatedMsg: Label '%1 postal code validation outbox entries were created.', Comment = '%1 = number of created outbox entries';
+    begin
+        CurrPage.SetSelectionFilter(SelectedPostCode);
+        CreatedCount := PostalCodeValidationMgt.EnqueueValidationForSelection(SelectedPostCode);
+        Message(EntriesCreatedMsg, CreatedCount);
+    end;
+
+    local procedure ResetSelectedPostCodeValidation()
+    var
+        SelectedPostCode: Record "Post Code";
+        PostalCodeValidationMgt: Codeunit "AMC Post Code Validation Mgt";
+        ResetCount: Integer;
+        EntriesResetMsg: Label '%1 postal code validation records were reset. Outbox and inbox entries were deleted if they existed.', Comment = '%1 = number of reset post code records';
+    begin
+        CurrPage.SetSelectionFilter(SelectedPostCode);
+        ResetCount := PostalCodeValidationMgt.ResetValidationForSelection(SelectedPostCode);
+        Message(EntriesResetMsg, ResetCount);
     end;
 
     var

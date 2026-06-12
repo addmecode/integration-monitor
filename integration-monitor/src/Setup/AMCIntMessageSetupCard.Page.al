@@ -1,4 +1,5 @@
 namespace Addmecode.IntegrationMonitor.Setup;
+
 page 50117 "AMC Int. Message Setup Card"
 {
     PageType = Card;
