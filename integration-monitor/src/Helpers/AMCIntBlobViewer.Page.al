@@ -5,8 +5,9 @@ page 50115 "AMC Int. Blob Viewer"
     PageType = Card;
     ApplicationArea = All;
     UsageCategory = None;
-    Caption = 'Blob Viewer';
+    Caption = 'BLOB Viewer';
     InsertAllowed = false;
+    ModifyAllowed = true;
     DeleteAllowed = false;
 
     layout
@@ -19,9 +20,9 @@ page 50115 "AMC Int. Blob Viewer"
                 field(BlobAsText; this.BlobAsText)
                 {
                     ApplicationArea = All;
-                    Caption = 'Blob as text';
+                    Caption = 'BLOB as text';
                     MultiLine = true;
-                    ToolTip = 'Specifies blob as text.';
+                    ToolTip = 'Specifies the BLOB value as text.';
                 }
             }
         }
