@@ -16,6 +16,8 @@ Integration Monitor is an early-stage Microsoft Dynamics 365 Business Central ex
 
 ```text
 src/
+  AssistedSetup/
+    Guided Experience registration and job queue assisted setup wizard for the dispatcher jobs.
   Auth/
     Authentication profile storage, Basic/Bearer secret handling, and auth pages.
   Helpers/
@@ -56,6 +58,9 @@ Translations/
 | `AMC Int. Auth Profile Card` | Page 50119 | Active | Card page for maintaining authentication profiles and setting or clearing stored secrets. |
 | `AMC Int. Auth Profile Mgt.` | Codeunit 50120 | Active | Manages authentication profile secrets in isolated storage and validates profile readiness. |
 | `AMC Int. Auth Applier` | Codeunit 50121 | Active | Applies Basic or Bearer authorization headers to outgoing HTTP requests. |
+| `AMC Int. Job Queue Setup` | Page 50120 | Active | NavigatePage assisted setup wizard for configuring the outbox dispatcher, inbox dispatcher, and outbox cleanup job queue entries. Each step exposes the interval, job queue category code, create/update selection, and an action to open the existing job queue entry when present. |
+| `AMC Int. Job Queue Setup Mgt.` | Codeunit 50136 | Active | Creates or updates Integration Monitor job queue entries for the outbox dispatcher, inbox dispatcher, and outbox cleanup jobs. It detects existing entries, loads existing interval and category values, applies recurring job settings, and marks entries as ready. |
+| `AMC Int. Assisted Setup` | Codeunit 50137 | Active | Registers the Integration Monitor job queue setup wizard in Business Central assisted setup through Guided Experience. |
 | `AMC Int. Message Setup` | Table 50108 | Active | Stores configuration per message type, including enablement, retry settings, endpoint URL, timeout, authentication profile code, response processing flag, transport type, and the outbox retention DateFormula. |
 | `AMC Int. Message Setup Mgt.` | Codeunit 50122 | Active | Validates transport and authentication setup before a setup record can be enabled, and validates that configured outbox retention formulas resolve to a date before today. |
 | `AMC Int. Message Setup List` | Page 50116 | Active | Read-only administration list page for browsing integration message setup records. It opens `AMC Int. Message Setup Card` for record editing. |
@@ -82,6 +87,18 @@ Translations/
 | `AMC Post Code Valid Msg Hdlr` | Codeunit 50124 | Active demo | Builds the OpenDataSoft postal-code validation request and processes inbox responses back into the source `Post Code`. |
 | `AMC Validation Status` | Enum 50125 | Active demo | Defines postal-code validation states. |
 | `AMC Post Code Validation Job` | Codeunit 50129 | Active demo | Creates validation requests for post codes that have not been validated yet. |
+
+## Job Queue Assisted Setup
+
+The extension registers an assisted setup entry named `Set up Integration Monitor job queues`. The wizard configures the recurring Business Central job queue entries used by:
+
+- `AMC Outbox Dispatcher Job`
+- `AMC Inbox Dispatcher Job`
+- `AMC Outbox Cleanup Job`
+
+The wizard is implemented as one `NavigatePage` with separate Outbox, Inbox, and Cleanup steps. Each step lets the user set the run interval in minutes and choose a `Job Queue Category Code`. Existing job queue entries are detected and their interval and category values are loaded into the wizard. The setup selection caption changes between create and update based on whether the related job queue entry already exists.
+
+The `Show Job Queue Entry` action is enabled only when the current dispatcher job queue entry already exists. It opens the standard editable `Job Queue Entry Card` so additional Business Central job queue settings can be reviewed or changed. The wizard writes changes only when the user finishes the assisted setup.
 
 ## Demo: Postal Code Validation
 
@@ -152,12 +169,12 @@ The Business Central environment must allow outbound HTTPS requests to `https://
 ### Current Status
 
 - Outbox and inbox are active flows, not commented drafts. Both have entry tables, status enums, dispatcher jobs, processors, failure handlers, list pages, and payload/error actions through the generic BLOB viewer.
+- Assisted setup can create or update the job queue entries for the outbox dispatcher, inbox dispatcher, and outbox cleanup jobs, including interval and job queue category code.
 - Authentication profiles, isolated-storage secrets, Basic auth, and Bearer token auth are implemented and connected to the default HTTP transport.
 - Processed and cancelled outbox entries can be cleaned up by `AMC Outbox Cleanup Job` based on the per-message retention formula. Related inbox entries are deleted through outbox delete triggers.
 - The postal-code validation demo can enqueue outbox entries and process responses through the inbox flow.
 
 ### Problems To Fix
-- Add job queue setup guidance or assisted setup for the outbox, inbox, and cleanup dispatchers.
 - Add permissions, role center/search discoverability, and any required page actions for normal users.
 - Rename the app
 - Automated tests are still missing for outbox eligibility, request building, successful dispatch, HTTP failure, retry scheduling, max attempts, manual reset/cancel, response-to-inbox creation, inbox response processing, and auth validation.
