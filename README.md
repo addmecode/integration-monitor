@@ -8,7 +8,6 @@
 
 ---
 <img src="img/IntegrationOutboxEntries.png" alt="Integration Outbox Entries" width="1000">
----
 
 ## The Problem
 
@@ -226,7 +225,6 @@ The extension ships with a complete end-to-end demo that validates BC Post Codes
 The demo source in `src/demo/` is a reference implementation showing how a real extension registers a message type, builds the request, and writes results back to BC records.
 
 <img src="img/ZipCodes.png" alt="Zip Codes" width="1000">
----
 
 ## Project Structure
 
