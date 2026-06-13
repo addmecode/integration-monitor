@@ -19,6 +19,7 @@ rad.json
 .snapshots/
 cache_*
 ~$*
+.build/
 
 TODO.md
 
