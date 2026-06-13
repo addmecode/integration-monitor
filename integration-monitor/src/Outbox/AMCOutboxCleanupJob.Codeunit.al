@@ -21,7 +21,7 @@ codeunit 50131 "AMC Outbox Cleanup Job"
                     continue;
                 DeleteCreatedBefore := CreateDateTime(CalcDate(MessageSetup."Delete Outbox Entr. Older Than", Today), 0T);
 
-                Outbox.SetCurrentKey("Message Type", Status, "Created At");
+                Outbox.SetCurrentKey("Entry No.");
                 Outbox.SetRange("Message Type", MessageSetup."Message Type");
                 Outbox.SetFilter(Status, '%1|%2', Outbox.Status::Cancelled, Outbox.Status::Processed);
                 Outbox.SetFilter("Created At", '<%1', DeleteCreatedBefore);

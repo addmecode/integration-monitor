@@ -1,5 +1,4 @@
 namespace Addmecode.IntegrationMonitor.Outbox;
-using Addmecode.IntegrationMonitor.Helpers;
 using Addmecode.IntegrationMonitor.Inbox;
 using Addmecode.IntegrationMonitor.Message;
 using Addmecode.IntegrationMonitor.Setup;
@@ -36,13 +35,8 @@ codeunit 50116 "AMC Outbox Processor"
 
     local procedure ShouldProcessEntry(Outbox: Record "AMC Int. Outbox Entry"; IntMessageSetup: Record "AMC Int. Message Setup"): Boolean
     var
-        IsHandled: Boolean;
         ShouldProcess: Boolean;
     begin
-        this.OnBeforeShouldProcessEntry(Outbox, IntMessageSetup, ShouldProcess, IsHandled);
-        if IsHandled then
-            exit(ShouldProcess);
-
         ShouldProcess := this.DoShouldProcessEntry(Outbox, IntMessageSetup);
         this.OnAfterShouldProcessEntry(Outbox, IntMessageSetup, ShouldProcess);
         exit(ShouldProcess);
@@ -102,13 +96,7 @@ codeunit 50116 "AMC Outbox Processor"
     end;
 
     local procedure ValidateSetupBeforeProcessingEntry(IntMessageSetup: Record "AMC Int. Message Setup")
-    var
-        IsHandled: Boolean;
     begin
-        this.OnBeforeValidateSetupBeforeProcessingEntry(IntMessageSetup, IsHandled);
-        if IsHandled then
-            exit;
-
         this.DoValidateSetupBeforeProcessingEntry(IntMessageSetup);
         this.OnAfterValidateSetupBeforeProcessingEntry(IntMessageSetup);
     end;
@@ -152,26 +140,20 @@ codeunit 50116 "AMC Outbox Processor"
 
     local procedure StoreResponse(var Outbox: Record "AMC Int. Outbox Entry"; Response: HttpResponseMessage)
     var
-        BlobHelper: Codeunit "AMC Int. Blob Helper";
-        OutboxRef: RecordRef;
+        ResponseOutStream: OutStream;
         ResponseBody: Text;
     begin
         Response.Content.ReadAs(ResponseBody);
         Outbox."Response Received At" := this.ProcessOn;
         Outbox.Status := Outbox.Status::ResponseReceived;
-        OutboxRef.GetTable(Outbox);
-        BlobHelper.WriteTextToBlob(OutboxRef, Outbox.FieldNo("Response Payload"), ResponseBody);
+        Outbox."Response Payload".CreateOutStream(ResponseOutStream);
+        ResponseOutStream.Write(ResponseBody);
+        Outbox.Modify(true);
         Commit();
     end;
 
     local procedure CreateInboxEntry(var Outbox: Record "AMC Int. Outbox Entry")
-    var
-        IsHandled: Boolean;
     begin
-        this.OnBeforeCreateInboxEntry(Outbox, IsHandled);
-        if IsHandled then
-            exit;
-
         this.DoCreateInboxEntry(Outbox);
         this.OnAfterCreateInboxEntry(Outbox);
     end;
@@ -214,27 +196,12 @@ codeunit 50116 "AMC Outbox Processor"
     end;
 
     [IntegrationEvent(false, false)]
-    local procedure OnBeforeShouldProcessEntry(Outbox: Record "AMC Int. Outbox Entry"; IntMessageSetup: Record "AMC Int. Message Setup"; var ShouldProcess: Boolean; var IsHandled: Boolean)
-    begin
-    end;
-
-    [IntegrationEvent(false, false)]
     local procedure OnAfterShouldProcessEntry(Outbox: Record "AMC Int. Outbox Entry"; IntMessageSetup: Record "AMC Int. Message Setup"; var ShouldProcess: Boolean)
     begin
     end;
 
     [IntegrationEvent(false, false)]
-    local procedure OnBeforeValidateSetupBeforeProcessingEntry(IntMessageSetup: Record "AMC Int. Message Setup"; var IsHandled: Boolean)
-    begin
-    end;
-
-    [IntegrationEvent(false, false)]
     local procedure OnAfterValidateSetupBeforeProcessingEntry(IntMessageSetup: Record "AMC Int. Message Setup")
-    begin
-    end;
-
-    [IntegrationEvent(false, false)]
-    local procedure OnBeforeCreateInboxEntry(Outbox: Record "AMC Int. Outbox Entry"; var IsHandled: Boolean)
     begin
     end;
 

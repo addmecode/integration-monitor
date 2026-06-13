@@ -51,19 +51,19 @@ codeunit 50123 "AMC Post Code Validation Mgt"
     local procedure EnqueueValidation(PostCode: Record "Post Code")
     var
         Outbox: Record "AMC Int. Outbox Entry";
+        PayloadTempBlob: Codeunit "Temp Blob";
         BlobHelper: Codeunit "AMC Int. Blob Helper";
         MessageType: Enum "AMC Int. Message Type";
-        PayloadInStream: InStream;
         PayloadText: Text;
     begin
         PostCode.TestField(Code);
         PostCode.TestField("Country/Region Code");
 
         PayloadText := this.BuildValidationPayload(PostCode);
-        BlobHelper.CreateTextInStream(PayloadText, PayloadInStream);
+        BlobHelper.WriteTextToTempBlob(PayloadTempBlob, PayloadText);
 
         MessageType := MessageType::AMCPostalCodeValidation;
-        Outbox.EnqueueEntry(MessageType, PayloadInStream, PostCode.RecordId());
+        Outbox.EnqueueEntry(MessageType, PayloadTempBlob, PostCode.RecordId());
     end;
 
     internal procedure ResetValidation(var PostCode: Record "Post Code")

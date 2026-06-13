@@ -2,10 +2,11 @@ namespace Addmecode.IntegrationMonitor.Outbox;
 using Addmecode.IntegrationMonitor.Helpers;
 using Addmecode.IntegrationMonitor.Inbox;
 using Addmecode.IntegrationMonitor.Message;
+using System.Utilities;
 
 codeunit 50119 "AMC Outbox Entry Mgt."
 {
-    internal procedure EnqueueEntry(MessageType: Enum "AMC Int. Message Type"; RequestPayloadInStream: InStream; SourceRecordId: RecordId): Integer
+    internal procedure EnqueueEntry(MessageType: Enum "AMC Int. Message Type"; var RequestPayloadTempBlob: Codeunit "Temp Blob"; SourceRecordId: RecordId): Integer
     var
         Outbox: Record "AMC Int. Outbox Entry";
     begin
@@ -13,18 +14,20 @@ codeunit 50119 "AMC Outbox Entry Mgt."
         Outbox.Validate("Message Type", MessageType);
         Outbox.Status := Outbox.Status::ReadyToProcess;
         Outbox."Source Record ID" := SourceRecordId;
-        this.SetRequestPayload(Outbox, RequestPayloadInStream);
+        this.SetRequestPayload(Outbox, RequestPayloadTempBlob);
         Outbox.Insert(true);
 
         exit(Outbox."Entry No.");
     end;
 
-    local procedure SetRequestPayload(var Outbox: Record "AMC Int. Outbox Entry"; RequestPayloadInStream: InStream)
+    local procedure SetRequestPayload(var Outbox: Record "AMC Int. Outbox Entry"; var RequestPayloadTempBlob: Codeunit "Temp Blob")
     var
+        PayloadInStream: InStream;
         PayloadOutStream: OutStream;
     begin
+        RequestPayloadTempBlob.CreateInStream(PayloadInStream, TextEncoding::UTF8);
         Outbox."Request Payload".CreateOutStream(PayloadOutStream);
-        CopyStream(PayloadOutStream, RequestPayloadInStream);
+        CopyStream(PayloadOutStream, PayloadInStream);
     end;
 
     internal procedure OnInsertOutboxEntry(var Outbox: Record "AMC Int. Outbox Entry")

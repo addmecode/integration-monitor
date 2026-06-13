@@ -53,16 +53,16 @@ codeunit 50113 "AMC Int. Blob Helper"
     end;
 
     /// <summary>
-    /// Creates an input stream from text content.
+    /// Writes text content into a Temp Blob owned by the caller.
     /// </summary>
-    /// <param name="Value">Text content to expose through the input stream.</param>
-    /// <param name="ValueInStream">Input stream created from the text content.</param>
-    procedure CreateTextInStream(Value: Text; var ValueInStream: InStream)
+    /// <param name="TempBlob">Temp Blob that receives the text; the caller keeps it in scope and creates streams from it where needed.</param>
+    /// <param name="Value">Text content to store.</param>
+    procedure WriteTextToTempBlob(var TempBlob: Codeunit "Temp Blob"; Value: Text)
     var
-        TextTempBlob: Codeunit "Temp Blob";
+        ValueOutStream: OutStream;
     begin
-        this.WriteTextToTempBlob(TextTempBlob, Value);
-        TextTempBlob.CreateInStream(ValueInStream, TextEncoding::UTF8);
+        TempBlob.CreateOutStream(ValueOutStream);
+        ValueOutStream.Write(Value);
     end;
 
     local procedure ReadTempBlobAsText(var TempBlob: Codeunit "Temp Blob"): Text
@@ -70,17 +70,9 @@ codeunit 50113 "AMC Int. Blob Helper"
         ValueInStream: InStream;
         TextValue: Text;
     begin
-        TempBlob.CreateInStream(ValueInStream, TextEncoding::UTF8);
+        TempBlob.CreateInStream(ValueInStream);
         ValueInStream.Read(TextValue);
         exit(TextValue);
-    end;
-
-    local procedure WriteTextToTempBlob(var TempBlob: Codeunit "Temp Blob"; TextValue: Text)
-    var
-        ValueOutStream: OutStream;
-    begin
-        TempBlob.CreateOutStream(ValueOutStream, TextEncoding::UTF8);
-        ValueOutStream.Write(TextValue);
     end;
 
     local procedure TestBlobField(RecordRef: RecordRef; FieldNo: Integer)
