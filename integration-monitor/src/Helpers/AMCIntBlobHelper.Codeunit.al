@@ -61,7 +61,7 @@ codeunit 50113 "AMC Int. Blob Helper"
     var
         ValueOutStream: OutStream;
     begin
-        TempBlob.CreateOutStream(ValueOutStream, TextEncoding::UTF8);
+        TempBlob.CreateOutStream(ValueOutStream);
         ValueOutStream.Write(Value);
     end;
 
@@ -70,7 +70,7 @@ codeunit 50113 "AMC Int. Blob Helper"
         ValueInStream: InStream;
         TextValue: Text;
     begin
-        TempBlob.CreateInStream(ValueInStream, TextEncoding::UTF8);
+        TempBlob.CreateInStream(ValueInStream);
         ValueInStream.Read(TextValue);
         exit(TextValue);
     end;
