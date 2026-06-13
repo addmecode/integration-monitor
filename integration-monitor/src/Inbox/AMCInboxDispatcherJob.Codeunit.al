@@ -13,7 +13,7 @@ codeunit 50130 "AMC Inbox Dispatcher Job"
         InboxFailureHandler: Codeunit "AMC Inbox Failure Handler";
         InboxProcessor: Codeunit "AMC Inbox Processor";
     begin
-        Inbox.SetCurrentKey(Status, "Next Attempt At");
+        Inbox.SetCurrentKey("Entry No.");
         Inbox.SetFilter(Status, '%1|%2', Inbox.Status::ReadyToProcess, Inbox.Status::Failed);
         Inbox.SetFilter("Next Attempt At", '<=%1', CurrentDateTime());
         if Inbox.FindSet() then

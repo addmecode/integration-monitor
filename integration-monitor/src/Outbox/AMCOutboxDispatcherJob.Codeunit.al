@@ -12,7 +12,7 @@ codeunit 50115 "AMC Outbox Dispatcher Job"
         Outbox: Record "AMC Int. Outbox Entry";
         OutboxEntryMgt: Codeunit "AMC Outbox Entry Mgt.";
     begin
-        Outbox.SetCurrentKey(Status, "Next Attempt At");
+        Outbox.SetCurrentKey("Entry No.");
         Outbox.SetFilter(Status, '%1|%2|%3', Outbox.Status::ReadyToProcess, Outbox.Status::Failed, Outbox.Status::ResponseReceived);
         Outbox.SetFilter("Next Attempt At", '<=%1', CurrentDateTime());
         if Outbox.FindSet() then
