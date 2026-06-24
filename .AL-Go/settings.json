@@ -4,8 +4,8 @@
   "appSourceCopMandatoryAffixes": [
     "AMC"
   ],
-  "appFolders": [],
-  "testFolders": [],
+  "appFolders": [ "integration-monitor" ],
+  "testFolders": [ "Test" ],
   "bcptTestFolders": [],
   "enableCodeCop": true,
   "enableUICop": true,
