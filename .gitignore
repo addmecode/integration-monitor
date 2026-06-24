@@ -20,8 +20,9 @@ rad.json
 cache_*
 ~$*
 .build/
-
+.claude/
 TODO.md
+
 
 
 
