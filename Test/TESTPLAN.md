@@ -4,7 +4,8 @@ Tracking file for adding unit tests across multiple sessions.
 
 **How to use (each session):**
 1. Read this file. Pick the first unchecked `[ ]` item in the lowest-numbered unfinished phase.
-2. Implement it. Run the test build.
+2. Implement only one item. Run the test build.
+3. Make code review of the changes you made.
 3. Check it off `[x]`, add a short note if anything deviated from the description.
 
 **Conventions:**
