@@ -3,6 +3,7 @@ using Addmecode.IntegrationMonitor.Helpers;
 using Addmecode.IntegrationMonitor.Message;
 using Addmecode.IntegrationMonitor.Outbox;
 using System.TestLibraries.Utilities;
+using System.Utilities;
 
 codeunit 50146 "AMC Blob Helper Tests"
 {
@@ -65,5 +66,27 @@ codeunit 50146 "AMC Blob Helper Tests"
         this.Assert.AreEqual('12345', CodeToken.AsValue().AsText(), 'The "code" property should round-trip its value.');
         this.Assert.IsTrue(ActualJson.Get('countryRegionCode', CountryToken), 'Parsed JSON should contain the "countryRegionCode" property.');
         this.Assert.AreEqual('US', CountryToken.AsValue().AsText(), 'The "countryRegionCode" property should round-trip its value.');
+    end;
+
+    [Test]
+    procedure WhenWriteAndReadTempBlob_ThenReturnsOriginalText()
+    var
+        BlobHelper: Codeunit "AMC Int. Blob Helper";
+        TempBlob: Codeunit "Temp Blob";
+        ValueInStream: InStream;
+        ExpectedText: Text;
+        ActualText: Text;
+    begin
+        // [SCENARIO] Text written to a Temp Blob reads back identical via an InStream created from that same Temp Blob.
+        // [GIVEN] A Temp Blob kept in scope
+        ExpectedText := 'Hello world';
+
+        // [WHEN] The text is written via WriteTextToTempBlob and read back through an InStream created from the in-scope Temp Blob.
+        BlobHelper.WriteTextToTempBlob(TempBlob, ExpectedText);
+        TempBlob.CreateInStream(ValueInStream);
+        ValueInStream.Read(ActualText);
+
+        // [THEN] The round-tripped text equals the original.
+        this.Assert.AreEqual(ExpectedText, ActualText, 'Temp Blob text round-trip should preserve the original string.');
     end;
 }

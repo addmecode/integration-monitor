@@ -32,7 +32,7 @@ Tracking file for adding unit tests across multiple sessions.
 
 - [x] **Text BLOB round-trips.** Given a record with a BLOB field, when `WriteTextToBlob` stores a known string and `ReadBlobAsText` reads it back, then the returned text equals the original (including non-ASCII to confirm UTF-8).
 - [x] **JSON BLOB parses.** Given a BLOB written with a serialized `JsonObject`, when `ReadBlobAsJsonObject` reads it, then the resulting `JsonObject` contains the expected properties/values.
-- [ ] **Temp Blob round-trips.** Given a `Temp Blob`, when `WriteTextToTempBlob` writes text, then reading the temp blob back (via an InStream created from it) returns the same text. Guards the documented InStream/Temp-Blob lifetime gotcha.
+- [x] **Temp Blob round-trips.** Given a `Temp Blob`, when `WriteTextToTempBlob` writes text, then reading the temp blob back (via an InStream created from it) returns the same text. Guards the documented InStream/Temp-Blob lifetime gotcha.
 - [ ] **Non-BLOB field is rejected.** Given a RecordRef and a field number that is not a BLOB, when `ReadBlobAsText` / `WriteTextToBlob` is called, then it errors with the "must be a BLOB field" message (`TestBlobField`).
 
 ## Phase 2 — Outbox Entry Mgt (`AMC Outbox Entry Mgt.`, 50119) → `AMC Outbox Entry Mgt Tests`
