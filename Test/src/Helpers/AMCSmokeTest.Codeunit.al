@@ -7,7 +7,7 @@ codeunit 50141 "AMC Smoke Test"
     TestPermissions = Disabled;
 
     [Test]
-    procedure ScaffoldBuildsAndRunsGreen()
+    procedure WhenTestRunnerExecutes_ThenScaffoldPassesGreen()
     var
         Assert: Codeunit "Library Assert";
     begin
