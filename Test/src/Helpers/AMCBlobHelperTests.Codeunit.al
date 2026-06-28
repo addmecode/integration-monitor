@@ -89,4 +89,44 @@ codeunit 50146 "AMC Blob Helper Tests"
         // [THEN] The round-tripped text equals the original.
         this.Assert.AreEqual(ExpectedText, ActualText, 'Temp Blob text round-trip should preserve the original string.');
     end;
+
+    [Test]
+    procedure WhenReadNonBlobField_ThenErrors()
+    var
+        Outbox: Record "AMC Int. Outbox Entry";
+        BlobHelper: Codeunit "AMC Int. Blob Helper";
+        OutboxRef: RecordRef;
+        FieldMustBeBlobErr: Label 'must be a BLOB field', Locked = true;
+    begin
+        // [SCENARIO] Reading a non-BLOB field is rejected with the "must be a BLOB field" error.
+        // [GIVEN] A persisted record and the field number of a non-BLOB field ("Entry No.", Integer).
+        Outbox := this.TestLibrary.CreateOutboxEntry(Enum::"AMC Int. Message Type"::AMCPostalCodeValidation, Enum::"AMC Int. Outbox Status"::ReadyToProcess);
+        OutboxRef.GetTable(Outbox);
+
+        // [WHEN] ReadBlobAsText is called with the non-BLOB field number.
+        asserterror BlobHelper.ReadBlobAsText(OutboxRef, Outbox.FieldNo("Entry No."));
+
+        // [THEN] It errors that the field must be a BLOB field.
+        this.Assert.ExpectedError(FieldMustBeBlobErr);
+    end;
+
+    [Test]
+    procedure WhenWriteNonBlobField_ThenErrors()
+    var
+        Outbox: Record "AMC Int. Outbox Entry";
+        BlobHelper: Codeunit "AMC Int. Blob Helper";
+        OutboxRef: RecordRef;
+        FieldMustBeBlobErr: Label 'must be a BLOB field', Locked = true;
+    begin
+        // [SCENARIO] Writing a non-BLOB field is rejected with the "must be a BLOB field" error.
+        // [GIVEN] A persisted record and the field number of a non-BLOB field ("Entry No.", Integer).
+        Outbox := this.TestLibrary.CreateOutboxEntry(Enum::"AMC Int. Message Type"::AMCPostalCodeValidation, Enum::"AMC Int. Outbox Status"::ReadyToProcess);
+        OutboxRef.GetTable(Outbox);
+
+        // [WHEN] WriteTextToBlob is called with the non-BLOB field number.
+        asserterror BlobHelper.WriteTextToBlob(OutboxRef, Outbox.FieldNo("Entry No."), 'value');
+
+        // [THEN] It errors that the field must be a BLOB field.
+        this.Assert.ExpectedError(FieldMustBeBlobErr);
+    end;
 }

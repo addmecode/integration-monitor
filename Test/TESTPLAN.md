@@ -6,7 +6,8 @@ Tracking file for adding unit tests across multiple sessions.
 1. Read this file. Pick the first unchecked `[ ]` item in the lowest-numbered unfinished phase.
 2. Implement only one item. Run the test build.
 3. Make code review of the changes you made.
-3. Check it off `[x]`, add a short note if anything deviated from the description.
+4. Check it off `[x]`, add a short note if anything deviated from the description.
+5. **Do not commit files.** Leave changes in the working tree for the user to review and commit.
 
 **Conventions:**
 - Test codeunits live in the `Test/` app (see Phase 0). `Subtype = Test`.
@@ -33,7 +34,7 @@ Tracking file for adding unit tests across multiple sessions.
 - [x] **Text BLOB round-trips.** Given a record with a BLOB field, when `WriteTextToBlob` stores a known string and `ReadBlobAsText` reads it back, then the returned text equals the original (including non-ASCII to confirm UTF-8).
 - [x] **JSON BLOB parses.** Given a BLOB written with a serialized `JsonObject`, when `ReadBlobAsJsonObject` reads it, then the resulting `JsonObject` contains the expected properties/values.
 - [x] **Temp Blob round-trips.** Given a `Temp Blob`, when `WriteTextToTempBlob` writes text, then reading the temp blob back (via an InStream created from it) returns the same text. Guards the documented InStream/Temp-Blob lifetime gotcha.
-- [ ] **Non-BLOB field is rejected.** Given a RecordRef and a field number that is not a BLOB, when `ReadBlobAsText` / `WriteTextToBlob` is called, then it errors with the "must be a BLOB field" message (`TestBlobField`).
+- [x] **Non-BLOB field is rejected.** Given a RecordRef and a field number that is not a BLOB, when `ReadBlobAsText` / `WriteTextToBlob` is called, then it errors with the "must be a BLOB field" message (`TestBlobField`).
 
 ## Phase 2 — Outbox Entry Mgt (`AMC Outbox Entry Mgt.`, 50119) → `AMC Outbox Entry Mgt Tests`
 
