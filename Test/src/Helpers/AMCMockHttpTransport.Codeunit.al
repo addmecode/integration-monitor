@@ -1,6 +1,6 @@
 namespace Addmecode.IntegrationMonitor.Test;
-using Addmecode.IntegrationMonitor.Transport;
 using Addmecode.IntegrationMonitor.Setup;
+using Addmecode.IntegrationMonitor.Transport;
 
 /// <summary>
 /// Test transport handler. Returns the body configured in

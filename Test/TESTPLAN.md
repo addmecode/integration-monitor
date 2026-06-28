@@ -4,8 +4,10 @@ Tracking file for adding unit tests across multiple sessions.
 
 **How to use (each session):**
 1. Read this file. Pick the first unchecked `[ ]` item in the lowest-numbered unfinished phase.
-2. Implement it. Run the test build.
-3. Check it off `[x]`, add a short note if anything deviated from the description.
+2. Implement only one item. Run the test build.
+3. Make code review of the changes you made.
+4. Check it off `[x]`, add a short note if anything deviated from the description.
+5. **Do not commit files.** Leave changes in the working tree for the user to review and commit.
 
 **Conventions:**
 - Test codeunits live in the `Test/` app (see Phase 0). `Subtype = Test`.
@@ -20,7 +22,7 @@ Tracking file for adding unit tests across multiple sessions.
 
 > **Status:** Both apps **compile green locally** (alc 17.0, packagecache from container symbols). Test-runner *execution* of the smoke test still needs a container/CI run (no sandbox run done locally). User downloaded symbols and dropped `Tests-TestLibraries` from the deps (unused by current code).
 
-- [x] **Create the `Test/` app project.** `Test/app.json` created (id `0a210a97-…`, range 50141–50180, runtime 16.0, `NoImplicitWith`+`TranslationFile`). Deps: Integration Monitor + Library Assert + Any + Test Runner. *(`Tests-TestLibraries`/`System Application Test` omitted — not needed by current code; add when a test needs `Library - *`.)* Feature folders mirrored under `Test/src/` as phases land (`Framework/` added).
+- [x] **Create the `Test/` app project.** `Test/app.json` created (id `0a210a97-…`, range 50141–50180, runtime 16.0, `NoImplicitWith`+`TranslationFile`). Deps: Integration Monitor + Library Assert + Any + Test Runner. *(`Tests-TestLibraries`/`System Application Test` omitted — not needed by current code; add when a test needs `Library - *`.)* Feature folders mirrored under `Test/src/` as phases land (`Helpers/` added).
 - [x] **Register the test folder with AL-Go.** `.AL-Go/settings.json`: `testFolders: ["Test"]`, and `appFolders: ["integration-monitor"]` set explicitly so auto-discovery doesn't misclassify the two app folders.
 - [x] **Add a smoke test.** `AMC Smoke Test` (50141) written and **compiles green**. Run-green to be confirmed by the AL-Go pipeline / a container run.
 - [x] **Add the `AMC Test Library` factory codeunit.** `AMC Test Library` (50142) with `CreateMessageSetup`/`CreateOutboxEntry`/`CreateInboxEntry`/`CreateAuthProfile`/`WriteBlobText` + `EnsureMessageSetup` helper. Uses `Any` for don't-care values. Compiles green.
@@ -29,15 +31,15 @@ Tracking file for adding unit tests across multiple sessions.
 
 ## Phase 1 — Blob Helper (`AMC Int. Blob Helper`, 50113) → `AMC Blob Helper Tests`
 
-- [ ] **Text BLOB round-trips.** Given a record with a BLOB field, when `WriteTextToBlob` stores a known string and `ReadBlobAsText` reads it back, then the returned text equals the original (including non-ASCII to confirm UTF-8).
-- [ ] **JSON BLOB parses.** Given a BLOB written with a serialized `JsonObject`, when `ReadBlobAsJsonObject` reads it, then the resulting `JsonObject` contains the expected properties/values.
-- [ ] **Temp Blob round-trips.** Given a `Temp Blob`, when `WriteTextToTempBlob` writes text, then reading the temp blob back (via an InStream created from it) returns the same text. Guards the documented InStream/Temp-Blob lifetime gotcha.
-- [ ] **Non-BLOB field is rejected.** Given a RecordRef and a field number that is not a BLOB, when `ReadBlobAsText` / `WriteTextToBlob` is called, then it errors with the "must be a BLOB field" message (`TestBlobField`).
+- [x] **Text BLOB round-trips.** Given a record with a BLOB field, when `WriteTextToBlob` stores a known string and `ReadBlobAsText` reads it back, then the returned text equals the original (including non-ASCII to confirm UTF-8).
+- [x] **JSON BLOB parses.** Given a BLOB written with a serialized `JsonObject`, when `ReadBlobAsJsonObject` reads it, then the resulting `JsonObject` contains the expected properties/values.
+- [x] **Temp Blob round-trips.** Given a `Temp Blob`, when `WriteTextToTempBlob` writes text, then reading the temp blob back (via an InStream created from it) returns the same text. Guards the documented InStream/Temp-Blob lifetime gotcha.
+- [x] **Non-BLOB field is rejected.** Given a RecordRef and a field number that is not a BLOB, when `ReadBlobAsText` / `WriteTextToBlob` is called, then it errors with the "must be a BLOB field" message (`TestBlobField`).
 
 ## Phase 2 — Outbox Entry Mgt (`AMC Outbox Entry Mgt.`, 50119) → `AMC Outbox Entry Mgt Tests`
 
-- [ ] **EnqueueEntry creates a ready entry.** Given a message type, a payload `Temp Blob`, and a source RecordId, when `EnqueueEntry` runs, then a new Outbox row exists with `Status = ReadyToProcess`, `Request Payload` equal to the supplied payload, `Source Record ID` set, and the returned value equals the new `Entry No.`.
-- [ ] **OnInsert defaults timestamps.** Given a new Outbox entry inserted with `Created At`/`Next Attempt At` left as `0DT`, when inserted, then both are set to (approximately) `CurrentDateTime`. Given they are pre-set, then they are left unchanged.
+- [x] **EnqueueEntry creates a ready entry.** Given a message type, a payload `Temp Blob`, and a source RecordId, when `EnqueueEntry` runs, then a new Outbox row exists with `Status = ReadyToProcess`, `Request Payload` equal to the supplied payload, `Source Record ID` set, and the returned value equals the new `Entry No.`.
+- [x] **OnInsert defaults timestamps.** Given a new Outbox entry inserted with `Created At`/`Next Attempt At` left as `0DT`, when inserted, then both are set to (approximately) `CurrentDateTime`. Given they are pre-set, then they are left unchanged.
 - [ ] **ResetEntry is blocked for terminal/in-flight statuses.** Given an entry with `Status` = Processed, Sending, or ResponseReceived, when `ResetEntry` runs, then it errors with "Cannot reset entry with status = %1" and nothing changes (one test per status).
 - [ ] **ResetEntry clears retry state otherwise.** Given an entry with `Status` = Failed (with non-zero Attempt Count, a Last Error, a Response Payload, and timestamps set), when `ResetEntry` runs, then `Status = ReadyToProcess`, `Attempt Count = 0`, `Next Attempt At` ≈ now, and `Last Attempt At`/`Processed At`/`Response Received At`/`Last Error`/`Response Payload` are cleared.
 - [ ] **CancelEntry sets Cancelled and is idempotent.** Given a ReadyToProcess entry, when `CancelEntry` runs, then `Status = Cancelled`. Given an already-Cancelled entry, when `CancelEntry` runs again, then it stays Cancelled and does not error.
