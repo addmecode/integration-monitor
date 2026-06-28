@@ -48,4 +48,59 @@ codeunit 50147 "AMC Outbox Entry Mgt Tests"
         OutboxRef.GetTable(Outbox);
         this.Assert.AreEqual(ExpectedPayload, BlobHelper.ReadBlobAsText(OutboxRef, Outbox.FieldNo("Request Payload")), 'The stored request payload should equal the supplied payload.');
     end;
+
+    [Test]
+    procedure WhenInsertWithoutTimestamps_ThenDefaultsToNow()
+    var
+        Outbox: Record "AMC Int. Outbox Entry";
+        BeforeInsert: DateTime;
+        AfterInsert: DateTime;
+    begin
+        // [SCENARIO] OnInsert defaults Created At and Next Attempt At to the current date/time when they are left blank.
+        // [GIVEN] A new outbox entry whose Created At and Next Attempt At are left as 0DT.
+        this.TestLibrary.EnsureMessageSetup(Enum::"AMC Int. Message Type"::AMCPostalCodeValidation);
+        Outbox.Init();
+        Outbox.Validate("Message Type", Enum::"AMC Int. Message Type"::AMCPostalCodeValidation);
+
+        // [WHEN] The entry is inserted, firing the OnInsert trigger.
+        BeforeInsert := CurrentDateTime();
+        Outbox.Insert(true);
+        AfterInsert := CurrentDateTime();
+
+        // [THEN] Both timestamps are set to approximately the current date/time.
+        this.AssertDateTimeWithinRange(Outbox."Created At", BeforeInsert, AfterInsert, 'Created At');
+        this.AssertDateTimeWithinRange(Outbox."Next Attempt At", BeforeInsert, AfterInsert, 'Next Attempt At');
+    end;
+
+    [Test]
+    procedure WhenInsertWithTimestamps_ThenLeftUnchanged()
+    var
+        Outbox: Record "AMC Int. Outbox Entry";
+        PresetDateTime: DateTime;
+    begin
+        // [SCENARIO] OnInsert leaves Created At and Next Attempt At unchanged when they are already set.
+        // [GIVEN] A new outbox entry with both timestamps explicitly pre-set to a known value.
+        this.TestLibrary.EnsureMessageSetup(Enum::"AMC Int. Message Type"::AMCPostalCodeValidation);
+        PresetDateTime := CreateDateTime(DMY2Date(1, 1, 2020), 0T);
+        Outbox.Init();
+        Outbox.Validate("Message Type", Enum::"AMC Int. Message Type"::AMCPostalCodeValidation);
+        Outbox."Created At" := PresetDateTime;
+        Outbox."Next Attempt At" := PresetDateTime;
+
+        // [WHEN] The entry is inserted, firing the OnInsert trigger.
+        Outbox.Insert(true);
+
+        // [THEN] The pre-set timestamps are left unchanged.
+        this.Assert.AreEqual(PresetDateTime, Outbox."Created At", 'A pre-set Created At should be left unchanged on insert.');
+        this.Assert.AreEqual(PresetDateTime, Outbox."Next Attempt At", 'A pre-set Next Attempt At should be left unchanged on insert.');
+    end;
+
+    local procedure AssertDateTimeWithinRange(ActualDateTime: DateTime; LowerBound: DateTime; UpperBound: DateTime; FieldCaption: Text)
+    var
+        DateTimeOutOfRangeErr: Label '%1 should be within the expected date/time range.', Comment = '%1 = field caption';
+    begin
+        this.Assert.IsTrue(
+            (ActualDateTime >= LowerBound) and (ActualDateTime <= UpperBound),
+            StrSubstNo(DateTimeOutOfRangeErr, FieldCaption));
+    end;
 }
