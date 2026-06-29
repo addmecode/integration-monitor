@@ -116,6 +116,53 @@ codeunit 50147 "AMC Outbox Entry Mgt Tests"
         this.AssertResetBlockedForStatus(Enum::"AMC Int. Outbox Status"::ResponseReceived);
     end;
 
+    [Test]
+    procedure WhenResetEntryWhileFailed_ThenClearsRetryState()
+    var
+        Outbox: Record "AMC Int. Outbox Entry";
+        OutboxEntryMgt: Codeunit "AMC Outbox Entry Mgt.";
+        OutboxRef: RecordRef;
+        PastDateTime: DateTime;
+        BeforeReset: DateTime;
+        AfterReset: DateTime;
+        EntryNo: Integer;
+    begin
+        // [SCENARIO] ResetEntry on a Failed entry clears the retry state and re-arms it for processing.
+        // [GIVEN] A Failed outbox entry carrying a non-zero attempt count, error/response payloads, and timestamps.
+        PastDateTime := CreateDateTime(DMY2Date(1, 1, 2020), 0T);
+        Outbox := this.TestLibrary.CreateOutboxEntry(Enum::"AMC Int. Message Type"::AMCPostalCodeValidation, Enum::"AMC Int. Outbox Status"::Failed);
+        EntryNo := Outbox."Entry No.";
+        Outbox."Attempt Count" := 3;
+        Outbox."Last Attempt At" := PastDateTime;
+        Outbox."Processed At" := PastDateTime;
+        Outbox."Response Received At" := PastDateTime;
+        Outbox."Next Attempt At" := PastDateTime;
+        Outbox.Modify(true);
+        OutboxRef.GetTable(Outbox);
+        this.TestLibrary.WriteBlobText(OutboxRef, Outbox.FieldNo("Last Error"), 'boom');
+        this.TestLibrary.WriteBlobText(OutboxRef, Outbox.FieldNo("Response Payload"), 'response-body');
+        Outbox.Get(EntryNo);
+
+        // [WHEN] ResetEntry runs against it.
+        BeforeReset := CurrentDateTime();
+        OutboxEntryMgt.ResetEntry(Outbox);
+        AfterReset := CurrentDateTime();
+
+        // [THEN] Next Attempt At is re-armed to ≈ now
+        this.AssertDateTimeWithinRange(Outbox."Next Attempt At", BeforeReset, AfterReset, 'Next Attempt At');
+
+        // [THEN] The persisted entry is back to ReadyToProcess with its retry state cleared.
+        Outbox.Get(EntryNo);
+        this.Assert.AreEqual(Enum::"AMC Int. Outbox Status"::ReadyToProcess, Outbox.Status, 'A reset entry should be ReadyToProcess.');
+        this.Assert.AreEqual(0, Outbox."Attempt Count", 'A reset entry should have its Attempt Count cleared.');
+        this.Assert.AreEqual(0DT, Outbox."Last Attempt At", 'A reset entry should clear Last Attempt At.');
+        this.Assert.AreEqual(0DT, Outbox."Processed At", 'A reset entry should clear Processed At.');
+        this.Assert.AreEqual(0DT, Outbox."Response Received At", 'A reset entry should clear Response Received At.');
+        Outbox.CalcFields("Last Error", "Response Payload");
+        this.Assert.IsFalse(Outbox."Last Error".HasValue(), 'A reset entry should clear the Last Error blob.');
+        this.Assert.IsFalse(Outbox."Response Payload".HasValue(), 'A reset entry should clear the Response Payload blob.');
+    end;
+
     local procedure AssertResetBlockedForStatus(Status: Enum "AMC Int. Outbox Status")
     var
         Outbox: Record "AMC Int. Outbox Entry";
