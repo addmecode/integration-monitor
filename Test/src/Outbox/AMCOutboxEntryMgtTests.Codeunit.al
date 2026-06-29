@@ -69,8 +69,8 @@ codeunit 50147 "AMC Outbox Entry Mgt Tests"
         AfterInsert := CurrentDateTime();
 
         // [THEN] Both timestamps are set to approximately the current date/time.
-        this.AssertDateTimeWithinRange(Outbox."Created At", BeforeInsert, AfterInsert, 'Created At');
-        this.AssertDateTimeWithinRange(Outbox."Next Attempt At", BeforeInsert, AfterInsert, 'Next Attempt At');
+        this.TestLibrary.AssertDateTimeWithinRange(Outbox."Created At", BeforeInsert, AfterInsert, 'Created At');
+        this.TestLibrary.AssertDateTimeWithinRange(Outbox."Next Attempt At", BeforeInsert, AfterInsert, 'Next Attempt At');
     end;
 
     [Test]
@@ -150,7 +150,7 @@ codeunit 50147 "AMC Outbox Entry Mgt Tests"
         AfterReset := CurrentDateTime();
 
         // [THEN] Next Attempt At is re-armed to ≈ now.
-        this.AssertDateTimeWithinRange(Outbox."Next Attempt At", BeforeReset, AfterReset, 'Next Attempt At');
+        this.TestLibrary.AssertDateTimeWithinRange(Outbox."Next Attempt At", BeforeReset, AfterReset, 'Next Attempt At');
 
         // [THEN] The persisted entry is back to ReadyToProcess with its retry state cleared.
         Outbox.Get(EntryNo);
@@ -289,14 +289,5 @@ codeunit 50147 "AMC Outbox Entry Mgt Tests"
         // [THEN] The entry is unchanged: ResetEntry errors before mutating any field, so the
         // in-memory record still carries its original status
         this.Assert.AreEqual(Status, Outbox.Status, 'A blocked reset should leave the entry status unchanged.');
-    end;
-
-    local procedure AssertDateTimeWithinRange(ActualDateTime: DateTime; LowerBound: DateTime; UpperBound: DateTime; FieldCaption: Text)
-    var
-        DateTimeOutOfRangeErr: Label '%1 should be within the expected date/time range.', Comment = '%1 = field caption';
-    begin
-        this.Assert.IsTrue(
-            (ActualDateTime >= LowerBound) and (ActualDateTime <= UpperBound),
-            StrSubstNo(DateTimeOutOfRangeErr, FieldCaption));
     end;
 }
