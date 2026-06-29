@@ -106,7 +106,7 @@ codeunit 50147 "AMC Outbox Entry Mgt Tests"
     [Test]
     procedure WhenResetEntryWhileSending_ThenBlocked()
     begin
-        // [SCENARIO] ResetEntry refuses to reset an Sending entry and leaves it untouched.
+        // [SCENARIO] ResetEntry refuses to reset a Sending entry and leaves it untouched.
         this.AssertResetBlockedForStatus(Enum::"AMC Int. Outbox Status"::Sending);
     end;
 
@@ -149,7 +149,7 @@ codeunit 50147 "AMC Outbox Entry Mgt Tests"
         OutboxEntryMgt.ResetEntry(Outbox);
         AfterReset := CurrentDateTime();
 
-        // [THEN] Next Attempt At is re-armed to ≈ now
+        // [THEN] Next Attempt At is re-armed to ≈ now.
         this.AssertDateTimeWithinRange(Outbox."Next Attempt At", BeforeReset, AfterReset, 'Next Attempt At');
 
         // [THEN] The persisted entry is back to ReadyToProcess with its retry state cleared.
@@ -225,15 +225,12 @@ codeunit 50147 "AMC Outbox Entry Mgt Tests"
     procedure WhenDeleteWithProcessingInbox_ThenBlocked()
     var
         Outbox: Record "AMC Int. Outbox Entry";
-        Inbox: Record "AMC Int. Inbox Entry";
         InboxEntryIsBeingProcessedErr: Label 'Cannot delete record because a related Inbox Entry is being processed.', Locked = true;
     begin
         // [SCENARIO] An outbox entry cannot be deleted while a related inbox entry is being processed.
         // [GIVEN] An outbox entry and a related inbox entry (matching Outbox Entry No.) with Status = Processing.
         Outbox := this.TestLibrary.CreateOutboxEntry(Enum::"AMC Int. Message Type"::AMCPostalCodeValidation, Enum::"AMC Int. Outbox Status"::ReadyToProcess);
-        Inbox := this.TestLibrary.CreateInboxEntry(Enum::"AMC Int. Message Type"::AMCPostalCodeValidation, Enum::"AMC Int. Inbox Status"::Processing);
-        Inbox."Outbox Entry No." := Outbox."Entry No.";
-        Inbox.Modify(true);
+        this.CreateRelatedInbox(Outbox."Entry No.", Enum::"AMC Int. Inbox Status"::Processing);
 
         // [WHEN] The outbox entry is deleted, firing the OnDelete trigger.
         asserterror Outbox.Delete(true);
