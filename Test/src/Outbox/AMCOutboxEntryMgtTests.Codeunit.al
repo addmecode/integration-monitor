@@ -95,6 +95,47 @@ codeunit 50147 "AMC Outbox Entry Mgt Tests"
         this.Assert.AreEqual(PresetDateTime, Outbox."Next Attempt At", 'A pre-set Next Attempt At should be left unchanged on insert.');
     end;
 
+    [Test]
+    procedure WhenResetEntryWhileProcessed_ThenBlocked()
+    begin
+        // [SCENARIO] ResetEntry refuses to reset a Processed entry and leaves it untouched.
+        this.AssertResetBlockedForStatus(Enum::"AMC Int. Outbox Status"::Processed);
+    end;
+
+    [Test]
+    procedure WhenResetEntryWhileSending_ThenBlocked()
+    begin
+        // [SCENARIO] ResetEntry refuses to reset an Sending entry and leaves it untouched.
+        this.AssertResetBlockedForStatus(Enum::"AMC Int. Outbox Status"::Sending);
+    end;
+
+    [Test]
+    procedure WhenResetEntryWhileResponseReceived_ThenBlocked()
+    begin
+        // [SCENARIO] ResetEntry refuses to reset a ResponseReceived entry and leaves it untouched.
+        this.AssertResetBlockedForStatus(Enum::"AMC Int. Outbox Status"::ResponseReceived);
+    end;
+
+    local procedure AssertResetBlockedForStatus(Status: Enum "AMC Int. Outbox Status")
+    var
+        Outbox: Record "AMC Int. Outbox Entry";
+        OutboxEntryMgt: Codeunit "AMC Outbox Entry Mgt.";
+        CannotResetEntryErr: Label 'Cannot reset entry with status = ', Locked = true;
+    begin
+        // [GIVEN] An outbox entry in a status that disallows reset.
+        Outbox := this.TestLibrary.CreateOutboxEntry(Enum::"AMC Int. Message Type"::AMCPostalCodeValidation, Status);
+
+        // [WHEN] ResetEntry runs against it.
+        asserterror OutboxEntryMgt.ResetEntry(Outbox);
+
+        // [THEN] It errors that the entry cannot be reset for that status.
+        this.Assert.ExpectedError(CannotResetEntryErr);
+
+        // [THEN] The entry is unchanged: ResetEntry errors before mutating any field, so the
+        // in-memory record still carries its original status
+        this.Assert.AreEqual(Status, Outbox.Status, 'A blocked reset should leave the entry status unchanged.');
+    end;
+
     local procedure AssertDateTimeWithinRange(ActualDateTime: DateTime; LowerBound: DateTime; UpperBound: DateTime; FieldCaption: Text)
     var
         DateTimeOutOfRangeErr: Label '%1 should be within the expected date/time range.', Comment = '%1 = field caption';
