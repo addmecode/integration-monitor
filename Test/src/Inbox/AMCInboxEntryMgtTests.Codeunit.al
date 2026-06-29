@@ -98,4 +98,38 @@ codeunit 50145 "AMC Inbox Entry Mgt Tests"
         // [THEN] The entry is removed.
         this.Assert.IsFalse(Inbox.Get(EntryNo), 'An inbox entry without an outbox link should be deletable.');
     end;
+
+    [Test]
+    procedure WhenResetEntryWhileProcessed_ThenBlocked()
+    begin
+        // [SCENARIO] ResetEntry refuses to reset a Processed entry and leaves it untouched.
+        this.AssertResetBlockedForStatus(Enum::"AMC Int. Inbox Status"::Processed);
+    end;
+
+    [Test]
+    procedure WhenResetEntryWhileProcessing_ThenBlocked()
+    begin
+        // [SCENARIO] ResetEntry refuses to reset a Processing entry and leaves it untouched.
+        this.AssertResetBlockedForStatus(Enum::"AMC Int. Inbox Status"::Processing);
+    end;
+
+    local procedure AssertResetBlockedForStatus(Status: Enum "AMC Int. Inbox Status")
+    var
+        Inbox: Record "AMC Int. Inbox Entry";
+        InboxEntryMgt: Codeunit "AMC Inbox Entry Mgt.";
+        CannotResetEntryErr: Label 'Cannot reset entry with status = ', Locked = true;
+    begin
+        // [GIVEN] An inbox entry in a status that disallows reset.
+        Inbox := this.TestLibrary.CreateInboxEntry(Enum::"AMC Int. Message Type"::AMCPostalCodeValidation, Status);
+
+        // [WHEN] ResetEntry runs against it.
+        asserterror InboxEntryMgt.ResetEntry(Inbox);
+
+        // [THEN] It errors that the entry cannot be reset for that status.
+        this.Assert.ExpectedError(CannotResetEntryErr);
+
+        // [THEN] The entry is unchanged: ResetEntry errors before mutating any field, so the
+        // in-memory record still carries its original status.
+        this.Assert.AreEqual(Status, Inbox.Status, 'A blocked reset should leave the entry status unchanged.');
+    end;
 }
