@@ -163,6 +163,46 @@ codeunit 50147 "AMC Outbox Entry Mgt Tests"
         this.Assert.IsFalse(Outbox."Response Payload".HasValue(), 'A reset entry should clear the Response Payload blob.');
     end;
 
+    [Test]
+    procedure WhenCancelEntry_ThenSetsCancelled()
+    var
+        Outbox: Record "AMC Int. Outbox Entry";
+        OutboxEntryMgt: Codeunit "AMC Outbox Entry Mgt.";
+        EntryNo: Integer;
+    begin
+        // [SCENARIO] CancelEntry transitions a ReadyToProcess entry to Cancelled.
+        // [GIVEN] A ReadyToProcess outbox entry.
+        Outbox := this.TestLibrary.CreateOutboxEntry(Enum::"AMC Int. Message Type"::AMCPostalCodeValidation, Enum::"AMC Int. Outbox Status"::ReadyToProcess);
+        EntryNo := Outbox."Entry No.";
+
+        // [WHEN] CancelEntry runs against it.
+        OutboxEntryMgt.CancelEntry(Outbox);
+
+        // [THEN] The persisted entry is Cancelled.
+        Outbox.Get(EntryNo);
+        this.Assert.AreEqual(Enum::"AMC Int. Outbox Status"::Cancelled, Outbox.Status, 'A cancelled entry should have status Cancelled.');
+    end;
+
+    [Test]
+    procedure WhenCancelAlreadyCancelled_ThenStaysCancelled()
+    var
+        Outbox: Record "AMC Int. Outbox Entry";
+        OutboxEntryMgt: Codeunit "AMC Outbox Entry Mgt.";
+        EntryNo: Integer;
+    begin
+        // [SCENARIO] CancelEntry is idempotent: re-cancelling an already-Cancelled entry stays Cancelled without error.
+        // [GIVEN] An already-Cancelled outbox entry.
+        Outbox := this.TestLibrary.CreateOutboxEntry(Enum::"AMC Int. Message Type"::AMCPostalCodeValidation, Enum::"AMC Int. Outbox Status"::Cancelled);
+        EntryNo := Outbox."Entry No.";
+
+        // [WHEN] CancelEntry runs against it again.
+        OutboxEntryMgt.CancelEntry(Outbox);
+
+        // [THEN] The entry remains Cancelled and no error was raised.
+        Outbox.Get(EntryNo);
+        this.Assert.AreEqual(Enum::"AMC Int. Outbox Status"::Cancelled, Outbox.Status, 'Re-cancelling should leave the entry Cancelled.');
+    end;
+
     local procedure AssertResetBlockedForStatus(Status: Enum "AMC Int. Outbox Status")
     var
         Outbox: Record "AMC Int. Outbox Entry";
