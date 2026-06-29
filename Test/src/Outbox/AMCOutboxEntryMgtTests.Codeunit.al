@@ -203,6 +203,23 @@ codeunit 50147 "AMC Outbox Entry Mgt Tests"
         this.Assert.AreEqual(Enum::"AMC Int. Outbox Status"::Cancelled, Outbox.Status, 'Re-cancelling should leave the entry Cancelled.');
     end;
 
+    [Test]
+    procedure WhenDeleteWhileSending_ThenBlocked()
+    var
+        Outbox: Record "AMC Int. Outbox Entry";
+        OutboxEntryIsSendingErr: Label 'Cannot delete record because the outbox entry is being sent.', Locked = true;
+    begin
+        // [SCENARIO] An outbox entry that is being sent cannot be deleted.
+        // [GIVEN] An outbox entry with Status = Sending.
+        Outbox := this.TestLibrary.CreateOutboxEntry(Enum::"AMC Int. Message Type"::AMCPostalCodeValidation, Enum::"AMC Int. Outbox Status"::Sending);
+
+        // [WHEN] The entry is deleted, firing the OnDelete trigger.
+        asserterror Outbox.Delete(true);
+
+        // [THEN] It errors that the entry is being sent.
+        this.Assert.ExpectedError(OutboxEntryIsSendingErr);
+    end;
+
     local procedure AssertResetBlockedForStatus(Status: Enum "AMC Int. Outbox Status")
     var
         Outbox: Record "AMC Int. Outbox Entry";
