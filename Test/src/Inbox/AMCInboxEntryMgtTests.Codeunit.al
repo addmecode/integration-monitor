@@ -113,6 +113,49 @@ codeunit 50145 "AMC Inbox Entry Mgt Tests"
         this.AssertResetBlockedForStatus(Enum::"AMC Int. Inbox Status"::Processing);
     end;
 
+    [Test]
+    procedure WhenResetEntryWhileFailed_ThenClearsRetryState()
+    var
+        Inbox: Record "AMC Int. Inbox Entry";
+        InboxEntryMgt: Codeunit "AMC Inbox Entry Mgt.";
+        InboxRef: RecordRef;
+        PastDateTime: DateTime;
+        BeforeReset: DateTime;
+        AfterReset: DateTime;
+        EntryNo: Integer;
+    begin
+        // [SCENARIO] ResetEntry on a Failed entry clears the retry state and re-arms it for processing.
+        // [GIVEN] A Failed inbox entry carrying a non-zero attempt count, a last error, and timestamps.
+        PastDateTime := CreateDateTime(DMY2Date(1, 1, 2020), 0T);
+        Inbox := this.TestLibrary.CreateInboxEntry(Enum::"AMC Int. Message Type"::AMCPostalCodeValidation, Enum::"AMC Int. Inbox Status"::Failed);
+        EntryNo := Inbox."Entry No.";
+        Inbox."Attempt Count" := 3;
+        Inbox."Last Attempt At" := PastDateTime;
+        Inbox."Processed At" := PastDateTime;
+        Inbox."Next Attempt At" := PastDateTime;
+        Inbox.Modify(true);
+        InboxRef.GetTable(Inbox);
+        this.TestLibrary.WriteBlobText(InboxRef, Inbox.FieldNo("Last Error"), 'boom');
+        Inbox.Get(EntryNo);
+
+        // [WHEN] ResetEntry runs against it.
+        BeforeReset := CurrentDateTime();
+        InboxEntryMgt.ResetEntry(Inbox);
+        AfterReset := CurrentDateTime();
+
+        // [THEN] Next Attempt At is re-armed to ≈ now.
+        this.TestLibrary.AssertDateTimeWithinRange(Inbox."Next Attempt At", BeforeReset, AfterReset, 'Next Attempt At');
+
+        // [THEN] The persisted entry is back to ReadyToProcess with its retry state cleared.
+        Inbox.Get(EntryNo);
+        this.Assert.AreEqual(Enum::"AMC Int. Inbox Status"::ReadyToProcess, Inbox.Status, 'A reset entry should be ReadyToProcess.');
+        this.Assert.AreEqual(0, Inbox."Attempt Count", 'A reset entry should have its Attempt Count cleared.');
+        this.Assert.AreEqual(0DT, Inbox."Last Attempt At", 'A reset entry should clear Last Attempt At.');
+        this.Assert.AreEqual(0DT, Inbox."Processed At", 'A reset entry should clear Processed At.');
+        Inbox.CalcFields("Last Error");
+        this.Assert.IsFalse(Inbox."Last Error".HasValue(), 'A reset entry should clear the Last Error blob.');
+    end;
+
     local procedure AssertResetBlockedForStatus(Status: Enum "AMC Int. Inbox Status")
     var
         Inbox: Record "AMC Int. Inbox Entry";
