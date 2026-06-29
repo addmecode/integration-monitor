@@ -45,7 +45,7 @@ Tracking file for adding unit tests across multiple sessions.
 - [x] **CancelEntry sets Cancelled and is idempotent.** Given a ReadyToProcess entry, when `CancelEntry` runs, then `Status = Cancelled`. Given an already-Cancelled entry, when `CancelEntry` runs again, then it stays Cancelled and does not error.
 - [x] **OnDelete is blocked while Sending.** Given an Outbox entry with `Status = Sending`, when deleted, then it errors with "Cannot delete record because the outbox entry is being sent."
 - [x] **OnDelete is blocked when a related Inbox entry is Processing.** Given an Outbox entry with a related Inbox entry (`Outbox Entry No.` matches) whose `Status = Processing`, when the Outbox entry is deleted, then it errors with "Cannot delete record because a related Inbox Entry is being processed."
-- [ ] **OnDelete cascades to related Inbox entries otherwise.** Given an Outbox entry (not Sending) with related Inbox entries in non-Processing statuses, when deleted, then all Inbox entries with that `Outbox Entry No.` are removed.
+- [x] **OnDelete cascades to related Inbox entries otherwise.** Given an Outbox entry (not Sending) with related Inbox entries in non-Processing statuses, when deleted, then all Inbox entries with that `Outbox Entry No.` are removed.
 
 ## Phase 3 — Inbox Entry Mgt (`AMC Inbox Entry Mgt.`, 50126) → `AMC Inbox Entry Mgt Tests`
 

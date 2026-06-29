@@ -242,6 +242,38 @@ codeunit 50147 "AMC Outbox Entry Mgt Tests"
         this.Assert.ExpectedError(InboxEntryIsBeingProcessedErr);
     end;
 
+    [Test]
+    procedure WhenDeleteWithNonProcessingInbox_ThenCascades()
+    var
+        Outbox: Record "AMC Int. Outbox Entry";
+        Inbox: Record "AMC Int. Inbox Entry";
+        ReadyInboxNo: Integer;
+        FailedInboxNo: Integer;
+    begin
+        // [SCENARIO] Deleting a non-Sending outbox entry cascades to its related inbox entries when none are Processing.
+        // [GIVEN] A non-Sending outbox entry with related inbox entries in non-Processing statuses.
+        Outbox := this.TestLibrary.CreateOutboxEntry(Enum::"AMC Int. Message Type"::AMCPostalCodeValidation, Enum::"AMC Int. Outbox Status"::Processed);
+        ReadyInboxNo := this.CreateRelatedInbox(Outbox."Entry No.", Enum::"AMC Int. Inbox Status"::ReadyToProcess);
+        FailedInboxNo := this.CreateRelatedInbox(Outbox."Entry No.", Enum::"AMC Int. Inbox Status"::Failed);
+
+        // [WHEN] The outbox entry is deleted, firing the OnDelete trigger.
+        Outbox.Delete(true);
+
+        // [THEN] All inbox entries with that Outbox Entry No. are removed.
+        this.Assert.IsFalse(Inbox.Get(ReadyInboxNo), 'The related ReadyToProcess inbox entry should be cascade-deleted.');
+        this.Assert.IsFalse(Inbox.Get(FailedInboxNo), 'The related Failed inbox entry should be cascade-deleted.');
+    end;
+
+    local procedure CreateRelatedInbox(OutboxEntryNo: Integer; Status: Enum "AMC Int. Inbox Status"): Integer
+    var
+        Inbox: Record "AMC Int. Inbox Entry";
+    begin
+        Inbox := this.TestLibrary.CreateInboxEntry(Enum::"AMC Int. Message Type"::AMCPostalCodeValidation, Status);
+        Inbox."Outbox Entry No." := OutboxEntryNo;
+        Inbox.Modify(true);
+        exit(Inbox."Entry No.");
+    end;
+
     local procedure AssertResetBlockedForStatus(Status: Enum "AMC Int. Outbox Status")
     var
         Outbox: Record "AMC Int. Outbox Entry";
