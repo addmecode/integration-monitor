@@ -53,7 +53,7 @@ Tracking file for adding unit tests across multiple sessions.
 - [x] **OnDelete is blocked when a related Outbox entry exists.** Given an Inbox entry whose `Outbox Entry No.` references an existing Outbox row, when the Inbox entry is deleted, then it errors with "Cannot delete record because related outbox entry exists." Given `Outbox Entry No. = 0`, then deletion is allowed.
 - [x] **ResetEntry is blocked for Processed/Processing.** Given an Inbox entry with `Status` = Processed or Processing, when `ResetEntry` runs, then it errors with "Cannot reset entry with status = %1" (one test per status).
 - [x] **ResetEntry clears retry state otherwise.** Given a Failed Inbox entry with non-zero Attempt Count, Last Error, and timestamps, when `ResetEntry` runs, then `Status = ReadyToProcess`, `Attempt Count = 0`, `Next Attempt At` ≈ now, and `Last Attempt At`/`Processed At`/`Last Error` are cleared.
-- [ ] **CancelEntry sets Cancelled and is idempotent.** Given a ReadyToProcess Inbox entry, when `CancelEntry` runs, then `Status = Cancelled`; running again leaves it Cancelled without error.
+- [x] **CancelEntry sets Cancelled and is idempotent.** Given a ReadyToProcess Inbox entry, when `CancelEntry` runs, then `Status = Cancelled`; running again leaves it Cancelled without error.
 
 ## Phase 4 — Failure handlers (`AMC Outbox Failure Handler` 50118 / `AMC Inbox Failure Handler` 50128) → `AMC Outbox Failure Tests` / `AMC Inbox Failure Tests`
 

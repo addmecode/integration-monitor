@@ -156,6 +156,46 @@ codeunit 50145 "AMC Inbox Entry Mgt Tests"
         this.Assert.IsFalse(Inbox."Last Error".HasValue(), 'A reset entry should clear the Last Error blob.');
     end;
 
+    [Test]
+    procedure WhenCancelEntry_ThenSetsCancelled()
+    var
+        Inbox: Record "AMC Int. Inbox Entry";
+        InboxEntryMgt: Codeunit "AMC Inbox Entry Mgt.";
+        EntryNo: Integer;
+    begin
+        // [SCENARIO] CancelEntry transitions a ReadyToProcess entry to Cancelled.
+        // [GIVEN] A ReadyToProcess inbox entry.
+        Inbox := this.TestLibrary.CreateInboxEntry(Enum::"AMC Int. Message Type"::AMCPostalCodeValidation, Enum::"AMC Int. Inbox Status"::ReadyToProcess);
+        EntryNo := Inbox."Entry No.";
+
+        // [WHEN] CancelEntry runs against it.
+        InboxEntryMgt.CancelEntry(Inbox);
+
+        // [THEN] The persisted entry is Cancelled.
+        Inbox.Get(EntryNo);
+        this.Assert.AreEqual(Enum::"AMC Int. Inbox Status"::Cancelled, Inbox.Status, 'A cancelled entry should have status Cancelled.');
+    end;
+
+    [Test]
+    procedure WhenCancelAlreadyCancelled_ThenStaysCancelled()
+    var
+        Inbox: Record "AMC Int. Inbox Entry";
+        InboxEntryMgt: Codeunit "AMC Inbox Entry Mgt.";
+        EntryNo: Integer;
+    begin
+        // [SCENARIO] CancelEntry is idempotent: re-cancelling an already-Cancelled entry stays Cancelled without error.
+        // [GIVEN] An already-Cancelled inbox entry.
+        Inbox := this.TestLibrary.CreateInboxEntry(Enum::"AMC Int. Message Type"::AMCPostalCodeValidation, Enum::"AMC Int. Inbox Status"::Cancelled);
+        EntryNo := Inbox."Entry No.";
+
+        // [WHEN] CancelEntry runs against it again.
+        InboxEntryMgt.CancelEntry(Inbox);
+
+        // [THEN] The entry remains Cancelled and no error was raised.
+        Inbox.Get(EntryNo);
+        this.Assert.AreEqual(Enum::"AMC Int. Inbox Status"::Cancelled, Inbox.Status, 'Re-cancelling should leave the entry Cancelled.');
+    end;
+
     local procedure AssertResetBlockedForStatus(Status: Enum "AMC Int. Inbox Status")
     var
         Inbox: Record "AMC Int. Inbox Entry";
