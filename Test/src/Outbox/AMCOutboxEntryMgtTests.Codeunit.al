@@ -1,5 +1,6 @@
 namespace Addmecode.IntegrationMonitor.Test;
 using Addmecode.IntegrationMonitor.Helpers;
+using Addmecode.IntegrationMonitor.Inbox;
 using Addmecode.IntegrationMonitor.Message;
 using Addmecode.IntegrationMonitor.Outbox;
 using Addmecode.IntegrationMonitor.Setup;
@@ -218,6 +219,27 @@ codeunit 50147 "AMC Outbox Entry Mgt Tests"
 
         // [THEN] It errors that the entry is being sent.
         this.Assert.ExpectedError(OutboxEntryIsSendingErr);
+    end;
+
+    [Test]
+    procedure WhenDeleteWithProcessingInbox_ThenBlocked()
+    var
+        Outbox: Record "AMC Int. Outbox Entry";
+        Inbox: Record "AMC Int. Inbox Entry";
+        InboxEntryIsBeingProcessedErr: Label 'Cannot delete record because a related Inbox Entry is being processed.', Locked = true;
+    begin
+        // [SCENARIO] An outbox entry cannot be deleted while a related inbox entry is being processed.
+        // [GIVEN] An outbox entry and a related inbox entry (matching Outbox Entry No.) with Status = Processing.
+        Outbox := this.TestLibrary.CreateOutboxEntry(Enum::"AMC Int. Message Type"::AMCPostalCodeValidation, Enum::"AMC Int. Outbox Status"::ReadyToProcess);
+        Inbox := this.TestLibrary.CreateInboxEntry(Enum::"AMC Int. Message Type"::AMCPostalCodeValidation, Enum::"AMC Int. Inbox Status"::Processing);
+        Inbox."Outbox Entry No." := Outbox."Entry No.";
+        Inbox.Modify(true);
+
+        // [WHEN] The outbox entry is deleted, firing the OnDelete trigger.
+        asserterror Outbox.Delete(true);
+
+        // [THEN] It errors that a related inbox entry is being processed.
+        this.Assert.ExpectedError(InboxEntryIsBeingProcessedErr);
     end;
 
     local procedure AssertResetBlockedForStatus(Status: Enum "AMC Int. Outbox Status")
