@@ -3,6 +3,11 @@ using Addmecode.IntegrationMonitor.Inbox;
 using Addmecode.IntegrationMonitor.Message;
 using System.TestLibraries.Utilities;
 
+/// <remarks>
+/// Tests invoke the processor's internal <c>ProcessEntry</c> directly rather than <c>Codeunit.Run</c>:
+/// with the test's pending (uncommitted) writes, Run executes in the same transaction, so an inner
+/// error cannot be isolated and surfaces as "the transaction is stopped" instead of a caught false.
+/// </remarks>
 codeunit 50141 "AMC Inbox Processor Tests"
 {
     Subtype = Test;
@@ -16,6 +21,7 @@ codeunit 50141 "AMC Inbox Processor Tests"
     procedure WhenSetupDisabled_ThenEntryLeftUntouched()
     var
         Inbox: Record "AMC Int. Inbox Entry";
+        InboxProcessor: Codeunit "AMC Inbox Processor";
         EntryNo: Integer;
     begin
         // [SCENARIO] The processor skips an entry whose message setup is disabled, leaving it untouched.
@@ -25,36 +31,38 @@ codeunit 50141 "AMC Inbox Processor Tests"
         EntryNo := Inbox."Entry No.";
 
         // [WHEN] The processor processes the entry.
-        this.RunProcessor(Inbox);
+        InboxProcessor.ProcessEntry(Inbox);
 
         // [THEN] The entry is left untouched: a disabled setup means no claim and no processing.
         this.AssertInboxUntouched(EntryNo, Enum::"AMC Int. Inbox Status"::ReadyToProcess, 0);
     end;
 
     [Test]
-    procedure WhenStatusNotEligible_ThenEntryLeftUntouched()
-    var
-        Inbox: Record "AMC Int. Inbox Entry";
-        EntryNo: Integer;
+    procedure WhenStatusProcessing_ThenEntryLeftUntouched()
     begin
-        // [SCENARIO] The processor skips an entry whose status is outside the eligible set
-        // (Inbox: ReadyToProcess/Failed), even when the setup is enabled.
-        // [GIVEN] An enabled setup and a Processed inbox entry.
-        this.TestLibrary.CreateMessageSetup(Enum::"AMC Int. Message Type"::AMCPostalCodeValidation, true, 5, 0);
-        Inbox := this.TestLibrary.CreateInboxEntry(Enum::"AMC Int. Message Type"::AMCPostalCodeValidation, Enum::"AMC Int. Inbox Status"::Processed);
-        EntryNo := Inbox."Entry No.";
+        // [SCENARIO] The processor skips a Processing entry: its status is outside the eligible set.
+        this.AssertSkippedForIneligibleStatus(Enum::"AMC Int. Inbox Status"::Processing);
+    end;
 
-        // [WHEN] The processor processes the entry.
-        this.RunProcessor(Inbox);
+    [Test]
+    procedure WhenStatusProcessed_ThenEntryLeftUntouched()
+    begin
+        // [SCENARIO] The processor skips a Processed entry: its status is outside the eligible set.
+        this.AssertSkippedForIneligibleStatus(Enum::"AMC Int. Inbox Status"::Processed);
+    end;
 
-        // [THEN] The entry is left untouched: an ineligible status is skipped.
-        this.AssertInboxUntouched(EntryNo, Enum::"AMC Int. Inbox Status"::Processed, 0);
+    [Test]
+    procedure WhenStatusCancelled_ThenEntryLeftUntouched()
+    begin
+        // [SCENARIO] The processor skips a Cancelled entry: its status is outside the eligible set.
+        this.AssertSkippedForIneligibleStatus(Enum::"AMC Int. Inbox Status"::Cancelled);
     end;
 
     [Test]
     procedure WhenNextAttemptInFuture_ThenEntryLeftUntouched()
     var
         Inbox: Record "AMC Int. Inbox Entry";
+        InboxProcessor: Codeunit "AMC Inbox Processor";
         FutureDateTime: DateTime;
         EntryNo: Integer;
     begin
@@ -68,7 +76,7 @@ codeunit 50141 "AMC Inbox Processor Tests"
         Inbox.Modify(true);
 
         // [WHEN] The processor processes the entry.
-        this.RunProcessor(Inbox);
+        InboxProcessor.ProcessEntry(Inbox);
 
         // [THEN] The entry is left untouched: the retry delay has not yet elapsed.
         this.AssertInboxUntouched(EntryNo, Enum::"AMC Int. Inbox Status"::ReadyToProcess, 0);
@@ -78,6 +86,7 @@ codeunit 50141 "AMC Inbox Processor Tests"
     procedure WhenAttemptsExhausted_ThenEntryLeftUntouched()
     var
         Inbox: Record "AMC Int. Inbox Entry";
+        InboxProcessor: Codeunit "AMC Inbox Processor";
         MaxAttempts: Integer;
         EntryNo: Integer;
     begin
@@ -91,7 +100,7 @@ codeunit 50141 "AMC Inbox Processor Tests"
         Inbox.Modify(true);
 
         // [WHEN] The processor processes the entry.
-        this.RunProcessor(Inbox);
+        InboxProcessor.ProcessEntry(Inbox);
 
         // [THEN] The entry is left untouched: no further attempt is made once attempts are exhausted.
         this.AssertInboxUntouched(EntryNo, Enum::"AMC Int. Inbox Status"::ReadyToProcess, MaxAttempts);
@@ -150,15 +159,23 @@ codeunit 50141 "AMC Inbox Processor Tests"
         this.Assert.AreEqual(1, Inbox."Attempt Count", 'Finalizing should increment Attempt Count by 1.');
     end;
 
-    local procedure RunProcessor(var Inbox: Record "AMC Int. Inbox Entry")
+    local procedure AssertSkippedForIneligibleStatus(Status: Enum "AMC Int. Inbox Status")
     var
+        Inbox: Record "AMC Int. Inbox Entry";
         InboxProcessor: Codeunit "AMC Inbox Processor";
+        EntryNo: Integer;
     begin
-        // Drive DoShouldProcessEntry via the processor's ProcessEntry entry point. Codeunit.Run cannot be
-        // used here: with the test's pending (uncommitted) writes it runs in the same transaction, so an
-        // inner error cannot be isolated and surfaces as "the transaction is stopped" instead of a caught
-        // false. ProcessEntry exercises the same should-process logic without that isolation constraint.
+        // [GIVEN] An enabled setup and an inbox entry whose status is outside the eligible set
+        // (eligible = ReadyToProcess/Failed).
+        this.TestLibrary.CreateMessageSetup(Enum::"AMC Int. Message Type"::AMCPostalCodeValidation, true, 5, 0);
+        Inbox := this.TestLibrary.CreateInboxEntry(Enum::"AMC Int. Message Type"::AMCPostalCodeValidation, Status);
+        EntryNo := Inbox."Entry No.";
+
+        // [WHEN] The processor processes the entry.
         InboxProcessor.ProcessEntry(Inbox);
+
+        // [THEN] The entry is left untouched: an ineligible status is skipped.
+        this.AssertInboxUntouched(EntryNo, Status, 0);
     end;
 
     local procedure AssertInboxUntouched(EntryNo: Integer; ExpectedStatus: Enum "AMC Int. Inbox Status"; ExpectedAttemptCount: Integer)

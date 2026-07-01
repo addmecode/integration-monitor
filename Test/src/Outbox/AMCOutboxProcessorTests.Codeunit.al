@@ -6,6 +6,11 @@ using Addmecode.IntegrationMonitor.Outbox;
 using Addmecode.IntegrationMonitor.Setup;
 using System.TestLibraries.Utilities;
 
+/// <remarks>
+/// Tests invoke the processor's internal <c>ProcessEntry</c> directly rather than <c>Codeunit.Run</c>:
+/// with the test's pending (uncommitted) writes, Run executes in the same transaction, so an inner
+/// error cannot be isolated and surfaces as "the transaction is stopped" instead of a caught false.
+/// </remarks>
 codeunit 50140 "AMC Outbox Processor Tests"
 {
     Subtype = Test;
@@ -19,6 +24,7 @@ codeunit 50140 "AMC Outbox Processor Tests"
     procedure WhenSetupDisabled_ThenEntryLeftUntouched()
     var
         Outbox: Record "AMC Int. Outbox Entry";
+        OutboxProcessor: Codeunit "AMC Outbox Processor";
         EntryNo: Integer;
     begin
         // [SCENARIO] The processor skips an entry whose message setup is disabled, leaving it untouched.
@@ -28,36 +34,38 @@ codeunit 50140 "AMC Outbox Processor Tests"
         EntryNo := Outbox."Entry No.";
 
         // [WHEN] The processor processes the entry.
-        this.RunProcessor(Outbox);
+        OutboxProcessor.ProcessEntry(Outbox);
 
         // [THEN] The entry is left untouched: a disabled setup means no claim and no processing.
         this.AssertOutboxUntouched(EntryNo, Enum::"AMC Int. Outbox Status"::ReadyToProcess, 0);
     end;
 
     [Test]
-    procedure WhenStatusNotEligible_ThenEntryLeftUntouched()
-    var
-        Outbox: Record "AMC Int. Outbox Entry";
-        EntryNo: Integer;
+    procedure WhenStatusSending_ThenEntryLeftUntouched()
     begin
-        // [SCENARIO] The processor skips an entry whose status is outside the eligible set
-        // (Outbox: ReadyToProcess/Failed/ResponseReceived), even when the setup is enabled.
-        // [GIVEN] An enabled setup and a Cancelled outbox entry.
-        this.TestLibrary.CreateMessageSetup(Enum::"AMC Int. Message Type"::AMCPostalCodeValidation, true, 5, 0);
-        Outbox := this.TestLibrary.CreateOutboxEntry(Enum::"AMC Int. Message Type"::AMCPostalCodeValidation, Enum::"AMC Int. Outbox Status"::Cancelled);
-        EntryNo := Outbox."Entry No.";
+        // [SCENARIO] The processor skips a Sending entry: its status is outside the eligible set.
+        this.AssertSkippedForIneligibleStatus(Enum::"AMC Int. Outbox Status"::Sending);
+    end;
 
-        // [WHEN] The processor processes the entry.
-        this.RunProcessor(Outbox);
+    [Test]
+    procedure WhenStatusProcessed_ThenEntryLeftUntouched()
+    begin
+        // [SCENARIO] The processor skips a Processed entry: its status is outside the eligible set.
+        this.AssertSkippedForIneligibleStatus(Enum::"AMC Int. Outbox Status"::Processed);
+    end;
 
-        // [THEN] The entry is left untouched: an ineligible status is skipped.
-        this.AssertOutboxUntouched(EntryNo, Enum::"AMC Int. Outbox Status"::Cancelled, 0);
+    [Test]
+    procedure WhenStatusCancelled_ThenEntryLeftUntouched()
+    begin
+        // [SCENARIO] The processor skips a Cancelled entry: its status is outside the eligible set.
+        this.AssertSkippedForIneligibleStatus(Enum::"AMC Int. Outbox Status"::Cancelled);
     end;
 
     [Test]
     procedure WhenNextAttemptInFuture_ThenEntryLeftUntouched()
     var
         Outbox: Record "AMC Int. Outbox Entry";
+        OutboxProcessor: Codeunit "AMC Outbox Processor";
         FutureDateTime: DateTime;
         EntryNo: Integer;
     begin
@@ -71,7 +79,7 @@ codeunit 50140 "AMC Outbox Processor Tests"
         Outbox.Modify(true);
 
         // [WHEN] The processor processes the entry.
-        this.RunProcessor(Outbox);
+        OutboxProcessor.ProcessEntry(Outbox);
 
         // [THEN] The entry is left untouched: the retry delay has not yet elapsed.
         this.AssertOutboxUntouched(EntryNo, Enum::"AMC Int. Outbox Status"::ReadyToProcess, 0);
@@ -81,6 +89,7 @@ codeunit 50140 "AMC Outbox Processor Tests"
     procedure WhenAttemptsExhausted_ThenEntryLeftUntouched()
     var
         Outbox: Record "AMC Int. Outbox Entry";
+        OutboxProcessor: Codeunit "AMC Outbox Processor";
         MaxAttempts: Integer;
         EntryNo: Integer;
     begin
@@ -94,7 +103,7 @@ codeunit 50140 "AMC Outbox Processor Tests"
         Outbox.Modify(true);
 
         // [WHEN] The processor processes the entry.
-        this.RunProcessor(Outbox);
+        OutboxProcessor.ProcessEntry(Outbox);
 
         // [THEN] The entry is left untouched: no further attempt is made once attempts are exhausted.
         this.AssertOutboxUntouched(EntryNo, Enum::"AMC Int. Outbox Status"::ReadyToProcess, MaxAttempts);
@@ -149,30 +158,44 @@ codeunit 50140 "AMC Outbox Processor Tests"
     [Test]
     procedure WhenValidateSuccessResponse_ThenNoError()
     var
-        OutboxProcessor: Codeunit "AMC Outbox Processor";
         Response: HttpResponseMessage;
     begin
         // [SCENARIO] ValidateResponse accepts a success (2xx) HTTP response without raising an error.
         // [GIVEN] A fabricated response. A fresh AL HttpResponseMessage reports IsSuccessStatusCode = true
         // (default 2xx), and AL exposes no setter for HttpStatusCode, so only the success branch is reachable
-        // by fabrication. The non-success branch (error carrying status + body) requires a genuine non-2xx
-        // response and is exercised by the Phase 6 send-path test that drives a real HTTP failure.
         Response.Content.WriteFrom('any-body');
         this.Assert.IsTrue(Response.IsSuccessStatusCode, 'Guard: a fabricated response should report a success status.');
 
-        // [WHEN]/[THEN] ValidateResponse returns without error for a success status.
-        OutboxProcessor.ValidateResponse(Response);
+        // [WHEN] ValidateResponse inspects the response.
+        // [THEN] It completes without raising an error (the TryFunction wrapper returns true).
+        this.Assert.IsTrue(this.TryValidateResponse(Response), 'ValidateResponse should not error on a success (2xx) status.');
     end;
 
-    local procedure RunProcessor(var Outbox: Record "AMC Int. Outbox Entry")
+    [TryFunction]
+    local procedure TryValidateResponse(Response: HttpResponseMessage)
     var
         OutboxProcessor: Codeunit "AMC Outbox Processor";
     begin
-        // Drive DoShouldProcessEntry via the processor's ProcessEntry entry point. Codeunit.Run cannot be
-        // used here: with the test's pending (uncommitted) writes it runs in the same transaction, so an
-        // inner error cannot be isolated and surfaces as "the transaction is stopped" instead of a caught
-        // false. ProcessEntry exercises the same should-process logic without that isolation constraint.
+        OutboxProcessor.ValidateResponse(Response);
+    end;
+
+    local procedure AssertSkippedForIneligibleStatus(Status: Enum "AMC Int. Outbox Status")
+    var
+        Outbox: Record "AMC Int. Outbox Entry";
+        OutboxProcessor: Codeunit "AMC Outbox Processor";
+        EntryNo: Integer;
+    begin
+        // [GIVEN] An enabled setup and an outbox entry whose status is outside the eligible set
+        // (eligible = ReadyToProcess/Failed/ResponseReceived).
+        this.TestLibrary.CreateMessageSetup(Enum::"AMC Int. Message Type"::AMCPostalCodeValidation, true, 5, 0);
+        Outbox := this.TestLibrary.CreateOutboxEntry(Enum::"AMC Int. Message Type"::AMCPostalCodeValidation, Status);
+        EntryNo := Outbox."Entry No.";
+
+        // [WHEN] The processor processes the entry.
         OutboxProcessor.ProcessEntry(Outbox);
+
+        // [THEN] The entry is left untouched: an ineligible status is skipped.
+        this.AssertOutboxUntouched(EntryNo, Status, 0);
     end;
 
     local procedure AssertOutboxUntouched(EntryNo: Integer; ExpectedStatus: Enum "AMC Int. Outbox Status"; ExpectedAttemptCount: Integer)
