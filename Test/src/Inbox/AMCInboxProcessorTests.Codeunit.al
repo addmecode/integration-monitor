@@ -51,6 +51,29 @@ codeunit 50141 "AMC Inbox Processor Tests"
         this.AssertInboxUntouched(EntryNo, Enum::"AMC Int. Inbox Status"::Processed, 0);
     end;
 
+    [Test]
+    procedure WhenNextAttemptInFuture_ThenEntryLeftUntouched()
+    var
+        Inbox: Record "AMC Int. Inbox Entry";
+        FutureDateTime: DateTime;
+        EntryNo: Integer;
+    begin
+        // [SCENARIO] The processor skips an otherwise eligible entry whose retry delay has not yet elapsed.
+        // [GIVEN] An enabled setup and a ReadyToProcess entry whose Next Attempt At is in the future.
+        this.TestLibrary.CreateMessageSetup(Enum::"AMC Int. Message Type"::AMCPostalCodeValidation, true, 5, 0);
+        Inbox := this.TestLibrary.CreateInboxEntry(Enum::"AMC Int. Message Type"::AMCPostalCodeValidation, Enum::"AMC Int. Inbox Status"::ReadyToProcess);
+        EntryNo := Inbox."Entry No.";
+        FutureDateTime := CurrentDateTime() + (60 * 60 * 1000);
+        Inbox."Next Attempt At" := FutureDateTime;
+        Inbox.Modify(true);
+
+        // [WHEN] The processor runs the entry through its public Run path.
+        this.RunProcessor(Inbox);
+
+        // [THEN] The entry is left untouched: the retry delay has not yet elapsed.
+        this.AssertInboxUntouched(EntryNo, Enum::"AMC Int. Inbox Status"::ReadyToProcess, 0);
+    end;
+
     local procedure RunProcessor(var Inbox: Record "AMC Int. Inbox Entry")
     var
         InboxProcessor: Codeunit "AMC Inbox Processor";
