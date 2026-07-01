@@ -127,6 +127,38 @@ codeunit 50139 "AMC Outbox Failure Tests"
         this.Assert.IsTrue(StrPos(LastErrorText, 'Call Stack:') > 0, 'The Last Error blob should contain the Call Stack: section.');
     end;
 
+    [Test]
+    procedure WhenFailureAfterResponseReceived_ThenStatusPreserved()
+    var
+        Outbox: Record "AMC Int. Outbox Entry";
+        BlobHelper: Codeunit "AMC Int. Blob Helper";
+        OutboxRef: RecordRef;
+        LastErrorText: Text;
+        EntryNo: Integer;
+    begin
+        // [SCENARIO] A failure after the response was already received retains the ResponseReceived status
+        // (the received response is kept), while attempt count and Last Error still update.
+        // [GIVEN] A ResponseReceived outbox entry with Attempt Count = 1.
+        this.TestLibrary.CreateMessageSetup(Enum::"AMC Int. Message Type"::AMCPostalCodeValidation, false, 5, 0);
+        Outbox := this.TestLibrary.CreateOutboxEntry(Enum::"AMC Int. Message Type"::AMCPostalCodeValidation, Enum::"AMC Int. Outbox Status"::ResponseReceived);
+        EntryNo := Outbox."Entry No.";
+        Outbox."Attempt Count" := 1;
+        Outbox.Modify(true);
+
+        // [WHEN] The failure handler runs against it with a populated last error.
+        this.RunFailureHandler(Outbox);
+
+        // [THEN] Status stays ResponseReceived (not overwritten to Failed).
+        Outbox.Get(EntryNo);
+        this.Assert.AreEqual(Enum::"AMC Int. Outbox Status"::ResponseReceived, Outbox.Status, 'A failure after a received response should retain the ResponseReceived status.');
+
+        // [THEN] Attempt count and the Last Error blob are still updated.
+        this.Assert.AreEqual(2, Outbox."Attempt Count", 'The failure handler should still increment Attempt Count.');
+        OutboxRef.GetTable(Outbox);
+        LastErrorText := BlobHelper.ReadBlobAsText(OutboxRef, Outbox.FieldNo("Last Error"));
+        this.Assert.IsTrue(StrPos(LastErrorText, this.SimulatedErrorTxt) > 0, 'The failure handler should still populate the Last Error blob.');
+    end;
+
     local procedure RunFailureHandler(var Outbox: Record "AMC Int. Outbox Entry")
     var
         OutboxFailureHandler: Codeunit "AMC Outbox Failure Handler";
