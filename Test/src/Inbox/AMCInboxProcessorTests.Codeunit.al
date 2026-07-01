@@ -74,6 +74,29 @@ codeunit 50141 "AMC Inbox Processor Tests"
         this.AssertInboxUntouched(EntryNo, Enum::"AMC Int. Inbox Status"::ReadyToProcess, 0);
     end;
 
+    [Test]
+    procedure WhenAttemptsExhausted_ThenEntryLeftUntouched()
+    var
+        Inbox: Record "AMC Int. Inbox Entry";
+        MaxAttempts: Integer;
+        EntryNo: Integer;
+    begin
+        // [SCENARIO] The processor skips an entry whose attempts are exhausted (Attempt Count >= Max Attempts).
+        // [GIVEN] An enabled setup with Max Attempts = 3 and a ReadyToProcess entry already at 3 attempts.
+        MaxAttempts := 3;
+        this.TestLibrary.CreateMessageSetup(Enum::"AMC Int. Message Type"::AMCPostalCodeValidation, true, MaxAttempts, 0);
+        Inbox := this.TestLibrary.CreateInboxEntry(Enum::"AMC Int. Message Type"::AMCPostalCodeValidation, Enum::"AMC Int. Inbox Status"::ReadyToProcess);
+        EntryNo := Inbox."Entry No.";
+        Inbox."Attempt Count" := MaxAttempts;
+        Inbox.Modify(true);
+
+        // [WHEN] The processor runs the entry through its public Run path.
+        this.RunProcessor(Inbox);
+
+        // [THEN] The entry is left untouched: no further attempt is made once attempts are exhausted.
+        this.AssertInboxUntouched(EntryNo, Enum::"AMC Int. Inbox Status"::ReadyToProcess, MaxAttempts);
+    end;
+
     local procedure RunProcessor(var Inbox: Record "AMC Int. Inbox Entry")
     var
         InboxProcessor: Codeunit "AMC Inbox Processor";

@@ -74,6 +74,29 @@ codeunit 50140 "AMC Outbox Processor Tests"
         this.AssertOutboxUntouched(EntryNo, Enum::"AMC Int. Outbox Status"::ReadyToProcess, 0);
     end;
 
+    [Test]
+    procedure WhenAttemptsExhausted_ThenEntryLeftUntouched()
+    var
+        Outbox: Record "AMC Int. Outbox Entry";
+        MaxAttempts: Integer;
+        EntryNo: Integer;
+    begin
+        // [SCENARIO] The processor skips an entry whose attempts are exhausted (Attempt Count >= Max Attempts).
+        // [GIVEN] An enabled setup with Max Attempts = 3 and a ReadyToProcess entry already at 3 attempts.
+        MaxAttempts := 3;
+        this.TestLibrary.CreateMessageSetup(Enum::"AMC Int. Message Type"::AMCPostalCodeValidation, true, MaxAttempts, 0);
+        Outbox := this.TestLibrary.CreateOutboxEntry(Enum::"AMC Int. Message Type"::AMCPostalCodeValidation, Enum::"AMC Int. Outbox Status"::ReadyToProcess);
+        EntryNo := Outbox."Entry No.";
+        Outbox."Attempt Count" := MaxAttempts;
+        Outbox.Modify(true);
+
+        // [WHEN] The processor runs the entry through its public Run path.
+        this.RunProcessor(Outbox);
+
+        // [THEN] The entry is left untouched: no further attempt is made once attempts are exhausted.
+        this.AssertOutboxUntouched(EntryNo, Enum::"AMC Int. Outbox Status"::ReadyToProcess, MaxAttempts);
+    end;
+
     local procedure RunProcessor(var Outbox: Record "AMC Int. Outbox Entry")
     var
         OutboxProcessor: Codeunit "AMC Outbox Processor";
