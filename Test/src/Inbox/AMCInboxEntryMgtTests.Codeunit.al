@@ -32,8 +32,8 @@ codeunit 50145 "AMC Inbox Entry Mgt Tests"
         AfterInsert := CurrentDateTime();
 
         // [THEN] Both timestamps are set to approximately the current date/time.
-        this.TestLibrary.AssertDateTimeWithinRange(Inbox."Created At", BeforeInsert, AfterInsert, 'Created At');
-        this.TestLibrary.AssertDateTimeWithinRange(Inbox."Next Attempt At", BeforeInsert, AfterInsert, 'Next Attempt At');
+        this.TestLibrary.AssertDateTimeIsRecent(Inbox."Created At", BeforeInsert, AfterInsert, 'Created At');
+        this.TestLibrary.AssertDateTimeIsRecent(Inbox."Next Attempt At", BeforeInsert, AfterInsert, 'Next Attempt At');
     end;
 
     [Test]
@@ -144,7 +144,7 @@ codeunit 50145 "AMC Inbox Entry Mgt Tests"
         AfterReset := CurrentDateTime();
 
         // [THEN] Next Attempt At is re-armed to ≈ now.
-        this.TestLibrary.AssertDateTimeWithinRange(Inbox."Next Attempt At", BeforeReset, AfterReset, 'Next Attempt At');
+        this.TestLibrary.AssertDateTimeIsRecent(Inbox."Next Attempt At", BeforeReset, AfterReset, 'Next Attempt At');
 
         // [THEN] The persisted entry is back to ReadyToProcess with its retry state cleared.
         Inbox.Get(EntryNo);

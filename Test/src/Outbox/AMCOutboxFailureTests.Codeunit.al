@@ -12,7 +12,6 @@ codeunit 50139 "AMC Outbox Failure Tests"
     var
         TestLibrary: Codeunit "AMC Test Library";
         Assert: Codeunit "Library Assert";
-        SimulatedErrorTxt: Label 'Simulated processing failure.', Locked = true;
 
     [Test]
     procedure WhenFailureUnderMaxAttempts_ThenIncrementsAndMarksFailed()
@@ -41,7 +40,7 @@ codeunit 50139 "AMC Outbox Failure Tests"
         // [THEN] Attempt Count is incremented, Last Attempt At is ≈ now, Processed At is cleared, and Status is Failed.
         Outbox.Get(EntryNo);
         this.Assert.AreEqual(3, Outbox."Attempt Count", 'The failure handler should increment Attempt Count by 1.');
-        this.AssertRecentTimestamp(Outbox."Last Attempt At", BeforeRun, AfterRun, 'Last Attempt At');
+        this.TestLibrary.AssertDateTimeIsRecent(Outbox."Last Attempt At", BeforeRun, AfterRun, 'Last Attempt At');
         this.Assert.AreEqual(0DT, Outbox."Processed At", 'The failure handler should clear Processed At.');
         this.Assert.AreEqual(Enum::"AMC Int. Outbox Status"::Failed, Outbox.Status, 'The failure handler should mark the entry Failed.');
     end;
@@ -107,6 +106,7 @@ codeunit 50139 "AMC Outbox Failure Tests"
         BlobHelper: Codeunit "AMC Int. Blob Helper";
         OutboxRef: RecordRef;
         LastErrorText: Text;
+        SimulatedError: Text;
         EntryNo: Integer;
     begin
         // [SCENARIO] The failure handler stores the formatted error text and call stack in the Last Error blob.
@@ -116,14 +116,14 @@ codeunit 50139 "AMC Outbox Failure Tests"
         EntryNo := Outbox."Entry No.";
 
         // [WHEN] The failure handler runs against it with a populated last error.
-        this.RunFailureHandler(Outbox);
+        SimulatedError := this.RunFailureHandler(Outbox);
 
         // [THEN] The Last Error blob carries the formatted "Error:…\Call Stack:…" message.
         Outbox.Get(EntryNo);
         OutboxRef.GetTable(Outbox);
         LastErrorText := BlobHelper.ReadBlobAsText(OutboxRef, Outbox.FieldNo("Last Error"));
         this.Assert.IsTrue(StrPos(LastErrorText, 'Error:') > 0, 'The Last Error blob should contain the Error: section.');
-        this.Assert.IsTrue(StrPos(LastErrorText, this.SimulatedErrorTxt) > 0, 'The Last Error blob should contain the simulated error text.');
+        this.Assert.IsTrue(StrPos(LastErrorText, SimulatedError) > 0, 'The Last Error blob should contain the simulated error text.');
         this.Assert.IsTrue(StrPos(LastErrorText, 'Call Stack:') > 0, 'The Last Error blob should contain the Call Stack: section.');
     end;
 
@@ -134,6 +134,7 @@ codeunit 50139 "AMC Outbox Failure Tests"
         BlobHelper: Codeunit "AMC Int. Blob Helper";
         OutboxRef: RecordRef;
         LastErrorText: Text;
+        SimulatedError: Text;
         EntryNo: Integer;
     begin
         // [SCENARIO] A failure after the response was already received retains the ResponseReceived status
@@ -146,7 +147,7 @@ codeunit 50139 "AMC Outbox Failure Tests"
         Outbox.Modify(true);
 
         // [WHEN] The failure handler runs against it with a populated last error.
-        this.RunFailureHandler(Outbox);
+        SimulatedError := this.RunFailureHandler(Outbox);
 
         // [THEN] Status stays ResponseReceived (not overwritten to Failed).
         Outbox.Get(EntryNo);
@@ -156,33 +157,18 @@ codeunit 50139 "AMC Outbox Failure Tests"
         this.Assert.AreEqual(2, Outbox."Attempt Count", 'The failure handler should still increment Attempt Count.');
         OutboxRef.GetTable(Outbox);
         LastErrorText := BlobHelper.ReadBlobAsText(OutboxRef, Outbox.FieldNo("Last Error"));
-        this.Assert.IsTrue(StrPos(LastErrorText, this.SimulatedErrorTxt) > 0, 'The failure handler should still populate the Last Error blob.');
+        this.Assert.IsTrue(StrPos(LastErrorText, SimulatedError) > 0, 'The failure handler should still populate the Last Error blob.');
     end;
 
-    local procedure RunFailureHandler(var Outbox: Record "AMC Int. Outbox Entry")
+    local procedure RunFailureHandler(var Outbox: Record "AMC Int. Outbox Entry"): Text
     var
         OutboxFailureHandler: Codeunit "AMC Outbox Failure Handler";
+        SimulatedError: Text;
     begin
-        // Populate the last-error context the handler reads, mirroring a failed processor Run.
-        // A failed TryFunction rolls back only its own scope (unlike a bare asserterror, which
-        // would roll back to the last commit and wipe the entry the test just created).
-        if this.ThrowSimulatedError() then;
+        // Populate the last-error context the handler reads, mirroring a failed processor Run,
+        // then run the handler. Returns the simulated error text for Last Error blob assertions.
+        SimulatedError := this.TestLibrary.SimulateLastError();
         OutboxFailureHandler.Run(Outbox);
-    end;
-
-    [TryFunction]
-    local procedure ThrowSimulatedError()
-    begin
-        Error(this.SimulatedErrorTxt);
-    end;
-
-    local procedure AssertRecentTimestamp(ActualDateTime: DateTime; LowerBound: DateTime; UpperBound: DateTime; FieldCaption: Text)
-    var
-        Tolerance: Duration;
-    begin
-        // BC persists DateTime as SQL `datetime` (rounded to ~3.33 ms) and the Windows clock
-        // granularity is ~15 ms, so widen the window slightly to keep the "≈ now" check deterministic.
-        Tolerance := 1000;
-        this.TestLibrary.AssertDateTimeWithinRange(ActualDateTime, LowerBound - Tolerance, UpperBound + Tolerance, FieldCaption);
+        exit(SimulatedError);
     end;
 }

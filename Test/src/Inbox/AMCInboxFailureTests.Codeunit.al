@@ -12,7 +12,6 @@ codeunit 50140 "AMC Inbox Failure Tests"
     var
         TestLibrary: Codeunit "AMC Test Library";
         Assert: Codeunit "Library Assert";
-        SimulatedErrorTxt: Label 'Simulated processing failure.', Locked = true;
 
     [Test]
     procedure WhenFailureUnderMaxAttempts_ThenIncrementsAndMarksFailed()
@@ -41,7 +40,7 @@ codeunit 50140 "AMC Inbox Failure Tests"
         // [THEN] Attempt Count is incremented, Last Attempt At is ≈ now, Processed At is cleared, and Status is Failed.
         Inbox.Get(EntryNo);
         this.Assert.AreEqual(3, Inbox."Attempt Count", 'The failure handler should increment Attempt Count by 1.');
-        this.AssertRecentTimestamp(Inbox."Last Attempt At", BeforeRun, AfterRun, 'Last Attempt At');
+        this.TestLibrary.AssertDateTimeIsRecent(Inbox."Last Attempt At", BeforeRun, AfterRun, 'Last Attempt At');
         this.Assert.AreEqual(0DT, Inbox."Processed At", 'The failure handler should clear Processed At.');
         this.Assert.AreEqual(Enum::"AMC Int. Inbox Status"::Failed, Inbox.Status, 'The failure handler should mark the entry Failed.');
     end;
@@ -107,6 +106,7 @@ codeunit 50140 "AMC Inbox Failure Tests"
         BlobHelper: Codeunit "AMC Int. Blob Helper";
         InboxRef: RecordRef;
         LastErrorText: Text;
+        SimulatedError: Text;
         EntryNo: Integer;
     begin
         // [SCENARIO] The failure handler stores the formatted error text and call stack in the Last Error blob.
@@ -116,41 +116,26 @@ codeunit 50140 "AMC Inbox Failure Tests"
         EntryNo := Inbox."Entry No.";
 
         // [WHEN] The failure handler runs against it with a populated last error.
-        this.RunFailureHandler(Inbox);
+        SimulatedError := this.RunFailureHandler(Inbox);
 
         // [THEN] The Last Error blob carries the formatted "Error:…\Call Stack:…" message.
         Inbox.Get(EntryNo);
         InboxRef.GetTable(Inbox);
         LastErrorText := BlobHelper.ReadBlobAsText(InboxRef, Inbox.FieldNo("Last Error"));
         this.Assert.IsTrue(StrPos(LastErrorText, 'Error:') > 0, 'The Last Error blob should contain the Error: section.');
-        this.Assert.IsTrue(StrPos(LastErrorText, this.SimulatedErrorTxt) > 0, 'The Last Error blob should contain the simulated error text.');
+        this.Assert.IsTrue(StrPos(LastErrorText, SimulatedError) > 0, 'The Last Error blob should contain the simulated error text.');
         this.Assert.IsTrue(StrPos(LastErrorText, 'Call Stack:') > 0, 'The Last Error blob should contain the Call Stack: section.');
     end;
 
-    local procedure RunFailureHandler(var Inbox: Record "AMC Int. Inbox Entry")
+    local procedure RunFailureHandler(var Inbox: Record "AMC Int. Inbox Entry"): Text
     var
         InboxFailureHandler: Codeunit "AMC Inbox Failure Handler";
+        SimulatedError: Text;
     begin
-        // Populate the last-error context the handler reads, mirroring a failed processor Run.
-        // A failed TryFunction rolls back only its own scope (unlike a bare asserterror, which
-        // would roll back to the last commit and wipe the entry the test just created).
-        if this.ThrowSimulatedError() then;
+        // Populate the last-error context the handler reads, mirroring a failed processor Run,
+        // then run the handler. Returns the simulated error text for Last Error blob assertions.
+        SimulatedError := this.TestLibrary.SimulateLastError();
         InboxFailureHandler.Run(Inbox);
-    end;
-
-    [TryFunction]
-    local procedure ThrowSimulatedError()
-    begin
-        Error(this.SimulatedErrorTxt);
-    end;
-
-    local procedure AssertRecentTimestamp(ActualDateTime: DateTime; LowerBound: DateTime; UpperBound: DateTime; FieldCaption: Text)
-    var
-        Tolerance: Duration;
-    begin
-        // BC persists DateTime as SQL `datetime` (rounded to ~3.33 ms) and the Windows clock
-        // granularity is ~15 ms, so widen the window slightly to keep the "≈ now" check deterministic.
-        Tolerance := 1000;
-        this.TestLibrary.AssertDateTimeWithinRange(ActualDateTime, LowerBound - Tolerance, UpperBound + Tolerance, FieldCaption);
+        exit(SimulatedError);
     end;
 }

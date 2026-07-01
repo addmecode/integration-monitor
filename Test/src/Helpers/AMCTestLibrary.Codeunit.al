@@ -104,4 +104,43 @@ codeunit 50142 "AMC Test Library"
             (ActualDateTime >= LowerBound) and (ActualDateTime <= UpperBound),
             StrSubstNo(DateTimeOutOfRangeErr, FieldCaption));
     end;
+
+    /// <summary>
+    /// Asserts a DateTime is ≈ now: within [LowerBound, UpperBound] widened by a small tolerance
+    /// that absorbs SQL <c>datetime</c> rounding (~3.33 ms) and Windows clock granularity (~15 ms),
+    /// so bracketed "just happened" checks stay deterministic. Use this for every "≈ now" assertion.
+    /// </summary>
+    procedure AssertDateTimeIsRecent(ActualDateTime: DateTime; LowerBound: DateTime; UpperBound: DateTime; FieldCaption: Text)
+    var
+        Tolerance: Duration;
+    begin
+        Tolerance := 1000;
+        this.AssertDateTimeWithinRange(ActualDateTime, LowerBound - Tolerance, UpperBound + Tolerance, FieldCaption);
+    end;
+
+    /// <summary>
+    /// Populates the platform last-error context (GetLastErrorText/GetLastErrorCallStack) the way a
+    /// failed processor Run would, so failure-handler tests can drive the handler through Codeunit.Run.
+    /// It fails a TryFunction, which rolls back only its own scope — the caller's staged records
+    /// survive (a bare asserterror would roll back to the last commit and wipe them). Returns the
+    /// simulated error text so callers can assert on the stored Last Error blob.
+    /// </summary>
+    procedure SimulateLastError(): Text
+    begin
+        if this.ThrowSimulatedError() then;
+        exit(this.SimulatedErrorLbl());
+    end;
+
+    [TryFunction]
+    local procedure ThrowSimulatedError()
+    begin
+        Error(this.SimulatedErrorLbl());
+    end;
+
+    local procedure SimulatedErrorLbl(): Text
+    var
+        SimulatedErrorTxt: Label 'Simulated processing failure.', Locked = true;
+    begin
+        exit(SimulatedErrorTxt);
+    end;
 }

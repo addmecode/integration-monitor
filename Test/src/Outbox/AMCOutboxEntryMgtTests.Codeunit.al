@@ -69,8 +69,8 @@ codeunit 50147 "AMC Outbox Entry Mgt Tests"
         AfterInsert := CurrentDateTime();
 
         // [THEN] Both timestamps are set to approximately the current date/time.
-        this.TestLibrary.AssertDateTimeWithinRange(Outbox."Created At", BeforeInsert, AfterInsert, 'Created At');
-        this.TestLibrary.AssertDateTimeWithinRange(Outbox."Next Attempt At", BeforeInsert, AfterInsert, 'Next Attempt At');
+        this.TestLibrary.AssertDateTimeIsRecent(Outbox."Created At", BeforeInsert, AfterInsert, 'Created At');
+        this.TestLibrary.AssertDateTimeIsRecent(Outbox."Next Attempt At", BeforeInsert, AfterInsert, 'Next Attempt At');
     end;
 
     [Test]
@@ -150,7 +150,7 @@ codeunit 50147 "AMC Outbox Entry Mgt Tests"
         AfterReset := CurrentDateTime();
 
         // [THEN] Next Attempt At is re-armed to ≈ now.
-        this.TestLibrary.AssertDateTimeWithinRange(Outbox."Next Attempt At", BeforeReset, AfterReset, 'Next Attempt At');
+        this.TestLibrary.AssertDateTimeIsRecent(Outbox."Next Attempt At", BeforeReset, AfterReset, 'Next Attempt At');
 
         // [THEN] The persisted entry is back to ReadyToProcess with its retry state cleared.
         Outbox.Get(EntryNo);
