@@ -55,7 +55,7 @@ codeunit 50114 "AMC Inbox Processor"
         exit(true);
     end;
 
-    local procedure ClaimForProcessing(var Inbox: Record "AMC Int. Inbox Entry"): Boolean
+    internal procedure ClaimForProcessing(var Inbox: Record "AMC Int. Inbox Entry"): Boolean
     begin
         Inbox.LockTable();
         if not Inbox.Get(Inbox."Entry No.") then

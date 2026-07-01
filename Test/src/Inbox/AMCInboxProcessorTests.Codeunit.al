@@ -97,6 +97,31 @@ codeunit 50141 "AMC Inbox Processor Tests"
         this.AssertInboxUntouched(EntryNo, Enum::"AMC Int. Inbox Status"::ReadyToProcess, MaxAttempts);
     end;
 
+    [Test]
+    procedure WhenClaimEligibleEntry_ThenTransitionsToProcessing()
+    var
+        Inbox: Record "AMC Int. Inbox Entry";
+        InboxProcessor: Codeunit "AMC Inbox Processor";
+        EntryNo: Integer;
+    begin
+        // [SCENARIO] ClaimForProcessing locks an eligible entry, commits the Processing status,
+        // and refuses to re-claim an entry that is no longer eligible.
+        // [GIVEN] An eligible (ReadyToProcess) inbox entry.
+        Inbox := this.TestLibrary.CreateInboxEntry(Enum::"AMC Int. Message Type"::AMCPostalCodeValidation, Enum::"AMC Int. Inbox Status"::ReadyToProcess);
+        EntryNo := Inbox."Entry No.";
+
+        // [WHEN] The entry is claimed for processing.
+        // [THEN] The claim succeeds.
+        this.Assert.IsTrue(InboxProcessor.ClaimForProcessing(Inbox), 'Claiming an eligible entry should succeed.');
+
+        // [THEN] A fresh read confirms the lock-and-set committed the Processing status.
+        Inbox.Get(EntryNo);
+        this.Assert.AreEqual(Enum::"AMC Int. Inbox Status"::Processing, Inbox.Status, 'A claimed entry should be Processing.');
+
+        // [THEN] A second claim on the now non-eligible (Processing) status returns false.
+        this.Assert.IsFalse(InboxProcessor.ClaimForProcessing(Inbox), 'Re-claiming a non-eligible entry should return false.');
+    end;
+
     local procedure RunProcessor(var Inbox: Record "AMC Int. Inbox Entry")
     var
         InboxProcessor: Codeunit "AMC Inbox Processor";
