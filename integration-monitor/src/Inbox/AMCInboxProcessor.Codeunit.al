@@ -13,7 +13,7 @@ codeunit 50114 "AMC Inbox Processor"
         this.ProcessEntry(Rec);
     end;
 
-    local procedure ProcessEntry(var Inbox: Record "AMC Int. Inbox Entry")
+    internal procedure ProcessEntry(var Inbox: Record "AMC Int. Inbox Entry")
     var
         IntMessageSetup: Record "AMC Int. Message Setup";
         MissingMessageSetupErr: Label 'Integration message setup for message type %1 does not exist. Inbox entry %2 cannot be processed.', Comment = '%1 = message type, %2 = inbox entry number';

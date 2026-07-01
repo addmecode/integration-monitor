@@ -139,7 +139,7 @@ codeunit 50141 "AMC Inbox Processor Tests"
 
         // [WHEN] The processor runs the entry to completion (claim -> succeeding handler -> finalize).
         BeforeRun := CurrentDateTime();
-        this.Assert.IsTrue(InboxProcessor.Run(Inbox), 'Processing an eligible entry with a succeeding handler should not error.');
+        InboxProcessor.ProcessEntry(Inbox);
         AfterRun := CurrentDateTime();
 
         // [THEN] The entry is finalized: Processed, timestamps ~ now, Attempt Count incremented by 1.
@@ -154,8 +154,11 @@ codeunit 50141 "AMC Inbox Processor Tests"
     var
         InboxProcessor: Codeunit "AMC Inbox Processor";
     begin
-        // Drive DoShouldProcessEntry through the public Run path, mirroring production dispatch.
-        this.Assert.IsTrue(InboxProcessor.Run(Inbox), 'A skipped entry should run without error.');
+        // Drive DoShouldProcessEntry via the processor's ProcessEntry entry point. Codeunit.Run cannot be
+        // used here: with the test's pending (uncommitted) writes it runs in the same transaction, so an
+        // inner error cannot be isolated and surfaces as "the transaction is stopped" instead of a caught
+        // false. ProcessEntry exercises the same should-process logic without that isolation constraint.
+        InboxProcessor.ProcessEntry(Inbox);
     end;
 
     local procedure AssertInboxUntouched(EntryNo: Integer; ExpectedStatus: Enum "AMC Int. Inbox Status"; ExpectedAttemptCount: Integer)

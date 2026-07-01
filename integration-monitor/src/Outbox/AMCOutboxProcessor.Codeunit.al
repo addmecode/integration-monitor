@@ -13,7 +13,7 @@ codeunit 50103 "AMC Outbox Processor"
         this.ProcessEntry(Rec);
     end;
 
-    local procedure ProcessEntry(var Outbox: Record "AMC Int. Outbox Entry")
+    internal procedure ProcessEntry(var Outbox: Record "AMC Int. Outbox Entry")
     var
         IntMessageSetup: Record "AMC Int. Message Setup";
         MissingMessageSetupErr: Label 'Integration message setup for message type %1 does not exist. Outbox entry %2 cannot be processed.', Comment = '%1 = message type, %2 = outbox entry number';

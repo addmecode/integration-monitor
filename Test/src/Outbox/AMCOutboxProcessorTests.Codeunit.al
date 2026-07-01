@@ -127,8 +127,8 @@ codeunit 50140 "AMC Outbox Processor Tests"
         OutboxRef.GetTable(Outbox);
         this.TestLibrary.WriteBlobText(OutboxRef, Outbox.FieldNo("Response Payload"), ResponseBody);
 
-        // [WHEN] The processor runs the entry through its public Run path.
-        this.Assert.IsTrue(OutboxProcessor.Run(Outbox), 'Processing a ResponseReceived entry should not error.');
+        // [WHEN] The processor runs the entry through its ProcessEntry entry point.
+        OutboxProcessor.ProcessEntry(Outbox);
 
         // [THEN] The outbox entry is marked Processed.
         Outbox.Get(OutboxEntryNo);
@@ -147,36 +147,32 @@ codeunit 50140 "AMC Outbox Processor Tests"
     end;
 
     [Test]
-    procedure WhenValidateNonSuccessResponse_ThenErrorsWithStatusAndBody()
+    procedure WhenValidateSuccessResponse_ThenNoError()
     var
         OutboxProcessor: Codeunit "AMC Outbox Processor";
         Response: HttpResponseMessage;
-        ErrorText: Text;
-        ResponseBody: Text;
     begin
-        // [SCENARIO] ValidateResponse maps a non-success HTTP response to an error surfacing the status and body.
-        // [GIVEN] A fabricated non-success response carrying a body.
-        // NOTE: AL exposes no setter for HttpResponseMessage.HttpStatusCode, so a fabricated response always
-        // reports non-success and only the failure branch is reachable here. The success branch (early exit on
-        // IsSuccessStatusCode) is covered by the Phase 6 send-path test, which produces a genuine 2xx response.
-        ResponseBody := 'downstream error detail';
-        Response.Content.WriteFrom(ResponseBody);
+        // [SCENARIO] ValidateResponse accepts a success (2xx) HTTP response without raising an error.
+        // [GIVEN] A fabricated response. A fresh AL HttpResponseMessage reports IsSuccessStatusCode = true
+        // (default 2xx), and AL exposes no setter for HttpStatusCode, so only the success branch is reachable
+        // by fabrication. The non-success branch (error carrying status + body) requires a genuine non-2xx
+        // response and is exercised by the Phase 6 send-path test that drives a real HTTP failure.
+        Response.Content.WriteFrom('any-body');
+        this.Assert.IsTrue(Response.IsSuccessStatusCode, 'Guard: a fabricated response should report a success status.');
 
-        // [WHEN] ValidateResponse inspects the response.
-        asserterror OutboxProcessor.ValidateResponse(Response);
-
-        // [THEN] It errors, surfacing the "request failed" message and the response body.
-        ErrorText := GetLastErrorText();
-        this.Assert.IsTrue(StrPos(ErrorText, 'HTTP request failed with status') > 0, 'The error should report the failed HTTP status.');
-        this.Assert.IsTrue(StrPos(ErrorText, ResponseBody) > 0, 'The error should include the response body.');
+        // [WHEN]/[THEN] ValidateResponse returns without error for a success status.
+        OutboxProcessor.ValidateResponse(Response);
     end;
 
     local procedure RunProcessor(var Outbox: Record "AMC Int. Outbox Entry")
     var
         OutboxProcessor: Codeunit "AMC Outbox Processor";
     begin
-        // Drive DoShouldProcessEntry through the public Run path, mirroring production dispatch.
-        this.Assert.IsTrue(OutboxProcessor.Run(Outbox), 'A skipped entry should run without error.');
+        // Drive DoShouldProcessEntry via the processor's ProcessEntry entry point. Codeunit.Run cannot be
+        // used here: with the test's pending (uncommitted) writes it runs in the same transaction, so an
+        // inner error cannot be isolated and surfaces as "the transaction is stopped" instead of a caught
+        // false. ProcessEntry exercises the same should-process logic without that isolation constraint.
+        OutboxProcessor.ProcessEntry(Outbox);
     end;
 
     local procedure AssertOutboxUntouched(EntryNo: Integer; ExpectedStatus: Enum "AMC Int. Outbox Status"; ExpectedAttemptCount: Integer)
