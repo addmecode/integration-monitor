@@ -3,7 +3,7 @@ using Addmecode.IntegrationMonitor.Message;
 using Addmecode.IntegrationMonitor.Outbox;
 
 
-table 50106 "AMC Int. Inbox Entry"
+table 50100 "AMC Int. Inbox Entry"
 {
     DataClassification = CustomerContent;
     Caption = 'Integration Inbox Entry';

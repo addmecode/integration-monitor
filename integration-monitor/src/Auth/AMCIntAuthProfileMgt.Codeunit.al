@@ -1,7 +1,7 @@
 namespace Addmecode.IntegrationMonitor.Auth;
 using Addmecode.IntegrationMonitor.Setup;
 
-codeunit 50120 "AMC Int. Auth Profile Mgt."
+codeunit 50107 "AMC Int. Auth Profile Mgt."
 {
 
     internal procedure OnRename(var AuthProfileCurr: Record "AMC Int. Auth Profile"; AuthProfilePrev: Record "AMC Int. Auth Profile")

@@ -3,7 +3,7 @@ namespace Addmecode.IntegrationMonitor.AssistedSetup;
 using System.Environment.Configuration;
 using System.Media;
 
-codeunit 50137 "AMC Int. Assisted Setup"
+codeunit 50124 "AMC Int. Assisted Setup"
 {
   [EventSubscriber(ObjectType::Codeunit, Codeunit::"Guided Experience", 'OnRegisterAssistedSetup', '', false, false)]
   local procedure OnRegisterAssistedSetup()

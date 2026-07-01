@@ -4,7 +4,7 @@ using Addmecode.IntegrationMonitor.Message;
 using Addmecode.IntegrationMonitor.Outbox;
 using System.TestLibraries.Utilities;
 
-codeunit 50145 "AMC Inbox Entry Mgt Tests"
+codeunit 50137 "AMC Inbox Entry Mgt Tests"
 {
     Subtype = Test;
     TestPermissions = Disabled;

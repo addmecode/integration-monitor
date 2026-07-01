@@ -4,7 +4,7 @@ using Addmecode.IntegrationMonitor.Inbox;
 using Addmecode.IntegrationMonitor.Message;
 using System.TestLibraries.Utilities;
 
-codeunit 50140 "AMC Inbox Failure Tests"
+codeunit 50132 "AMC Inbox Failure Tests"
 {
     Subtype = Test;
     TestPermissions = Disabled;

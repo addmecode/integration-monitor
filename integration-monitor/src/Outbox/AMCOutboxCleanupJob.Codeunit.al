@@ -1,7 +1,7 @@
 namespace Addmecode.IntegrationMonitor.Outbox;
 using Addmecode.IntegrationMonitor.Setup;
 
-codeunit 50131 "AMC Outbox Cleanup Job"
+codeunit 50118 "AMC Outbox Cleanup Job"
 {
     trigger OnRun()
     begin

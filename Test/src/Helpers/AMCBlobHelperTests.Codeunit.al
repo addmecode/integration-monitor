@@ -5,7 +5,7 @@ using Addmecode.IntegrationMonitor.Outbox;
 using System.TestLibraries.Utilities;
 using System.Utilities;
 
-codeunit 50146 "AMC Blob Helper Tests"
+codeunit 50138 "AMC Blob Helper Tests"
 {
     Subtype = Test;
     TestPermissions = Disabled;

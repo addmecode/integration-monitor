@@ -1,6 +1,6 @@
 namespace Addmecode.IntegrationMonitor.Outbox;
 
-enum 50102 "AMC Int. Outbox Status"
+enum 50100 "AMC Int. Outbox Status"
 {
     Extensible = false;
 

@@ -4,7 +4,7 @@ using Addmecode.IntegrationMonitor.Message;
 using Addmecode.IntegrationMonitor.Setup;
 using Addmecode.IntegrationMonitor.Transport;
 
-codeunit 50127 "AMC Inbox Processor"
+codeunit 50114 "AMC Inbox Processor"
 {
     TableNo = "AMC Int. Inbox Entry";
 

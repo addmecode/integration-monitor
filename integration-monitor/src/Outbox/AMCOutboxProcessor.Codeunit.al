@@ -4,7 +4,7 @@ using Addmecode.IntegrationMonitor.Message;
 using Addmecode.IntegrationMonitor.Setup;
 using Addmecode.IntegrationMonitor.Transport;
 
-codeunit 50116 "AMC Outbox Processor"
+codeunit 50103 "AMC Outbox Processor"
 {
     TableNo = "AMC Int. Outbox Entry";
 

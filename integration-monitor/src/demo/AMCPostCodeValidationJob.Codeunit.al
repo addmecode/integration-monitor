@@ -1,7 +1,7 @@
 namespace Addmecode.IntegrationMonitor.Demo;
 using Microsoft.Foundation.Address;
 
-codeunit 50129 "AMC Post Code Validation Job"
+codeunit 50116 "AMC Post Code Validation Job"
 {
     trigger OnRun()
     begin

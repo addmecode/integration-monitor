@@ -1,7 +1,7 @@
 namespace Addmecode.IntegrationMonitor.Outbox;
 using Addmecode.IntegrationMonitor.Setup;
 
-codeunit 50118 "AMC Outbox Failure Handler"
+codeunit 50105 "AMC Outbox Failure Handler"
 {
     TableNo = "AMC Int. Outbox Entry";
 

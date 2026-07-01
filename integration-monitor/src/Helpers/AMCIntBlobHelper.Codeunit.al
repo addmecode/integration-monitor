@@ -1,7 +1,7 @@
 namespace Addmecode.IntegrationMonitor.Helpers;
 using System.Utilities;
 
-codeunit 50113 "AMC Int. Blob Helper"
+codeunit 50100 "AMC Int. Blob Helper"
 {
     /// <summary>
     /// Reads a BLOB field from the provided record and returns it as text.

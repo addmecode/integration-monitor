@@ -4,7 +4,7 @@ using Addmecode.IntegrationMonitor.Inbox;
 using Addmecode.IntegrationMonitor.Message;
 using System.Utilities;
 
-codeunit 50119 "AMC Outbox Entry Mgt."
+codeunit 50106 "AMC Outbox Entry Mgt."
 {
     internal procedure EnqueueEntry(MessageType: Enum "AMC Int. Message Type"; var RequestPayloadTempBlob: Codeunit "Temp Blob"; SourceRecordId: RecordId): Integer
     var

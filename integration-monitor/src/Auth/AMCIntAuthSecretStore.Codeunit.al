@@ -1,6 +1,6 @@
 namespace Addmecode.IntegrationMonitor.Auth;
 
-codeunit 50133 "AMC Int. Auth Secret Store"
+codeunit 50120 "AMC Int. Auth Secret Store"
 {
     [NonDebuggable]
     procedure SetSecret(AuthProfileCode: Code[20]; SecretValue: SecretText)

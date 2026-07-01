@@ -1,6 +1,6 @@
 namespace Addmecode.IntegrationMonitor.Setup;
 
-page 50116 "AMC Int. Message Setup List"
+page 50103 "AMC Int. Message Setup List"
 {
   PageType = List;
   SourceTable = "AMC Int. Message Setup";

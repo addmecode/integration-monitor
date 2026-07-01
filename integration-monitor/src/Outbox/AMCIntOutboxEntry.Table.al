@@ -2,7 +2,7 @@ namespace Addmecode.IntegrationMonitor.Outbox;
 using Addmecode.IntegrationMonitor.Message;
 using System.Utilities;
 
-table 50107 "AMC Int. Outbox Entry"
+table 50101 "AMC Int. Outbox Entry"
 {
     DataClassification = CustomerContent;
     Caption = 'Integration Outbox Entry';

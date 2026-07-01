@@ -4,7 +4,7 @@ namespace Addmecode.IntegrationMonitor.Test;
 /// Single-instance holder for the response the mock transport should return.
 /// Tests configure it before driving the processor; the mock handler reads it on Send.
 /// </summary>
-codeunit 50143 "AMC Mock Transport State"
+codeunit 50135 "AMC Mock Transport State"
 {
     SingleInstance = true;
 

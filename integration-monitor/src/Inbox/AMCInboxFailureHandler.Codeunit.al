@@ -1,7 +1,7 @@
 namespace Addmecode.IntegrationMonitor.Inbox;
 using Addmecode.IntegrationMonitor.Setup;
 
-codeunit 50128 "AMC Inbox Failure Handler"
+codeunit 50115 "AMC Inbox Failure Handler"
 {
     TableNo = "AMC Int. Inbox Entry";
 

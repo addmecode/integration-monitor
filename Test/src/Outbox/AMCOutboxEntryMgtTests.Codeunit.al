@@ -7,7 +7,7 @@ using Addmecode.IntegrationMonitor.Setup;
 using System.TestLibraries.Utilities;
 using System.Utilities;
 
-codeunit 50147 "AMC Outbox Entry Mgt Tests"
+codeunit 50139 "AMC Outbox Entry Mgt Tests"
 {
     Subtype = Test;
     TestPermissions = Disabled;

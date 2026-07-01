@@ -13,7 +13,7 @@ using Addmecode.IntegrationMonitor.Transport;
 /// response needs a different mechanism — to be decided in Phase 6 (e.g. mocking
 /// the real HttpClient used by the default transport). See TESTPLAN Phase 6 note.
 /// </summary>
-codeunit 50144 "AMC Mock Http Transport" implements "AMC IHttpTransportHandler"
+codeunit 50136 "AMC Mock Http Transport" implements "AMC IHttpTransportHandler"
 {
     procedure ValidateSetup(Setup: Record "AMC Int. Message Setup")
     begin

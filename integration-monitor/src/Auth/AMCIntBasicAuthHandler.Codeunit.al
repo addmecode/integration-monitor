@@ -2,7 +2,7 @@ namespace Addmecode.IntegrationMonitor.Auth;
 
 using System.Text;
 
-codeunit 50134 "AMC Int. Basic Auth Handler" implements "AMC IAuthHandler"
+codeunit 50121 "AMC Int. Basic Auth Handler" implements "AMC IAuthHandler"
 {
     [NonDebuggable]
     procedure ApplyAuth(var Request: HttpRequestMessage; AuthProfile: Record "AMC Int. Auth Profile")

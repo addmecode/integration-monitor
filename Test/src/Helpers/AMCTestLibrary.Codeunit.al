@@ -11,7 +11,7 @@ using System.TestLibraries.Utilities;
 /// Deterministic setup factory for Integration Monitor tests. Keeps tests DRY:
 /// every helper inserts a valid record using <c>Any</c> for values that do not matter.
 /// </summary>
-codeunit 50142 "AMC Test Library"
+codeunit 50134 "AMC Test Library"
 {
     /// <summary>
     /// Creates (or replaces) a Message Setup for the given type. Enabled is assigned

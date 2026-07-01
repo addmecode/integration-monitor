@@ -5,7 +5,7 @@ using Addmecode.IntegrationMonitor.Outbox;
 using Microsoft.Foundation.Address;
 using System.Utilities;
 
-codeunit 50123 "AMC Post Code Validation Mgt"
+codeunit 50110 "AMC Post Code Validation Mgt"
 {
     internal procedure ResetValidationForSelection(var SelectedPostCode: Record "Post Code"): Integer
     var

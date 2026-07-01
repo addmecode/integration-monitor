@@ -3,7 +3,7 @@ using Addmecode.IntegrationMonitor.Auth;
 using Addmecode.IntegrationMonitor.Message;
 using Addmecode.IntegrationMonitor.Transport;
 
-table 50108 "AMC Int. Message Setup"
+table 50102 "AMC Int. Message Setup"
 {
   DataClassification = CustomerContent;
   Caption = 'Integration Message Setup';

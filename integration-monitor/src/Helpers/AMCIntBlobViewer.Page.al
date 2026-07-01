@@ -1,6 +1,6 @@
 namespace Addmecode.IntegrationMonitor.Helpers;
 
-page 50115 "AMC Int. Blob Viewer"
+page 50102 "AMC Int. Blob Viewer"
 {
     PageType = Card;
     ApplicationArea = All;

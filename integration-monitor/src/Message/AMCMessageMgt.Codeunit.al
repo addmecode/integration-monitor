@@ -2,7 +2,7 @@ namespace Addmecode.IntegrationMonitor.Message;
 
 using Addmecode.IntegrationMonitor.Setup;
 
-codeunit 50125 "AMC Message Mgt."
+codeunit 50112 "AMC Message Mgt."
 {
     procedure TestMessageSetupExists(MessageType: Enum "AMC Int. Message Type")
     var

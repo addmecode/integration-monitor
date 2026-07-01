@@ -1,7 +1,7 @@
 namespace Addmecode.IntegrationMonitor.Demo;
 using Microsoft.Foundation.Address;
 
-tableextension 50123 "AMC Post Code Demo" extends "Post Code"
+tableextension 50100 "AMC Post Code Demo" extends "Post Code"
 {
     fields
     {

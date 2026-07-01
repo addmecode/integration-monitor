@@ -4,7 +4,7 @@ using Addmecode.IntegrationMonitor.Message;
 using Addmecode.IntegrationMonitor.Outbox;
 using System.TestLibraries.Utilities;
 
-codeunit 50139 "AMC Outbox Failure Tests"
+codeunit 50131 "AMC Outbox Failure Tests"
 {
     Subtype = Test;
     TestPermissions = Disabled;

@@ -4,7 +4,7 @@ using Addmecode.IntegrationMonitor.Inbox;
 using Addmecode.IntegrationMonitor.Outbox;
 using Addmecode.IntegrationMonitor.Setup;
 
-codeunit 50114 "AMC Message Handler Default" implements "AMC IMessageHandler"
+codeunit 50101 "AMC Message Handler Default" implements "AMC IMessageHandler"
 {
     procedure BuildRequest(Outbox: Record "AMC Int. Outbox Entry"; var Request: HttpRequestMessage)
     var

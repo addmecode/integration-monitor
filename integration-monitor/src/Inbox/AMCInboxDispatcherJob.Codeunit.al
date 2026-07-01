@@ -1,6 +1,6 @@
 namespace Addmecode.IntegrationMonitor.Inbox;
 
-codeunit 50130 "AMC Inbox Dispatcher Job"
+codeunit 50117 "AMC Inbox Dispatcher Job"
 {
     trigger OnRun()
     begin

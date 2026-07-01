@@ -1,6 +1,6 @@
 namespace Addmecode.IntegrationMonitor.Demo;
 
-enum 50125 "AMC Validation Status"
+enum 50105 "AMC Validation Status"
 {
     Extensible = false;
 

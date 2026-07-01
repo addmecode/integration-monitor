@@ -2,7 +2,7 @@ namespace Addmecode.IntegrationMonitor.Inbox;
 using Addmecode.IntegrationMonitor.Helpers;
 using Addmecode.IntegrationMonitor.Outbox;
 
-codeunit 50126 "AMC Inbox Entry Mgt."
+codeunit 50113 "AMC Inbox Entry Mgt."
 {
     internal procedure OnInsertInboxEntry(var Inbox: Record "AMC Int. Inbox Entry")
     begin
