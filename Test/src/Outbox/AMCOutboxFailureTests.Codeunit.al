@@ -46,6 +46,34 @@ codeunit 50139 "AMC Outbox Failure Tests"
         this.Assert.AreEqual(Enum::"AMC Int. Outbox Status"::Failed, Outbox.Status, 'The failure handler should mark the entry Failed.');
     end;
 
+    [Test]
+    procedure WhenFailureUnderMaxAttempts_ThenAppliesLinearBackoff()
+    var
+        Outbox: Record "AMC Int. Outbox Entry";
+        ExpectedNextAttempt: DateTime;
+        RetryDelay: Duration;
+        RetryDelaySeconds: Integer;
+        EntryNo: Integer;
+    begin
+        // [SCENARIO] Under Max Attempts, Next Attempt At is scheduled at Last Attempt At + the linear delay.
+        // [GIVEN] An entry whose resulting Attempt Count (2) stays below Max Attempts (5), with Base Retry Delay = 60s.
+        RetryDelaySeconds := 60;
+        this.TestLibrary.CreateMessageSetup(Enum::"AMC Int. Message Type"::AMCPostalCodeValidation, false, 5, RetryDelaySeconds);
+        Outbox := this.TestLibrary.CreateOutboxEntry(Enum::"AMC Int. Message Type"::AMCPostalCodeValidation, Enum::"AMC Int. Outbox Status"::Sending);
+        EntryNo := Outbox."Entry No.";
+        Outbox."Attempt Count" := 1;
+        Outbox.Modify(true);
+
+        // [WHEN] The failure handler runs against it with a populated last error.
+        this.RunFailureHandler(Outbox);
+
+        // [THEN] Next Attempt At equals the persisted Last Attempt At plus the linear backoff delay.
+        Outbox.Get(EntryNo);
+        RetryDelay := RetryDelaySeconds * 1000;
+        ExpectedNextAttempt := Outbox."Last Attempt At" + RetryDelay;
+        this.Assert.AreEqual(ExpectedNextAttempt, Outbox."Next Attempt At", 'Next Attempt At should be Last Attempt At plus the linear backoff delay.');
+    end;
+
     local procedure RunFailureHandler(var Outbox: Record "AMC Int. Outbox Entry")
     var
         OutboxFailureHandler: Codeunit "AMC Outbox Failure Handler";
