@@ -31,6 +31,26 @@ codeunit 50141 "AMC Inbox Processor Tests"
         this.AssertInboxUntouched(EntryNo, Enum::"AMC Int. Inbox Status"::ReadyToProcess, 0);
     end;
 
+    [Test]
+    procedure WhenStatusNotEligible_ThenEntryLeftUntouched()
+    var
+        Inbox: Record "AMC Int. Inbox Entry";
+        EntryNo: Integer;
+    begin
+        // [SCENARIO] The processor skips an entry whose status is outside the eligible set
+        // (Inbox: ReadyToProcess/Failed), even when the setup is enabled.
+        // [GIVEN] An enabled setup and a Processed inbox entry.
+        this.TestLibrary.CreateMessageSetup(Enum::"AMC Int. Message Type"::AMCPostalCodeValidation, true, 5, 0);
+        Inbox := this.TestLibrary.CreateInboxEntry(Enum::"AMC Int. Message Type"::AMCPostalCodeValidation, Enum::"AMC Int. Inbox Status"::Processed);
+        EntryNo := Inbox."Entry No.";
+
+        // [WHEN] The processor runs the entry through its public Run path.
+        this.RunProcessor(Inbox);
+
+        // [THEN] The entry is left untouched: an ineligible status is skipped.
+        this.AssertInboxUntouched(EntryNo, Enum::"AMC Int. Inbox Status"::Processed, 0);
+    end;
+
     local procedure RunProcessor(var Inbox: Record "AMC Int. Inbox Entry")
     var
         InboxProcessor: Codeunit "AMC Inbox Processor";

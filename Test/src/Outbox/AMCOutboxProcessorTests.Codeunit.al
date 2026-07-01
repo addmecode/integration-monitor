@@ -31,6 +31,26 @@ codeunit 50140 "AMC Outbox Processor Tests"
         this.AssertOutboxUntouched(EntryNo, Enum::"AMC Int. Outbox Status"::ReadyToProcess, 0);
     end;
 
+    [Test]
+    procedure WhenStatusNotEligible_ThenEntryLeftUntouched()
+    var
+        Outbox: Record "AMC Int. Outbox Entry";
+        EntryNo: Integer;
+    begin
+        // [SCENARIO] The processor skips an entry whose status is outside the eligible set
+        // (Outbox: ReadyToProcess/Failed/ResponseReceived), even when the setup is enabled.
+        // [GIVEN] An enabled setup and a Cancelled outbox entry.
+        this.TestLibrary.CreateMessageSetup(Enum::"AMC Int. Message Type"::AMCPostalCodeValidation, true, 5, 0);
+        Outbox := this.TestLibrary.CreateOutboxEntry(Enum::"AMC Int. Message Type"::AMCPostalCodeValidation, Enum::"AMC Int. Outbox Status"::Cancelled);
+        EntryNo := Outbox."Entry No.";
+
+        // [WHEN] The processor runs the entry through its public Run path.
+        this.RunProcessor(Outbox);
+
+        // [THEN] The entry is left untouched: an ineligible status is skipped.
+        this.AssertOutboxUntouched(EntryNo, Enum::"AMC Int. Outbox Status"::Cancelled, 0);
+    end;
+
     local procedure RunProcessor(var Outbox: Record "AMC Int. Outbox Entry")
     var
         OutboxProcessor: Codeunit "AMC Outbox Processor";
