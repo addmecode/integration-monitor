@@ -24,7 +24,7 @@ codeunit 50141 "AMC Inbox Processor Tests"
         Inbox := this.TestLibrary.CreateInboxEntry(Enum::"AMC Int. Message Type"::AMCPostalCodeValidation, Enum::"AMC Int. Inbox Status"::ReadyToProcess);
         EntryNo := Inbox."Entry No.";
 
-        // [WHEN] The processor runs the entry through its public Run path.
+        // [WHEN] The processor processes the entry.
         this.RunProcessor(Inbox);
 
         // [THEN] The entry is left untouched: a disabled setup means no claim and no processing.
@@ -44,7 +44,7 @@ codeunit 50141 "AMC Inbox Processor Tests"
         Inbox := this.TestLibrary.CreateInboxEntry(Enum::"AMC Int. Message Type"::AMCPostalCodeValidation, Enum::"AMC Int. Inbox Status"::Processed);
         EntryNo := Inbox."Entry No.";
 
-        // [WHEN] The processor runs the entry through its public Run path.
+        // [WHEN] The processor processes the entry.
         this.RunProcessor(Inbox);
 
         // [THEN] The entry is left untouched: an ineligible status is skipped.
@@ -67,7 +67,7 @@ codeunit 50141 "AMC Inbox Processor Tests"
         Inbox."Next Attempt At" := FutureDateTime;
         Inbox.Modify(true);
 
-        // [WHEN] The processor runs the entry through its public Run path.
+        // [WHEN] The processor processes the entry.
         this.RunProcessor(Inbox);
 
         // [THEN] The entry is left untouched: the retry delay has not yet elapsed.
@@ -90,7 +90,7 @@ codeunit 50141 "AMC Inbox Processor Tests"
         Inbox."Attempt Count" := MaxAttempts;
         Inbox.Modify(true);
 
-        // [WHEN] The processor runs the entry through its public Run path.
+        // [WHEN] The processor processes the entry.
         this.RunProcessor(Inbox);
 
         // [THEN] The entry is left untouched: no further attempt is made once attempts are exhausted.

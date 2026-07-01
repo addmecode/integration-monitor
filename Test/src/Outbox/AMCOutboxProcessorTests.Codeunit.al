@@ -27,7 +27,7 @@ codeunit 50140 "AMC Outbox Processor Tests"
         Outbox := this.TestLibrary.CreateOutboxEntry(Enum::"AMC Int. Message Type"::AMCPostalCodeValidation, Enum::"AMC Int. Outbox Status"::ReadyToProcess);
         EntryNo := Outbox."Entry No.";
 
-        // [WHEN] The processor runs the entry through its public Run path.
+        // [WHEN] The processor processes the entry.
         this.RunProcessor(Outbox);
 
         // [THEN] The entry is left untouched: a disabled setup means no claim and no processing.
@@ -47,7 +47,7 @@ codeunit 50140 "AMC Outbox Processor Tests"
         Outbox := this.TestLibrary.CreateOutboxEntry(Enum::"AMC Int. Message Type"::AMCPostalCodeValidation, Enum::"AMC Int. Outbox Status"::Cancelled);
         EntryNo := Outbox."Entry No.";
 
-        // [WHEN] The processor runs the entry through its public Run path.
+        // [WHEN] The processor processes the entry.
         this.RunProcessor(Outbox);
 
         // [THEN] The entry is left untouched: an ineligible status is skipped.
@@ -70,7 +70,7 @@ codeunit 50140 "AMC Outbox Processor Tests"
         Outbox."Next Attempt At" := FutureDateTime;
         Outbox.Modify(true);
 
-        // [WHEN] The processor runs the entry through its public Run path.
+        // [WHEN] The processor processes the entry.
         this.RunProcessor(Outbox);
 
         // [THEN] The entry is left untouched: the retry delay has not yet elapsed.
@@ -93,7 +93,7 @@ codeunit 50140 "AMC Outbox Processor Tests"
         Outbox."Attempt Count" := MaxAttempts;
         Outbox.Modify(true);
 
-        // [WHEN] The processor runs the entry through its public Run path.
+        // [WHEN] The processor processes the entry.
         this.RunProcessor(Outbox);
 
         // [THEN] The entry is left untouched: no further attempt is made once attempts are exhausted.
