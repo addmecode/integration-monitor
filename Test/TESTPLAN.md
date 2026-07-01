@@ -61,7 +61,7 @@ The failure handlers run via `OnRun` against a record after an error; drive them
 
 - [x] **Failure increments attempt count and marks Failed.** Given an entry with `Attempt Count = N` and a Message Setup with `Max Attempts > N+1`, when the failure handler runs, then `Attempt Count = N+1`, `Last Attempt At` ≈ now, `Processed At = 0DT`, and `Status = Failed`.
 - [x] **Next Attempt At applies linear backoff under Max Attempts.** Given the resulting `Attempt Count < Max Attempts` and `Base Retry Delay (sec) = D`, when the handler runs, then `Next Attempt At = Last Attempt At + D*1000 ms`.
-- [ ] **Next Attempt At stays empty at/over Max Attempts.** Given the resulting `Attempt Count >= Max Attempts`, when the handler runs, then `Next Attempt At = 0DT` (no further retry scheduled).
+- [x] **Next Attempt At stays empty at/over Max Attempts.** Given the resulting `Attempt Count >= Max Attempts`, when the handler runs, then `Next Attempt At = 0DT` (no further retry scheduled).
 - [ ] **Last Error blob is populated.** Given a failure with a known error text/call stack, when the handler runs, then the `Last Error` BLOB contains the formatted "Error:…\Call Stack:…" message.
 - [ ] **(Outbox only) status is preserved when response already received.** Given an Outbox entry with `Status = ResponseReceived` at failure time, when the handler runs, then `Status` is NOT overwritten to Failed (the received response is retained), while attempt count and Last Error still update.
 

@@ -74,6 +74,32 @@ codeunit 50140 "AMC Inbox Failure Tests"
         this.Assert.AreEqual(ExpectedNextAttempt, Inbox."Next Attempt At", 'Next Attempt At should be Last Attempt At plus the linear backoff delay.');
     end;
 
+    [Test]
+    procedure WhenFailureAtMaxAttempts_ThenNextAttemptStaysEmpty()
+    var
+        Inbox: Record "AMC Int. Inbox Entry";
+        PastDateTime: DateTime;
+        EntryNo: Integer;
+    begin
+        // [SCENARIO] At or over Max Attempts, no further retry is scheduled (Next Attempt At stays 0DT).
+        // [GIVEN] An entry whose resulting Attempt Count (3) reaches Max Attempts (3), with a non-zero Base Retry Delay.
+        PastDateTime := CreateDateTime(DMY2Date(1, 1, 2020), 0T);
+        this.TestLibrary.CreateMessageSetup(Enum::"AMC Int. Message Type"::AMCPostalCodeValidation, false, 3, 60);
+        Inbox := this.TestLibrary.CreateInboxEntry(Enum::"AMC Int. Message Type"::AMCPostalCodeValidation, Enum::"AMC Int. Inbox Status"::Processing);
+        EntryNo := Inbox."Entry No.";
+        Inbox."Attempt Count" := 2;
+        Inbox."Next Attempt At" := PastDateTime;
+        Inbox.Modify(true);
+
+        // [WHEN] The failure handler runs against it with a populated last error.
+        this.RunFailureHandler(Inbox);
+
+        // [THEN] Next Attempt At is cleared: attempts are exhausted, so no backoff is scheduled.
+        Inbox.Get(EntryNo);
+        this.Assert.AreEqual(3, Inbox."Attempt Count", 'Guard: the resulting Attempt Count should reach Max Attempts.');
+        this.Assert.AreEqual(0DT, Inbox."Next Attempt At", 'At/over Max Attempts, Next Attempt At should stay empty.');
+    end;
+
     local procedure RunFailureHandler(var Inbox: Record "AMC Int. Inbox Entry")
     var
         InboxFailureHandler: Codeunit "AMC Inbox Failure Handler";
