@@ -93,4 +93,15 @@ codeunit 50142 "AMC Test Library"
     begin
         BlobHelper.WriteTextToBlob(TargetRecordRef, FieldNo, Value);
     end;
+
+    /// <summary>Asserts a DateTime falls within the inclusive [LowerBound, UpperBound] window.</summary>
+    procedure AssertDateTimeWithinRange(ActualDateTime: DateTime; LowerBound: DateTime; UpperBound: DateTime; FieldCaption: Text)
+    var
+        Assert: Codeunit "Library Assert";
+        DateTimeOutOfRangeErr: Label '%1 should be within the expected date/time range.', Comment = '%1 = field caption';
+    begin
+        Assert.IsTrue(
+            (ActualDateTime >= LowerBound) and (ActualDateTime <= UpperBound),
+            StrSubstNo(DateTimeOutOfRangeErr, FieldCaption));
+    end;
 }
