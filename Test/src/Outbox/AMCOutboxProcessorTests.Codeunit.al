@@ -1,6 +1,9 @@
 namespace Addmecode.IntegrationMonitor.Test;
+using Addmecode.IntegrationMonitor.Helpers;
+using Addmecode.IntegrationMonitor.Inbox;
 using Addmecode.IntegrationMonitor.Message;
 using Addmecode.IntegrationMonitor.Outbox;
+using Addmecode.IntegrationMonitor.Setup;
 using System.TestLibraries.Utilities;
 
 codeunit 50140 "AMC Outbox Processor Tests"
@@ -95,6 +98,52 @@ codeunit 50140 "AMC Outbox Processor Tests"
 
         // [THEN] The entry is left untouched: no further attempt is made once attempts are exhausted.
         this.AssertOutboxUntouched(EntryNo, Enum::"AMC Int. Outbox Status"::ReadyToProcess, MaxAttempts);
+    end;
+
+    [Test]
+    procedure WhenResponseReceived_ThenCreatesInboxEntryAndCompletes()
+    var
+        Outbox: Record "AMC Int. Outbox Entry";
+        Inbox: Record "AMC Int. Inbox Entry";
+        Setup: Record "AMC Int. Message Setup";
+        OutboxProcessor: Codeunit "AMC Outbox Processor";
+        BlobHelper: Codeunit "AMC Int. Blob Helper";
+        OutboxRef: RecordRef;
+        InboxRef: RecordRef;
+        SourceRecordId: RecordId;
+        ResponseBody: Text;
+        OutboxEntryNo: Integer;
+    begin
+        // [SCENARIO] A ResponseReceived outbox entry with a stored response creates an inbox entry
+        // (copying the response and linkage) and is itself marked Processed.
+        // [GIVEN] An enabled setup and a ResponseReceived outbox entry with a source record and a stored response payload.
+        ResponseBody := 'stored-response-body';
+        Setup := this.TestLibrary.CreateMessageSetup(Enum::"AMC Int. Message Type"::AMCPostalCodeValidation, true, 5, 0);
+        SourceRecordId := Setup.RecordId();
+        Outbox := this.TestLibrary.CreateOutboxEntry(Enum::"AMC Int. Message Type"::AMCPostalCodeValidation, Enum::"AMC Int. Outbox Status"::ResponseReceived);
+        OutboxEntryNo := Outbox."Entry No.";
+        Outbox."Source Record ID" := SourceRecordId;
+        Outbox.Modify(true);
+        OutboxRef.GetTable(Outbox);
+        this.TestLibrary.WriteBlobText(OutboxRef, Outbox.FieldNo("Response Payload"), ResponseBody);
+
+        // [WHEN] The processor runs the entry through its public Run path.
+        this.Assert.IsTrue(OutboxProcessor.Run(Outbox), 'Processing a ResponseReceived entry should not error.');
+
+        // [THEN] The outbox entry is marked Processed.
+        Outbox.Get(OutboxEntryNo);
+        this.Assert.AreEqual(Enum::"AMC Int. Outbox Status"::Processed, Outbox.Status, 'A processed ResponseReceived entry should be Processed.');
+
+        // [THEN] A new inbox entry is created, linked to the outbox entry and ReadyToProcess.
+        Inbox.SetRange("Outbox Entry No.", OutboxEntryNo);
+        this.Assert.IsTrue(Inbox.FindFirst(), 'Processing a ResponseReceived entry should create a related inbox entry.');
+        this.Assert.AreEqual(Enum::"AMC Int. Message Type"::AMCPostalCodeValidation, Inbox."Message Type", 'The inbox entry should carry the outbox message type.');
+        this.Assert.AreEqual(Enum::"AMC Int. Inbox Status"::ReadyToProcess, Inbox.Status, 'The new inbox entry should be ReadyToProcess.');
+        this.Assert.AreEqual(SourceRecordId, Inbox."Source Record ID", 'The inbox entry should carry the outbox source record.');
+
+        // [THEN] The stored response payload is copied onto the inbox entry.
+        InboxRef.GetTable(Inbox);
+        this.Assert.AreEqual(ResponseBody, BlobHelper.ReadBlobAsText(InboxRef, Inbox.FieldNo("Response Payload")), 'The response payload should be copied to the inbox entry.');
     end;
 
     local procedure RunProcessor(var Outbox: Record "AMC Int. Outbox Entry")
