@@ -100,6 +100,33 @@ codeunit 50140 "AMC Inbox Failure Tests"
         this.Assert.AreEqual(0DT, Inbox."Next Attempt At", 'At/over Max Attempts, Next Attempt At should stay empty.');
     end;
 
+    [Test]
+    procedure WhenFailure_ThenLastErrorBlobPopulated()
+    var
+        Inbox: Record "AMC Int. Inbox Entry";
+        BlobHelper: Codeunit "AMC Int. Blob Helper";
+        InboxRef: RecordRef;
+        LastErrorText: Text;
+        EntryNo: Integer;
+    begin
+        // [SCENARIO] The failure handler stores the formatted error text and call stack in the Last Error blob.
+        // [GIVEN] An entry ready to be failed with a known last error.
+        this.TestLibrary.CreateMessageSetup(Enum::"AMC Int. Message Type"::AMCPostalCodeValidation, false, 5, 0);
+        Inbox := this.TestLibrary.CreateInboxEntry(Enum::"AMC Int. Message Type"::AMCPostalCodeValidation, Enum::"AMC Int. Inbox Status"::Processing);
+        EntryNo := Inbox."Entry No.";
+
+        // [WHEN] The failure handler runs against it with a populated last error.
+        this.RunFailureHandler(Inbox);
+
+        // [THEN] The Last Error blob carries the formatted "Error:…\Call Stack:…" message.
+        Inbox.Get(EntryNo);
+        InboxRef.GetTable(Inbox);
+        LastErrorText := BlobHelper.ReadBlobAsText(InboxRef, Inbox.FieldNo("Last Error"));
+        this.Assert.IsTrue(StrPos(LastErrorText, 'Error:') > 0, 'The Last Error blob should contain the Error: section.');
+        this.Assert.IsTrue(StrPos(LastErrorText, this.SimulatedErrorTxt) > 0, 'The Last Error blob should contain the simulated error text.');
+        this.Assert.IsTrue(StrPos(LastErrorText, 'Call Stack:') > 0, 'The Last Error blob should contain the Call Stack: section.');
+    end;
+
     local procedure RunFailureHandler(var Inbox: Record "AMC Int. Inbox Entry")
     var
         InboxFailureHandler: Codeunit "AMC Inbox Failure Handler";
