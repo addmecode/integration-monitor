@@ -146,6 +146,31 @@ codeunit 50140 "AMC Outbox Processor Tests"
         this.Assert.AreEqual(ResponseBody, BlobHelper.ReadBlobAsText(InboxRef, Inbox.FieldNo("Response Payload")), 'The response payload should be copied to the inbox entry.');
     end;
 
+    [Test]
+    procedure WhenValidateNonSuccessResponse_ThenErrorsWithStatusAndBody()
+    var
+        OutboxProcessor: Codeunit "AMC Outbox Processor";
+        Response: HttpResponseMessage;
+        ErrorText: Text;
+        ResponseBody: Text;
+    begin
+        // [SCENARIO] ValidateResponse maps a non-success HTTP response to an error surfacing the status and body.
+        // [GIVEN] A fabricated non-success response carrying a body.
+        // NOTE: AL exposes no setter for HttpResponseMessage.HttpStatusCode, so a fabricated response always
+        // reports non-success and only the failure branch is reachable here. The success branch (early exit on
+        // IsSuccessStatusCode) is covered by the Phase 6 send-path test, which produces a genuine 2xx response.
+        ResponseBody := 'downstream error detail';
+        Response.Content.WriteFrom(ResponseBody);
+
+        // [WHEN] ValidateResponse inspects the response.
+        asserterror OutboxProcessor.ValidateResponse(Response);
+
+        // [THEN] It errors, surfacing the "request failed" message and the response body.
+        ErrorText := GetLastErrorText();
+        this.Assert.IsTrue(StrPos(ErrorText, 'HTTP request failed with status') > 0, 'The error should report the failed HTTP status.');
+        this.Assert.IsTrue(StrPos(ErrorText, ResponseBody) > 0, 'The error should include the response body.');
+    end;
+
     local procedure RunProcessor(var Outbox: Record "AMC Int. Outbox Entry")
     var
         OutboxProcessor: Codeunit "AMC Outbox Processor";
