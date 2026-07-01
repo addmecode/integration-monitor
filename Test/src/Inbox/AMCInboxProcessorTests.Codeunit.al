@@ -122,6 +122,34 @@ codeunit 50141 "AMC Inbox Processor Tests"
         this.Assert.IsFalse(InboxProcessor.ClaimForProcessing(Inbox), 'Re-claiming a non-eligible entry should return false.');
     end;
 
+    [Test]
+    procedure WhenClaimedEntryHandlerSucceeds_ThenMarkedProcessed()
+    var
+        Inbox: Record "AMC Int. Inbox Entry";
+        InboxProcessor: Codeunit "AMC Inbox Processor";
+        BeforeRun: DateTime;
+        AfterRun: DateTime;
+        EntryNo: Integer;
+    begin
+        // [SCENARIO] Once a claimed entry's handler succeeds, MarkInboxAsProcessed finalizes the entry.
+        // [GIVEN] An enabled mock-message-type setup (no-op, succeeding handler) and an eligible inbox entry.
+        this.TestLibrary.CreateMessageSetup(Enum::"AMC Int. Message Type"::Mock, true, 5, 0);
+        Inbox := this.TestLibrary.CreateInboxEntry(Enum::"AMC Int. Message Type"::Mock, Enum::"AMC Int. Inbox Status"::ReadyToProcess);
+        EntryNo := Inbox."Entry No.";
+
+        // [WHEN] The processor runs the entry to completion (claim -> succeeding handler -> finalize).
+        BeforeRun := CurrentDateTime();
+        this.Assert.IsTrue(InboxProcessor.Run(Inbox), 'Processing an eligible entry with a succeeding handler should not error.');
+        AfterRun := CurrentDateTime();
+
+        // [THEN] The entry is finalized: Processed, timestamps ~ now, Attempt Count incremented by 1.
+        Inbox.Get(EntryNo);
+        this.Assert.AreEqual(Enum::"AMC Int. Inbox Status"::Processed, Inbox.Status, 'A finalized entry should be Processed.');
+        this.TestLibrary.AssertDateTimeIsRecent(Inbox."Processed At", BeforeRun, AfterRun, 'Processed At');
+        this.TestLibrary.AssertDateTimeIsRecent(Inbox."Last Attempt At", BeforeRun, AfterRun, 'Last Attempt At');
+        this.Assert.AreEqual(1, Inbox."Attempt Count", 'Finalizing should increment Attempt Count by 1.');
+    end;
+
     local procedure RunProcessor(var Inbox: Record "AMC Int. Inbox Entry")
     var
         InboxProcessor: Codeunit "AMC Inbox Processor";
