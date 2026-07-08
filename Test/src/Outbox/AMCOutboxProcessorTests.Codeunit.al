@@ -198,7 +198,7 @@ codeunit 50140 "AMC Outbox Processor Tests"
         // [GIVEN] An enabled mock-transport setup with Process Response = true and a mock returning a known body.
         ResponseBody := 'mock-success-body';
         this.ConfigureMockSetup(true);
-        this.SetMockResponse(ResponseBody);
+        this.SetMockResponse(200, ResponseBody);
         Outbox := this.TestLibrary.CreateOutboxEntry(Enum::"AMC Int. Message Type"::Mock, Enum::"AMC Int. Outbox Status"::ReadyToProcess);
         EntryNo := Outbox."Entry No.";
 
@@ -237,7 +237,7 @@ codeunit 50140 "AMC Outbox Processor Tests"
         // [SCENARIO] A successful send with Process Response = false marks the entry Processed without storing a response or creating an inbox entry.
         // [GIVEN] An enabled mock-transport setup with Process Response = false and a mock returning a body.
         this.ConfigureMockSetup(false);
-        this.SetMockResponse('ignored-body');
+        this.SetMockResponse(200, 'ignored-body');
         Outbox := this.TestLibrary.CreateOutboxEntry(Enum::"AMC Int. Message Type"::Mock, Enum::"AMC Int. Outbox Status"::ReadyToProcess);
         EntryNo := Outbox."Entry No.";
 
@@ -261,6 +261,49 @@ codeunit 50140 "AMC Outbox Processor Tests"
         this.Assert.IsFalse(Inbox.FindFirst(), 'No inbox entry should be created when Process Response is false.');
     end;
 
+    [Test]
+    procedure WhenSendFails_ThenRoutedThroughFailureHandler()
+    var
+        Outbox: Record "AMC Int. Outbox Entry";
+        Inbox: Record "AMC Int. Inbox Entry";
+        OutboxEntryMgt: Codeunit "AMC Outbox Entry Mgt.";
+        BlobHelper: Codeunit "AMC Int. Blob Helper";
+        OutboxRef: RecordRef;
+        BeforeRun: DateTime;
+        AfterRun: DateTime;
+        LastError: Text;
+        EntryNo: Integer;
+    begin
+        // [SCENARIO] A failing send routes the entry through the failure handler: it ends Failed with a populated Last Error.
+        // [GIVEN] An enabled mock-transport setup (Max Attempts = 5) and a mock configured to fail with HTTP 500.
+        this.ConfigureMockSetup(true);
+        this.SetMockResponse(500, 'server-error-body');
+        Outbox := this.TestLibrary.CreateOutboxEntry(Enum::"AMC Int. Message Type"::Mock, Enum::"AMC Int. Outbox Status"::ReadyToProcess);
+        EntryNo := Outbox."Entry No.";
+
+        // [WHEN] The entry is processed via the Mgt wrapper, which catches the send error and runs the failure handler.
+        BeforeRun := CurrentDateTime();
+        OutboxEntryMgt.ProcessEntry(Outbox);
+        AfterRun := CurrentDateTime();
+
+        // [THEN] The entry ends Failed with a recorded attempt (the claim set Sending, then the send failed).
+        Outbox.Get(EntryNo);
+        this.Assert.AreEqual(Enum::"AMC Int. Outbox Status"::Failed, Outbox.Status, 'A failing send should leave the entry Failed.');
+        this.Assert.AreEqual(1, Outbox."Attempt Count", 'A failing send should increment Attempt Count by 1.');
+        this.TestLibrary.AssertDateTimeIsRecent(Outbox."Last Attempt At", BeforeRun, AfterRun, 'Last Attempt At');
+
+        // [THEN] The Last Error blob is populated with the formatted failure message.
+        Outbox.CalcFields("Last Error");
+        this.Assert.IsTrue(Outbox."Last Error".HasValue(), 'A failing send should populate the Last Error blob.');
+        OutboxRef.GetTable(Outbox);
+        LastError := BlobHelper.ReadBlobAsText(OutboxRef, Outbox.FieldNo("Last Error"));
+        this.Assert.IsTrue(LastError.Contains('Error:'), 'The Last Error blob should carry the formatted "Error:…" failure message.');
+
+        // [THEN] No inbox entry is created for a send that never received a response.
+        Inbox.SetRange("Outbox Entry No.", EntryNo);
+        this.Assert.IsFalse(Inbox.FindFirst(), 'A failing send should not create an inbox entry.');
+    end;
+
     local procedure ConfigureMockSetup(ProcessResponse: Boolean)
     var
         Setup: Record "AMC Int. Message Setup";
@@ -274,13 +317,13 @@ codeunit 50140 "AMC Outbox Processor Tests"
         Setup.Modify(true);
     end;
 
-    local procedure SetMockResponse(Body: Text)
+    local procedure SetMockResponse(StatusCode: Integer; Body: Text)
     var
         State: Codeunit "AMC Mock Transport State";
     begin
-        // The fabricated HttpResponseMessage always reports a success (2xx) status, so the status code
-        // argument is unused by the mock; only the body is observable on the send path.
-        State.SetResponse(200, Body);
+        // A 2xx status returns the body only; a non-success status makes the mock error on Send,
+        // driving the failure path (a fabricated response cannot report a genuine non-2xx status).
+        State.SetResponse(StatusCode, Body);
     end;
 
     local procedure AssertSkippedForIneligibleStatus(Status: Enum "AMC Int. Outbox Status")

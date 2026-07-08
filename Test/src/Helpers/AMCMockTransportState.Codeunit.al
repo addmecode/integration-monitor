@@ -28,6 +28,11 @@ codeunit 50135 "AMC Mock Transport State"
         exit(this.ConfiguredBody);
     end;
 
+    procedure IsSuccessStatusCode(): Boolean
+    begin
+        exit((this.ConfiguredStatusCode >= 200) and (this.ConfiguredStatusCode < 300));
+    end;
+
     procedure Reset()
     begin
         this.ConfiguredStatusCode := 0;
