@@ -4,6 +4,7 @@ using Addmecode.IntegrationMonitor.Inbox;
 using Addmecode.IntegrationMonitor.Message;
 using Addmecode.IntegrationMonitor.Outbox;
 using Addmecode.IntegrationMonitor.Setup;
+using Addmecode.IntegrationMonitor.Transport;
 using System.TestLibraries.Utilities;
 
 /// <remarks>
@@ -177,6 +178,109 @@ codeunit 50140 "AMC Outbox Processor Tests"
         OutboxProcessor: Codeunit "AMC Outbox Processor";
     begin
         OutboxProcessor.ValidateResponse(Response);
+    end;
+
+    [Test]
+    procedure WhenSendSucceedsWithProcessResponse_ThenStoresResponseAndCreatesInbox()
+    var
+        Outbox: Record "AMC Int. Outbox Entry";
+        Inbox: Record "AMC Int. Inbox Entry";
+        OutboxProcessor: Codeunit "AMC Outbox Processor";
+        BlobHelper: Codeunit "AMC Int. Blob Helper";
+        OutboxRef: RecordRef;
+        InboxRef: RecordRef;
+        BeforeRun: DateTime;
+        AfterRun: DateTime;
+        ResponseBody: Text;
+        EntryNo: Integer;
+    begin
+        // [SCENARIO] A successful send with Process Response = true stores the response payload and creates an inbox entry.
+        // [GIVEN] An enabled mock-transport setup with Process Response = true and a mock returning a known body.
+        ResponseBody := 'mock-success-body';
+        this.ConfigureMockSetup(true);
+        this.SetMockResponse(ResponseBody);
+        Outbox := this.TestLibrary.CreateOutboxEntry(Enum::"AMC Int. Message Type"::Mock, Enum::"AMC Int. Outbox Status"::ReadyToProcess);
+        EntryNo := Outbox."Entry No.";
+
+        // [WHEN] The processor sends the entry.
+        BeforeRun := CurrentDateTime();
+        OutboxProcessor.ProcessEntry(Outbox);
+        AfterRun := CurrentDateTime();
+
+        // [THEN] The mock response body is stored and Response Received At ~ now.
+        Outbox.Get(EntryNo);
+        OutboxRef.GetTable(Outbox);
+        this.Assert.AreEqual(ResponseBody, BlobHelper.ReadBlobAsText(OutboxRef, Outbox.FieldNo("Response Payload")), 'The mock response body should be stored on the outbox entry.');
+        this.TestLibrary.AssertDateTimeIsRecent(Outbox."Response Received At", BeforeRun, AfterRun, 'Response Received At');
+
+        // [THEN] The entry is finalized Processed (MarkOutboxAsProcessed runs after the response is stored).
+        this.Assert.AreEqual(Enum::"AMC Int. Outbox Status"::Processed, Outbox.Status, 'A completed send should leave the entry Processed.');
+
+        // [THEN] An inbox entry is created, linked to the outbox entry and carrying the copied response payload.
+        Inbox.SetRange("Outbox Entry No.", EntryNo);
+        this.Assert.IsTrue(Inbox.FindFirst(), 'A successful send with Process Response should create an inbox entry.');
+        this.Assert.AreEqual(Enum::"AMC Int. Inbox Status"::ReadyToProcess, Inbox.Status, 'The new inbox entry should be ReadyToProcess.');
+        InboxRef.GetTable(Inbox);
+        this.Assert.AreEqual(ResponseBody, BlobHelper.ReadBlobAsText(InboxRef, Inbox.FieldNo("Response Payload")), 'The response payload should be copied to the inbox entry.');
+    end;
+
+    [Test]
+    procedure WhenSendSucceedsWithoutProcessResponse_ThenNoInboxAndProcessed()
+    var
+        Outbox: Record "AMC Int. Outbox Entry";
+        Inbox: Record "AMC Int. Inbox Entry";
+        OutboxProcessor: Codeunit "AMC Outbox Processor";
+        BeforeRun: DateTime;
+        AfterRun: DateTime;
+        EntryNo: Integer;
+    begin
+        // [SCENARIO] A successful send with Process Response = false marks the entry Processed without storing a response or creating an inbox entry.
+        // [GIVEN] An enabled mock-transport setup with Process Response = false and a mock returning a body.
+        this.ConfigureMockSetup(false);
+        this.SetMockResponse('ignored-body');
+        Outbox := this.TestLibrary.CreateOutboxEntry(Enum::"AMC Int. Message Type"::Mock, Enum::"AMC Int. Outbox Status"::ReadyToProcess);
+        EntryNo := Outbox."Entry No.";
+
+        // [WHEN] The processor sends the entry.
+        BeforeRun := CurrentDateTime();
+        OutboxProcessor.ProcessEntry(Outbox);
+        AfterRun := CurrentDateTime();
+
+        // [THEN] The entry is finalized Processed with a recorded attempt.
+        Outbox.Get(EntryNo);
+        this.Assert.AreEqual(Enum::"AMC Int. Outbox Status"::Processed, Outbox.Status, 'A completed send should leave the entry Processed.');
+        this.Assert.AreEqual(1, Outbox."Attempt Count", 'A completed send should increment Attempt Count by 1.');
+        this.TestLibrary.AssertDateTimeIsRecent(Outbox."Last Attempt At", BeforeRun, AfterRun, 'Last Attempt At');
+
+        // [THEN] No response is stored when Process Response is false.
+        Outbox.CalcFields("Response Payload");
+        this.Assert.IsFalse(Outbox."Response Payload".HasValue(), 'No response should be stored when Process Response is false.');
+
+        // [THEN] No inbox entry is created.
+        Inbox.SetRange("Outbox Entry No.", EntryNo);
+        this.Assert.IsFalse(Inbox.FindFirst(), 'No inbox entry should be created when Process Response is false.');
+    end;
+
+    local procedure ConfigureMockSetup(ProcessResponse: Boolean)
+    var
+        Setup: Record "AMC Int. Message Setup";
+    begin
+        // Enable a mock-message-type setup wired to the mock transport. Enabled is set directly by the
+        // factory (bypassing OnValidate), so no endpoint/auth validation runs; Transport and Process
+        // Response are assigned here without triggering table validation.
+        Setup := this.TestLibrary.CreateMessageSetup(Enum::"AMC Int. Message Type"::Mock, true, 5, 0);
+        Setup.Transport := Enum::"AMC Int. Transport Type"::Mock;
+        Setup."Process Response" := ProcessResponse;
+        Setup.Modify(true);
+    end;
+
+    local procedure SetMockResponse(Body: Text)
+    var
+        State: Codeunit "AMC Mock Transport State";
+    begin
+        // The fabricated HttpResponseMessage always reports a success (2xx) status, so the status code
+        // argument is unused by the mock; only the body is observable on the send path.
+        State.SetResponse(200, Body);
     end;
 
     local procedure AssertSkippedForIneligibleStatus(Status: Enum "AMC Int. Outbox Status")
