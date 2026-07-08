@@ -79,7 +79,7 @@ codeunit 50103 "AMC Outbox Processor"
         this.MarkOutboxAsProcessed(Outbox);
     end;
 
-    local procedure ClaimForSending(var Outbox: Record "AMC Int. Outbox Entry"): Boolean
+    internal procedure ClaimForSending(var Outbox: Record "AMC Int. Outbox Entry"): Boolean
     begin
         Outbox.LockTable();
         if not Outbox.Get(Outbox."Entry No.") then

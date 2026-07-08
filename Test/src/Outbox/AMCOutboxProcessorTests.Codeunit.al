@@ -281,6 +281,12 @@ codeunit 50140 "AMC Outbox Processor Tests"
         Outbox := this.TestLibrary.CreateOutboxEntry(Enum::"AMC Int. Message Type"::Mock, Enum::"AMC Int. Outbox Status"::ReadyToProcess);
         EntryNo := Outbox."Entry No.";
 
+        // Commit the staged data so ProcessEntry runs without an outer uncommitted write transaction,
+        // mirroring the dispatcher job (its top-level loop only reads before ProcessEntry). ClaimForSending
+        // commits mid-send, and a "commit then error" inside Codeunit.Run is only catchable when no outer
+        // write transaction is open; without this commit the send error escalates to "the transaction is stopped".
+        Commit();
+
         // [WHEN] The entry is processed via the Mgt wrapper, which catches the send error and runs the failure handler.
         BeforeRun := CurrentDateTime();
         OutboxEntryMgt.ProcessEntry(Outbox);
@@ -302,6 +308,68 @@ codeunit 50140 "AMC Outbox Processor Tests"
         // [THEN] No inbox entry is created for a send that never received a response.
         Inbox.SetRange("Outbox Entry No.", EntryNo);
         this.Assert.IsFalse(Inbox.FindFirst(), 'A failing send should not create an inbox entry.');
+    end;
+
+    [Test]
+    procedure WhenReadyToProcess_ThenClaimForSendingSetsSending()
+    begin
+        // [SCENARIO] ClaimForSending claims a ReadyToProcess entry, transitioning it to Sending.
+        this.AssertClaimForSending(Enum::"AMC Int. Outbox Status"::ReadyToProcess, true, Enum::"AMC Int. Outbox Status"::Sending);
+    end;
+
+    [Test]
+    procedure WhenFailed_ThenClaimForSendingSetsSending()
+    begin
+        // [SCENARIO] ClaimForSending claims a Failed entry (a retry), transitioning it to Sending.
+        this.AssertClaimForSending(Enum::"AMC Int. Outbox Status"::Failed, true, Enum::"AMC Int. Outbox Status"::Sending);
+    end;
+
+    [Test]
+    procedure WhenResponseReceived_ThenClaimForSendingReturnsFalse()
+    begin
+        // [SCENARIO] ClaimForSending refuses a ResponseReceived entry: only ReadyToProcess/Failed are claimable for sending.
+        this.AssertClaimForSending(Enum::"AMC Int. Outbox Status"::ResponseReceived, false, Enum::"AMC Int. Outbox Status"::ResponseReceived);
+    end;
+
+    [Test]
+    procedure WhenProcessed_ThenClaimForSendingReturnsFalse()
+    begin
+        // [SCENARIO] ClaimForSending refuses a terminal Processed entry, leaving it unchanged.
+        this.AssertClaimForSending(Enum::"AMC Int. Outbox Status"::Processed, false, Enum::"AMC Int. Outbox Status"::Processed);
+    end;
+
+    [Test]
+    procedure WhenCancelled_ThenClaimForSendingReturnsFalse()
+    begin
+        // [SCENARIO] ClaimForSending refuses a Cancelled entry, leaving it unchanged.
+        this.AssertClaimForSending(Enum::"AMC Int. Outbox Status"::Cancelled, false, Enum::"AMC Int. Outbox Status"::Cancelled);
+    end;
+
+    [Test]
+    procedure WhenSending_ThenClaimForSendingReturnsFalse()
+    begin
+        // [SCENARIO] ClaimForSending refuses an entry already Sending (no double-claim), leaving it unchanged.
+        this.AssertClaimForSending(Enum::"AMC Int. Outbox Status"::Sending, false, Enum::"AMC Int. Outbox Status"::Sending);
+    end;
+
+    local procedure AssertClaimForSending(Status: Enum "AMC Int. Outbox Status"; ExpectedClaimed: Boolean; ExpectedStatusAfter: Enum "AMC Int. Outbox Status")
+    var
+        Outbox: Record "AMC Int. Outbox Entry";
+        OutboxProcessor: Codeunit "AMC Outbox Processor";
+        EntryNo: Integer;
+        Claimed: Boolean;
+    begin
+        // [GIVEN] An outbox entry in the given status. ClaimForSending reads only the outbox row (no setup lookup).
+        Outbox := this.TestLibrary.CreateOutboxEntry(Enum::"AMC Int. Message Type"::AMCPostalCodeValidation, Status);
+        EntryNo := Outbox."Entry No.";
+
+        // [WHEN] The entry is claimed for sending.
+        Claimed := OutboxProcessor.ClaimForSending(Outbox);
+
+        // [THEN] Only ReadyToProcess/Failed are claimed (and committed as Sending); any other status returns false and is unchanged.
+        this.Assert.AreEqual(ExpectedClaimed, Claimed, 'ClaimForSending should only claim ReadyToProcess/Failed entries.');
+        Outbox.Get(EntryNo);
+        this.Assert.AreEqual(ExpectedStatusAfter, Outbox.Status, 'ClaimForSending should set Sending only for a claimed entry and leave others unchanged.');
     end;
 
     local procedure ConfigureMockSetup(ProcessResponse: Boolean)
