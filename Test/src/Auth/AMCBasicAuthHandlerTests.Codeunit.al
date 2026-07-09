@@ -60,4 +60,23 @@ codeunit 50144 "AMC Basic Auth Handler Tests"
         this.Assert.IsFalse(RequestHeaders.Contains(this.AuthorizationHeaderLbl), 'The pre-existing plain Authorization header should be removed.');
         this.Assert.IsTrue(RequestHeaders.ContainsSecret(this.AuthorizationHeaderLbl), 'A secret Authorization header should be present after replacement.');
     end;
+
+    [Test]
+    procedure WhenValidateProfileWithoutUsername_ThenErrors()
+    var
+        Profile: Record "AMC Int. Auth Profile";
+        BasicAuthHandler: Codeunit "AMC Int. Basic Auth Handler";
+    begin
+        // [SCENARIO] The Basic handler's ValidateProfile requires the Username.
+        // [GIVEN] A Basic profile with a blank Username.
+        Profile := this.TestLibrary.CreateAuthProfile(Enum::"AMC Int. Auth Type"::Basic, false);
+        Profile.Username := '';
+        Profile.Modify(true);
+
+        // [WHEN] ValidateProfile runs against it.
+        asserterror BasicAuthHandler.ValidateProfile(Profile);
+
+        // [THEN] It errors via TestField(Username).
+        this.Assert.ExpectedError(Profile.FieldCaption(Username));
+    end;
 }
