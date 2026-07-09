@@ -178,6 +178,41 @@ codeunit 50143 "AMC Auth Profile Mgt Tests"
         this.Assert.IsTrue(Profile.HasSecret(), 'A declined clear should retain the stored secret.');
     end;
 
+    [Test]
+    procedure WhenTestProfileWithoutSecret_ThenErrors()
+    var
+        Profile: Record "AMC Int. Auth Profile";
+        MissingSecretErr: Label 'does not have a stored secret', Locked = true;
+    begin
+        // [SCENARIO] TestProfile requires a stored secret.
+        // [GIVEN] A valid Basic profile (Code and Username set) but without a stored secret.
+        Profile := this.TestLibrary.CreateAuthProfile(Enum::"AMC Int. Auth Type"::Basic, false);
+
+        // [WHEN] TestProfile runs against it.
+        asserterror Profile.TestProfile();
+
+        // [THEN] It errors that the profile does not have a stored secret.
+        this.Assert.ExpectedError(MissingSecretErr);
+    end;
+
+    [Test]
+    procedure WhenTestProfileBasicWithoutUsername_ThenErrors()
+    var
+        Profile: Record "AMC Int. Auth Profile";
+    begin
+        // [SCENARIO] TestProfile runs the type-specific ValidateProfile, which requires the Username for Basic.
+        // [GIVEN] A Basic profile with a blank Username.
+        Profile := this.TestLibrary.CreateAuthProfile(Enum::"AMC Int. Auth Type"::Basic, false);
+        Profile.Username := '';
+        Profile.Modify(true);
+
+        // [WHEN] TestProfile runs against it.
+        asserterror Profile.TestProfile();
+
+        // [THEN] It errors via TestField(Username).
+        this.Assert.ExpectedError(Profile.FieldCaption(Username));
+    end;
+
     local procedure CreateEnabledSetupForProfile(MessageType: Enum "AMC Int. Message Type"; AuthProfileCode: Code[20])
     var
         Setup: Record "AMC Int. Message Setup";
