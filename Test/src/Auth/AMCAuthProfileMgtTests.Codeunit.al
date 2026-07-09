@@ -77,4 +77,21 @@ codeunit 50143 "AMC Auth Profile Mgt Tests"
         this.Assert.AreEqual(0DT, Profile."Secret Updated At", 'Secret Updated At should be cleared after DeleteSecret.');
         this.Assert.AreEqual('', Profile."Secret Updated By", 'Secret Updated By should be cleared after DeleteSecret.');
     end;
+
+    [Test]
+    procedure WhenAuthTypeChanged_ThenDeletesSecret()
+    var
+        Profile: Record "AMC Int. Auth Profile";
+    begin
+        // [SCENARIO] Switching Auth Type drops the stored secret so a stale secret cannot survive the type change.
+        // [GIVEN] A Basic auth profile with a stored secret.
+        Profile := this.TestLibrary.CreateAuthProfile(Enum::"AMC Int. Auth Type"::Basic, true);
+        this.Assert.IsTrue(Profile.HasSecret(), 'Guard: the profile should start with a stored secret.');
+
+        // [WHEN] The Auth Type is validated to Bearer Token.
+        Profile.Validate("Auth Type", Enum::"AMC Int. Auth Type"::"Bearer Token");
+
+        // [THEN] The stored secret is deleted.
+        this.Assert.IsFalse(Profile.HasSecret(), 'Changing the Auth Type should delete the stored secret.');
+    end;
 }

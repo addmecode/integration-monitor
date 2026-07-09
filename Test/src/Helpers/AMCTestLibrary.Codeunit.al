@@ -74,9 +74,17 @@ codeunit 50134 "AMC Test Library"
     var
         Profile: Record "AMC Int. Auth Profile";
         Any: Codeunit "Any";
+        ProfileCode: Code[20];
     begin
+        // Storing a secret writes to IsolatedStorage, which commits — so a profile from an earlier
+        // test can survive rollback. Any reuses the same seeded Code per test, so delete any leftover
+        // first (mirrors CreateMessageSetup) to keep the insert collision-free and the test isolated.
+        ProfileCode := CopyStr(Any.AlphabeticText(10), 1, MaxStrLen(Profile.Code));
+        if Profile.Get(ProfileCode) then
+            Profile.Delete(true);
+
         Profile.Init();
-        Profile.Code := CopyStr(Any.AlphabeticText(10), 1, MaxStrLen(Profile.Code));
+        Profile.Code := ProfileCode;
         Profile."Auth Type" := AuthType;
         Profile.Username := CopyStr(Any.AlphabeticText(10), 1, MaxStrLen(Profile.Username));
         Profile.Insert(true);
