@@ -10,8 +10,10 @@ codeunit 50107 "AMC Int. Auth Profile Mgt."
     begin
         if AuthProfileCurr.Code = AuthProfilePrev.Code then
             exit;
-        if AuthProfileCurr.HasSecret() then
-            Error(CannotRenameProfileWithSecretErr, AuthProfileCurr.Code);
+        // The secret is stored under the original code (AuthProfilePrev); AuthProfileCurr already
+        // carries the new code, so the check must use the previous record to find the stored secret.
+        if AuthProfilePrev.HasSecret() then
+            Error(CannotRenameProfileWithSecretErr, AuthProfilePrev.Code);
     end;
 
     internal procedure AuthTypeOnValidate(var AuthProfileCurr: Record "AMC Int. Auth Profile"; AuthProfilePrev: Record "AMC Int. Auth Profile")

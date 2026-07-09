@@ -94,4 +94,39 @@ codeunit 50143 "AMC Auth Profile Mgt Tests"
         // [THEN] The stored secret is deleted.
         this.Assert.IsFalse(Profile.HasSecret(), 'Changing the Auth Type should delete the stored secret.');
     end;
+
+    [Test]
+    procedure WhenRenameWithSecret_ThenBlocked()
+    var
+        Profile: Record "AMC Int. Auth Profile";
+        CannotRenameErr: Label 'cannot be renamed because it has a stored secret', Locked = true;
+    begin
+        // [SCENARIO] A profile that holds a stored secret cannot be renamed.
+        // [GIVEN] An auth profile with a stored secret.
+        Profile := this.TestLibrary.CreateAuthProfile(Enum::"AMC Int. Auth Type"::Basic, true);
+
+        // [WHEN] Its Code is renamed.
+        asserterror Profile.Rename('RENAMED');
+
+        // [THEN] It errors that the profile cannot be renamed while it has a stored secret.
+        this.Assert.ExpectedError(CannotRenameErr);
+    end;
+
+    [Test]
+    procedure WhenRenameWithoutSecret_ThenSucceeds()
+    var
+        Profile: Record "AMC Int. Auth Profile";
+        NewCode: Code[20];
+    begin
+        // [SCENARIO] A profile without a stored secret can be renamed freely.
+        // [GIVEN] An auth profile without a stored secret.
+        Profile := this.TestLibrary.CreateAuthProfile(Enum::"AMC Int. Auth Type"::Basic, false);
+        NewCode := 'RENAMED';
+
+        // [WHEN] Its Code is renamed.
+        Profile.Rename(NewCode);
+
+        // [THEN] The profile now lives under the new Code.
+        this.Assert.IsTrue(Profile.Get(NewCode), 'A secret-less profile should be renamable to the new Code.');
+    end;
 }
