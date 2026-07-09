@@ -1,5 +1,7 @@
 namespace Addmecode.IntegrationMonitor.Test;
 using Addmecode.IntegrationMonitor.Auth;
+using Addmecode.IntegrationMonitor.Message;
+using Addmecode.IntegrationMonitor.Setup;
 using System.TestLibraries.Utilities;
 
 codeunit 50143 "AMC Auth Profile Mgt Tests"
@@ -128,5 +130,72 @@ codeunit 50143 "AMC Auth Profile Mgt Tests"
 
         // [THEN] The profile now lives under the new Code.
         this.Assert.IsTrue(Profile.Get(NewCode), 'A secret-less profile should be renamable to the new Code.');
+    end;
+
+    [Test]
+    [HandlerFunctions('ConfirmYesHandler')]
+    procedure WhenClearSecretConfirmed_ThenDisablesSetupsAndClears()
+    var
+        Profile: Record "AMC Int. Auth Profile";
+        SetupA: Record "AMC Int. Message Setup";
+        SetupB: Record "AMC Int. Message Setup";
+    begin
+        // [SCENARIO] Clearing a secret used by enabled setups disables those setups when the user confirms.
+        // [GIVEN] A profile with a stored secret referenced by two enabled message setups.
+        Profile := this.TestLibrary.CreateAuthProfile(Enum::"AMC Int. Auth Type"::Basic, true);
+        this.CreateEnabledSetupForProfile(Enum::"AMC Int. Message Type"::AMCPostalCodeValidation, Profile.Code);
+        this.CreateEnabledSetupForProfile(Enum::"AMC Int. Message Type"::Mock, Profile.Code);
+
+        // [WHEN] ClearSecretWithEnabledSetupCheck runs and the confirmation is answered yes.
+        Profile.ClearSecretWithEnabledSetupCheck();
+
+        // [THEN] Both dependent setups are disabled and the secret is cleared.
+        SetupA.Get(Enum::"AMC Int. Message Type"::AMCPostalCodeValidation);
+        this.Assert.IsFalse(SetupA.Enabled, 'A dependent setup should be disabled when the secret is cleared on confirm.');
+        SetupB.Get(Enum::"AMC Int. Message Type"::Mock);
+        this.Assert.IsFalse(SetupB.Enabled, 'A dependent setup should be disabled when the secret is cleared on confirm.');
+        this.Assert.IsFalse(Profile.HasSecret(), 'The secret should be cleared after a confirmed ClearSecretWithEnabledSetupCheck.');
+    end;
+
+    [Test]
+    [HandlerFunctions('ConfirmNoHandler')]
+    procedure WhenClearSecretDeclined_ThenNothingChanges()
+    var
+        Profile: Record "AMC Int. Auth Profile";
+        Setup: Record "AMC Int. Message Setup";
+    begin
+        // [SCENARIO] Declining the confirmation leaves the secret and the dependent setups untouched.
+        // [GIVEN] A profile with a stored secret referenced by an enabled message setup.
+        Profile := this.TestLibrary.CreateAuthProfile(Enum::"AMC Int. Auth Type"::Basic, true);
+        this.CreateEnabledSetupForProfile(Enum::"AMC Int. Message Type"::AMCPostalCodeValidation, Profile.Code);
+
+        // [WHEN] ClearSecretWithEnabledSetupCheck runs and the confirmation is answered no.
+        Profile.ClearSecretWithEnabledSetupCheck();
+
+        // [THEN] The setup stays enabled and the secret is retained.
+        Setup.Get(Enum::"AMC Int. Message Type"::AMCPostalCodeValidation);
+        this.Assert.IsTrue(Setup.Enabled, 'A declined clear should leave the dependent setup enabled.');
+        this.Assert.IsTrue(Profile.HasSecret(), 'A declined clear should retain the stored secret.');
+    end;
+
+    local procedure CreateEnabledSetupForProfile(MessageType: Enum "AMC Int. Message Type"; AuthProfileCode: Code[20])
+    var
+        Setup: Record "AMC Int. Message Setup";
+    begin
+        Setup := this.TestLibrary.CreateMessageSetup(MessageType, true, 1, 0);
+        Setup."Auth Profile Code" := AuthProfileCode;
+        Setup.Modify(true);
+    end;
+
+    [ConfirmHandler]
+    procedure ConfirmYesHandler(Question: Text; var Reply: Boolean)
+    begin
+        Reply := true;
+    end;
+
+    [ConfirmHandler]
+    procedure ConfirmNoHandler(Question: Text; var Reply: Boolean)
+    begin
+        Reply := false;
     end;
 }
