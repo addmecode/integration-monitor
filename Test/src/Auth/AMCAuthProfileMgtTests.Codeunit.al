@@ -57,4 +57,24 @@ codeunit 50143 "AMC Auth Profile Mgt Tests"
         this.TestLibrary.AssertDateTimeIsRecent(Profile."Secret Updated At", BeforeSet, AfterSet, 'Secret Updated At');
         this.Assert.AreEqual(CopyStr(UserId(), 1, MaxStrLen(Profile."Secret Updated By")), Profile."Secret Updated By", 'Secret Updated By should be the current user.');
     end;
+
+    [Test]
+    procedure WhenDeleteSecret_ThenClearsSecretAndAudit()
+    var
+        Profile: Record "AMC Int. Auth Profile";
+    begin
+        // [SCENARIO] DeleteSecret removes the stored secret and clears the audit fields.
+        // [GIVEN] An auth profile with a stored secret and a recorded audit stamp.
+        Profile := this.TestLibrary.CreateAuthProfile(Enum::"AMC Int. Auth Type"::Basic, true);
+        this.Assert.IsTrue(Profile.HasSecret(), 'Guard: the profile should start with a stored secret.');
+
+        // [WHEN] DeleteSecret runs against it.
+        Profile.DeleteSecret();
+
+        // [THEN] The secret store no longer holds the secret and the audit fields are cleared.
+        this.Assert.IsFalse(Profile.HasSecret(), 'The secret store should no longer hold the secret after DeleteSecret.');
+        this.Assert.IsFalse(Profile."Has Secret", 'Has Secret should be cleared after DeleteSecret.');
+        this.Assert.AreEqual(0DT, Profile."Secret Updated At", 'Secret Updated At should be cleared after DeleteSecret.');
+        this.Assert.AreEqual('', Profile."Secret Updated By", 'Secret Updated By should be cleared after DeleteSecret.');
+    end;
 }
