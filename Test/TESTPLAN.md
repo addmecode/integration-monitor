@@ -101,8 +101,8 @@ Drive `DoShouldProcessEntry` through the public `Run` path. "Skip" = the entry's
 
 ## Phase 8 — Setup + Message Mgt (`AMC Int. Message Setup Mgt.` 50122 / `AMC Message Mgt.` 50125)
 
-- [ ] **Cleanup date formula must resolve before today.** Given `Delete Outbox Entr. Older Than` blank, when validated, then no error. Given a formula that resolves to today or a future date, then `FieldError` "must calculate to a date before today". Given a formula resolving to a past date (e.g. `-1D`), then no error.
-- [ ] **Enabling a setup validates transport and auth.** Given a setup with an invalid/blank `Endpoint URL`, when `TestRequiredFieldsForEnabled` runs, then the transport handler errors ("The URL in %1 field is not valid" / missing URL). Given an `Auth Profile Code` whose profile lacks a secret, then it errors via the auth profile check. Given a valid endpoint and a fully configured auth profile, then no error.
+- [x] **Cleanup date formula must resolve before today.** Given `Delete Outbox Entr. Older Than` blank, when validated, then no error. Given a formula that resolves to today or a future date, then `FieldError` "must calculate to a date before today". Given a formula resolving to a past date (e.g. `-1D`), then no error.
+- [x] **Enabling a setup validates transport and auth.** Given a setup with an invalid/blank `Endpoint URL`, when `TestRequiredFieldsForEnabled` runs, then the transport handler errors ("The URL in %1 field is not valid" / missing URL). Given an `Auth Profile Code` whose profile lacks a secret, then it errors via the auth profile check. Given a valid endpoint and a fully configured auth profile, then no error.
 - [ ] **GetMessageSetup errors when the setup is missing.** Given a message type with no `AMC Int. Message Setup` row, when `GetMessageSetup`/`TestMessageSetupExists` runs, then it errors "Integration message setup for message type %1 does not exist." Given an existing setup, then it returns it without error.
 
 ## Phase 9 — Demo PostCode (`AMC Post Code Validation Mgt` 50123 / `AMC Post Code Valid Msg Hdlr` 50124)
