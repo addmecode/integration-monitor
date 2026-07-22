@@ -10,8 +10,6 @@ codeunit 50107 "AMC Int. Auth Profile Mgt."
     begin
         if AuthProfileCurr.Code = AuthProfilePrev.Code then
             exit;
-        // The secret is stored under the original code (AuthProfilePrev); AuthProfileCurr already
-        // carries the new code, so the check must use the previous record to find the stored secret.
         if AuthProfilePrev.HasSecret() then
             Error(CannotRenameProfileWithSecretErr, AuthProfilePrev.Code);
     end;

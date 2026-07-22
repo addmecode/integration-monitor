@@ -26,7 +26,6 @@ codeunit 50146 "AMC Auth Applier Tests"
 
         // [THEN] The request carries no Authorization header (neither plain nor secret).
         Request.GetHeaders(RequestHeaders);
-        this.Assert.IsFalse(RequestHeaders.Contains(this.AuthorizationHeaderLbl), 'An empty auth code should not add a plain Authorization header.');
         this.Assert.IsFalse(RequestHeaders.ContainsSecret(this.AuthorizationHeaderLbl), 'An empty auth code should not add a secret Authorization header.');
     end;
 

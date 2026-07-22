@@ -102,13 +102,15 @@ codeunit 50143 "AMC Auth Profile Mgt Tests"
     var
         Profile: Record "AMC Int. Auth Profile";
         CannotRenameErr: Label 'cannot be renamed because it has a stored secret', Locked = true;
+        NewCode: Code[20];
     begin
         // [SCENARIO] A profile that holds a stored secret cannot be renamed.
         // [GIVEN] An auth profile with a stored secret.
         Profile := this.TestLibrary.CreateAuthProfile(Enum::"AMC Int. Auth Type"::Basic, true);
+        NewCode := 'RENAMED';
 
         // [WHEN] Its Code is renamed.
-        asserterror Profile.Rename('RENAMED');
+        asserterror Profile.Rename(NewCode);
 
         // [THEN] It errors that the profile cannot be renamed while it has a stored secret.
         this.Assert.ExpectedError(CannotRenameErr);

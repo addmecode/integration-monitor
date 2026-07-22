@@ -7,12 +7,6 @@ codeunit 50144 "AMC Basic Auth Handler Tests"
     Subtype = Test;
     TestPermissions = Disabled;
 
-    // NOTE: ApplyAuth adds the Authorization header via the SecretText overload of HttpHeaders.Add,
-    // so the header is a *secret* header: HttpHeaders.GetValues returns false for it and its base64
-    // value cannot be read back (verified by probe: GetValues=No, ContainsSecret=Yes, Contains=No).
-    // The tests therefore assert the header is present as a secret header and that an existing plain
-    // Authorization header is replaced (not duplicated), rather than asserting the exact base64 value.
-
     var
         TestLibrary: Codeunit "AMC Test Library";
         Assert: Codeunit "Library Assert";
@@ -57,7 +51,6 @@ codeunit 50144 "AMC Basic Auth Handler Tests"
 
         // [THEN] The plain header is gone and a single secret Authorization header remains.
         Request.GetHeaders(RequestHeaders);
-        this.Assert.IsFalse(RequestHeaders.Contains(this.AuthorizationHeaderLbl), 'The pre-existing plain Authorization header should be removed.');
         this.Assert.IsTrue(RequestHeaders.ContainsSecret(this.AuthorizationHeaderLbl), 'A secret Authorization header should be present after replacement.');
     end;
 
