@@ -12,7 +12,7 @@ codeunit 50147 "AMC Message Setup Mgt Tests"
     var
         TestLibrary: Codeunit "AMC Test Library";
         Assert: Codeunit "Library Assert";
-        ValidEndpointUrlTok: Label 'https://api.example.com/validate', Locked = true;
+        ValidEndpointUrlLbl: Label 'https://api.example.com/validate', Locked = true;
 
     [Test]
     procedure WhenCleanupFormulaBlank_ThenNoError()
@@ -133,7 +133,7 @@ codeunit 50147 "AMC Message Setup Mgt Tests"
         // [GIVEN] A disabled setup with a valid endpoint and an auth profile that lacks a secret.
         Profile := this.TestLibrary.CreateAuthProfile(Enum::"AMC Int. Auth Type"::Basic, false);
         Setup := this.TestLibrary.CreateMessageSetup(Enum::"AMC Int. Message Type"::Mock, false, 1, 0);
-        Setup."Endpoint URL" := CopyStr(this.ValidEndpointUrlTok, 1, MaxStrLen(Setup."Endpoint URL"));
+        Setup."Endpoint URL" := CopyStr(this.ValidEndpointUrlLbl, 1, MaxStrLen(Setup."Endpoint URL"));
         Setup."Auth Profile Code" := Profile.Code;
         Setup.Modify(true);
 
@@ -154,7 +154,7 @@ codeunit 50147 "AMC Message Setup Mgt Tests"
         // [GIVEN] A disabled setup with a valid endpoint and an auth profile that has a stored secret.
         Profile := this.TestLibrary.CreateAuthProfile(Enum::"AMC Int. Auth Type"::Basic, true);
         Setup := this.TestLibrary.CreateMessageSetup(Enum::"AMC Int. Message Type"::Mock, false, 1, 0);
-        Setup."Endpoint URL" := CopyStr(this.ValidEndpointUrlTok, 1, MaxStrLen(Setup."Endpoint URL"));
+        Setup."Endpoint URL" := CopyStr(this.ValidEndpointUrlLbl, 1, MaxStrLen(Setup."Endpoint URL"));
         Setup."Auth Profile Code" := Profile.Code;
         Setup.Modify(true);
 

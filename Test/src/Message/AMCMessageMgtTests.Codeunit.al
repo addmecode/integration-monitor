@@ -15,6 +15,7 @@ codeunit 50148 "AMC Message Mgt Tests"
     [Test]
     procedure WhenGetMessageSetupMissing_ThenErrors()
     var
+        Setup: Record "AMC Int. Message Setup";
         MessageMgt: Codeunit "AMC Message Mgt.";
         MissingSetupErr: Label 'does not exist', Locked = true;
     begin
@@ -23,7 +24,7 @@ codeunit 50148 "AMC Message Mgt Tests"
         this.RemoveMessageSetup(Enum::"AMC Int. Message Type"::Default);
 
         // [WHEN] GetMessageSetup runs for that message type.
-        asserterror this.CallGetMessageSetup(MessageMgt, Enum::"AMC Int. Message Type"::Default);
+        asserterror MessageMgt.GetMessageSetup(Enum::"AMC Int. Message Type"::Default, Setup);
 
         // [THEN] It errors that the setup does not exist.
         this.Assert.ExpectedError(MissingSetupErr);
@@ -61,13 +62,6 @@ codeunit 50148 "AMC Message Mgt Tests"
 
         // [THEN] It returns the matching setup without error.
         this.Assert.AreEqual(Enum::"AMC Int. Message Type"::Mock, Setup."Message Type", 'GetMessageSetup should return the setup for the requested message type.');
-    end;
-
-    local procedure CallGetMessageSetup(var MessageMgt: Codeunit "AMC Message Mgt."; MessageType: Enum "AMC Int. Message Type")
-    var
-        Setup: Record "AMC Int. Message Setup";
-    begin
-        MessageMgt.GetMessageSetup(MessageType, Setup);
     end;
 
     local procedure RemoveMessageSetup(MessageType: Enum "AMC Int. Message Type")
