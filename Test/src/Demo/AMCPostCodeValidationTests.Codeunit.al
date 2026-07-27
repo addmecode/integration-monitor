@@ -200,6 +200,50 @@ codeunit 50149 "AMC Post Code Validation Tests"
         this.Assert.AreEqual('', ValidationMgt.GetValidationStyle(PostCode), 'A non-Valid/Invalid status should map to an empty style.');
     end;
 
+    [Test]
+    procedure WhenStatusBlank_ThenAuditCleared()
+    var
+        PostCode: Record "Post Code";
+        ValidationMgt: Codeunit "AMC Post Code Validation Mgt";
+    begin
+        // [SCENARIO] UpdateValidationAudit clears the audit fields when the status is blank.
+        // [GIVEN] A post code with a blank status but pre-populated audit fields.
+        PostCode.Init();
+        PostCode."AMC Validation Status" := PostCode."AMC Validation Status"::" ";
+        PostCode."AMC Validated At" := CurrentDateTime();
+        PostCode."AMC Validated By" := 'OLDUSER';
+
+        // [WHEN] UpdateValidationAudit runs.
+        ValidationMgt.UpdateValidationAudit(PostCode);
+
+        // [THEN] Both audit fields are cleared.
+        this.Assert.AreEqual(0DT, PostCode."AMC Validated At", 'A blank status should clear Validated At.');
+        this.Assert.AreEqual('', PostCode."AMC Validated By", 'A blank status should clear Validated By.');
+    end;
+
+    [Test]
+    procedure WhenStatusNonBlank_ThenAuditSet()
+    var
+        PostCode: Record "Post Code";
+        ValidationMgt: Codeunit "AMC Post Code Validation Mgt";
+        BeforeRun: DateTime;
+        AfterRun: DateTime;
+    begin
+        // [SCENARIO] UpdateValidationAudit stamps the audit fields when the status is not blank.
+        // [GIVEN] A post code with a non-blank status and empty audit fields.
+        PostCode.Init();
+        PostCode."AMC Validation Status" := PostCode."AMC Validation Status"::Valid;
+
+        // [WHEN] UpdateValidationAudit runs.
+        BeforeRun := CurrentDateTime();
+        ValidationMgt.UpdateValidationAudit(PostCode);
+        AfterRun := CurrentDateTime();
+
+        // [THEN] Validated At is ≈ now and Validated By is the current user.
+        this.TestLibrary.AssertDateTimeIsRecent(PostCode."AMC Validated At", BeforeRun, AfterRun, PostCode.FieldCaption("AMC Validated At"));
+        this.Assert.AreEqual(CopyStr(UserId(), 1, MaxStrLen(PostCode."AMC Validated By")), PostCode."AMC Validated By", 'A non-blank status should stamp Validated By with the current user.');
+    end;
+
     local procedure CreateOutboxEntry(SourceRecordId: RecordId; Status: Enum "AMC Int. Outbox Status"): Integer
     var
         Outbox: Record "AMC Int. Outbox Entry";
