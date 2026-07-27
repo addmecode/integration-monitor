@@ -15,8 +15,6 @@ codeunit 50149 "AMC Post Code Validation Tests"
         TestLibrary: Codeunit "AMC Test Library";
         Assert: Codeunit "Library Assert";
         Any: Codeunit "Any";
-        CodePropertyNameLbl: Label 'code', Locked = true;
-        CountryRegionCodePropertyNameLbl: Label 'countryRegionCode', Locked = true;
 
     [Test]
     procedure WhenValidatePostCode_ThenPayloadJsonHasCodeAndCountry()
@@ -45,8 +43,8 @@ codeunit 50149 "AMC Post Code Validation Tests"
         OutboxRef.GetTable(Outbox);
         PayloadText := BlobHelper.ReadBlobAsText(OutboxRef, Outbox.FieldNo("Request Payload"));
         this.Assert.IsTrue(Payload.ReadFrom(PayloadText), 'The stored request payload should be valid JSON.');
-        this.Assert.AreEqual(PostCode.Code, this.GetJsonText(Payload, this.CodePropertyNameLbl), 'The payload code should equal the post code Code.');
-        this.Assert.AreEqual(PostCode."Country/Region Code", this.GetJsonText(Payload, this.CountryRegionCodePropertyNameLbl), 'The payload countryRegionCode should equal the post code Country/Region Code.');
+        this.Assert.AreEqual(PostCode.Code, this.GetJsonText(Payload, 'code'), 'The payload code should equal the post code Code.');
+        this.Assert.AreEqual(PostCode."Country/Region Code", this.GetJsonText(Payload, 'countryRegionCode'), 'The payload countryRegionCode should equal the post code Country/Region Code.');
     end;
 
     [Test]
@@ -160,14 +158,18 @@ codeunit 50149 "AMC Post Code Validation Tests"
     var
         PostCode: Record "Post Code";
         ValidationMgt: Codeunit "AMC Post Code Validation Mgt";
+        Style: Text;
     begin
         // [SCENARIO] GetValidationStyle maps a Valid status to the Favorable style.
         // [GIVEN] A post code whose validation status is Valid.
         PostCode.Init();
         PostCode."AMC Validation Status" := PostCode."AMC Validation Status"::Valid;
 
+        // [WHEN] GetValidationStyle runs for the post code.
+        Style := ValidationMgt.GetValidationStyle(PostCode);
+
         // [THEN] The style is Favorable.
-        this.Assert.AreEqual('Favorable', ValidationMgt.GetValidationStyle(PostCode), 'A Valid status should map to the Favorable style.');
+        this.Assert.AreEqual('Favorable', Style, 'A Valid status should map to the Favorable style.');
     end;
 
     [Test]
@@ -175,14 +177,18 @@ codeunit 50149 "AMC Post Code Validation Tests"
     var
         PostCode: Record "Post Code";
         ValidationMgt: Codeunit "AMC Post Code Validation Mgt";
+        Style: Text;
     begin
         // [SCENARIO] GetValidationStyle maps an Invalid status to the Unfavorable style.
         // [GIVEN] A post code whose validation status is Invalid.
         PostCode.Init();
         PostCode."AMC Validation Status" := PostCode."AMC Validation Status"::Invalid;
 
+        // [WHEN] GetValidationStyle runs for the post code.
+        Style := ValidationMgt.GetValidationStyle(PostCode);
+
         // [THEN] The style is Unfavorable.
-        this.Assert.AreEqual('Unfavorable', ValidationMgt.GetValidationStyle(PostCode), 'An Invalid status should map to the Unfavorable style.');
+        this.Assert.AreEqual('Unfavorable', Style, 'An Invalid status should map to the Unfavorable style.');
     end;
 
     [Test]
@@ -190,14 +196,18 @@ codeunit 50149 "AMC Post Code Validation Tests"
     var
         PostCode: Record "Post Code";
         ValidationMgt: Codeunit "AMC Post Code Validation Mgt";
+        Style: Text;
     begin
         // [SCENARIO] GetValidationStyle maps any other status to an empty style.
         // [GIVEN] A post code whose validation status is Sent (neither Valid nor Invalid).
         PostCode.Init();
         PostCode."AMC Validation Status" := PostCode."AMC Validation Status"::Sent;
 
+        // [WHEN] GetValidationStyle runs for the post code.
+        Style := ValidationMgt.GetValidationStyle(PostCode);
+
         // [THEN] The style is empty.
-        this.Assert.AreEqual('', ValidationMgt.GetValidationStyle(PostCode), 'A non-Valid/Invalid status should map to an empty style.');
+        this.Assert.AreEqual('', Style, 'A non-Valid/Invalid status should map to an empty style.');
     end;
 
     [Test]
@@ -324,11 +334,19 @@ codeunit 50149 "AMC Post Code Validation Tests"
     procedure WhenNormalizeValue_ThenUppercasesAndStripsSpaces()
     var
         MsgHdlr: Codeunit "AMC Post Code Valid Msg Hdlr";
+        NormalizedSpaced: Text;
+        NormalizedPlain: Text;
     begin
         // [SCENARIO] NormalizeValue uppercases and strips spaces so ' ny ' matches 'NY'.
-        // [THEN] The normalized values are equal.
-        this.Assert.AreEqual('NY', MsgHdlr.NormalizeValue(' ny '), 'NormalizeValue should uppercase and strip spaces.');
-        this.Assert.AreEqual(MsgHdlr.NormalizeValue('NY'), MsgHdlr.NormalizeValue(' ny '), 'Normalization should make '' ny '' match ''NY''.');
+        // [GIVEN] The values ' ny ' and 'NY'.
+
+        // [WHEN] NormalizeValue runs for each.
+        NormalizedSpaced := MsgHdlr.NormalizeValue(' ny ');
+        NormalizedPlain := MsgHdlr.NormalizeValue('NY');
+
+        // [THEN] ' ny ' normalizes to 'NY' and both normalize equally.
+        this.Assert.AreEqual('NY', NormalizedSpaced, 'NormalizeValue should uppercase and strip spaces.');
+        this.Assert.AreEqual(NormalizedPlain, NormalizedSpaced, 'Normalization should make '' ny '' match ''NY''.');
     end;
 
     local procedure BuildResponsePayload(CountryCode: Text; PostalCode: Text; AdminCode: Text; PlaceName: Text; AdminName: Text): JsonObject
