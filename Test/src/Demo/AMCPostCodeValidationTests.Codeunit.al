@@ -48,17 +48,92 @@ codeunit 50149 "AMC Post Code Validation Tests"
         this.Assert.AreEqual(PostCode."Country/Region Code", this.GetJsonText(Payload, this.CountryRegionCodePropertyNameLbl), 'The payload countryRegionCode should equal the post code Country/Region Code.');
     end;
 
+    [Test]
+    procedure WhenValidatePostCode_ThenCreatesOutboxAndMarksSent()
+    var
+        PostCode: Record "Post Code";
+        Outbox: Record "AMC Int. Outbox Entry";
+        ValidationMgt: Codeunit "AMC Post Code Validation Mgt";
+    begin
+        // [SCENARIO] Validating a post code enqueues an outbox entry for it and marks it Sent.
+        // [GIVEN] A post code with a Code and a Country/Region Code.
+        this.TestLibrary.EnsureMessageSetup(Enum::"AMC Int. Message Type"::AMCPostalCodeValidation);
+        PostCode := this.CreatePostCode();
+
+        // [WHEN] The post code is validated.
+        ValidationMgt.ValidatePostCode(PostCode);
+
+        // [THEN] A postal-code-validation outbox entry exists for that source record.
+        Outbox.SetRange("Message Type", Outbox."Message Type"::AMCPostalCodeValidation);
+        Outbox.SetRange("Source Record ID", PostCode.RecordId());
+        this.Assert.IsTrue(Outbox.FindFirst(), 'Validating a post code should enqueue an outbox entry for it.');
+
+        // [THEN] The post code is marked Sent, both in memory and as persisted.
+        this.Assert.AreEqual(PostCode."AMC Validation Status"::Sent, PostCode."AMC Validation Status", 'ValidatePostCode should mark the post code Sent.');
+        PostCode.Get(PostCode.Code, PostCode.City);
+        this.Assert.AreEqual(PostCode."AMC Validation Status"::Sent, PostCode."AMC Validation Status", 'The Sent status should be persisted on the post code.');
+    end;
+
+    [Test]
+    procedure WhenValidatePostCodeWithoutCode_ThenErrors()
+    var
+        PostCode: Record "Post Code";
+        ValidationMgt: Codeunit "AMC Post Code Validation Mgt";
+    begin
+        // [SCENARIO] Validating a post code with no Code is rejected by TestField.
+        // [GIVEN] A post code whose Code is blank.
+        PostCode.Init();
+        PostCode.City := 'CITY';
+        PostCode."Country/Region Code" := 'US';
+
+        // [WHEN] The post code is validated.
+        asserterror ValidationMgt.ValidatePostCode(PostCode);
+
+        // [THEN] It errors on the missing Code.
+        this.Assert.ExpectedError(PostCode.FieldCaption(Code));
+    end;
+
+    [Test]
+    procedure WhenValidatePostCodeWithoutCountry_ThenErrors()
+    var
+        PostCode: Record "Post Code";
+        ValidationMgt: Codeunit "AMC Post Code Validation Mgt";
+    begin
+        // [SCENARIO] Validating a post code with no Country/Region Code is rejected by TestField.
+        // [GIVEN] A post code with a Code but a blank Country/Region Code.
+        PostCode.Init();
+        PostCode.Code := 'CODE';
+        PostCode.City := 'CITY';
+
+        // [WHEN] The post code is validated.
+        asserterror ValidationMgt.ValidatePostCode(PostCode);
+
+        // [THEN] It errors on the missing Country/Region Code.
+        this.Assert.ExpectedError(PostCode.FieldCaption("Country/Region Code"));
+    end;
+
     local procedure CreatePostCode(): Record "Post Code"
     var
         PostCode: Record "Post Code";
         Any: Codeunit "Any";
+        PostCodeKey: Code[20];
+        CityKey: Text[30];
     begin
+        // Any reseeds per test, so a prior test can leave a same-keyed row behind; delete it first
+        // (mirrors CreateAuthProfile) and re-Get after insert so the returned record is DB-clean.
+        PostCodeKey := CopyStr(Any.AlphabeticText(10), 1, MaxStrLen(PostCode.Code));
+        CityKey := CopyStr(Any.AlphabeticText(10), 1, MaxStrLen(PostCode.City));
+        if PostCode.Get(PostCodeKey, CityKey) then
+            PostCode.Delete(true);
+
         PostCode.Init();
-        PostCode.Code := CopyStr(Any.AlphabeticText(10), 1, MaxStrLen(PostCode.Code));
-        PostCode.City := CopyStr(Any.AlphabeticText(10), 1, MaxStrLen(PostCode.City));
+        PostCode.Code := PostCodeKey;
+        PostCode.City := CityKey;
         PostCode."Country/Region Code" := CopyStr(Any.AlphabeticText(5), 1, MaxStrLen(PostCode."Country/Region Code"));
         PostCode.County := CopyStr(Any.AlphabeticText(10), 1, MaxStrLen(PostCode.County));
         PostCode.Insert();
+
+        PostCode.Get(PostCodeKey, CityKey);
         exit(PostCode);
     end;
 
