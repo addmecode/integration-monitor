@@ -14,6 +14,7 @@ codeunit 50149 "AMC Post Code Validation Tests"
     var
         TestLibrary: Codeunit "AMC Test Library";
         Assert: Codeunit "Library Assert";
+        Any: Codeunit "Any";
         CodePropertyNameLbl: Label 'code', Locked = true;
         CountryRegionCodePropertyNameLbl: Label 'countryRegionCode', Locked = true;
 
@@ -112,25 +113,81 @@ codeunit 50149 "AMC Post Code Validation Tests"
         this.Assert.ExpectedError(PostCode.FieldCaption("Country/Region Code"));
     end;
 
+    [Test]
+    procedure WhenResetValidation_ThenDeletesPendingEntriesAndClearsStatus()
+    var
+        PostCode: Record "Post Code";
+        OtherPostCode: Record "Post Code";
+        Outbox: Record "AMC Int. Outbox Entry";
+        ValidationMgt: Codeunit "AMC Post Code Validation Mgt";
+        ReadyEntryNo: Integer;
+        CancelledEntryNo: Integer;
+        ProcessedEntryNo: Integer;
+        SendingEntryNo: Integer;
+        OtherReadyEntryNo: Integer;
+    begin
+        // [SCENARIO] ResetValidation deletes only the ReadyToProcess/Cancelled entries of the source record and blanks its status.
+        // [GIVEN] A validated post code with outbox entries in various statuses, plus a ready entry on another post code.
+        PostCode := this.CreatePostCode();
+        PostCode."AMC Validation Status" := PostCode."AMC Validation Status"::Valid;
+        PostCode.Modify();
+        OtherPostCode := this.CreatePostCode();
+
+        ReadyEntryNo := this.CreateOutboxEntry(PostCode.RecordId(), Enum::"AMC Int. Outbox Status"::ReadyToProcess);
+        CancelledEntryNo := this.CreateOutboxEntry(PostCode.RecordId(), Enum::"AMC Int. Outbox Status"::Cancelled);
+        ProcessedEntryNo := this.CreateOutboxEntry(PostCode.RecordId(), Enum::"AMC Int. Outbox Status"::Processed);
+        SendingEntryNo := this.CreateOutboxEntry(PostCode.RecordId(), Enum::"AMC Int. Outbox Status"::Sending);
+        OtherReadyEntryNo := this.CreateOutboxEntry(OtherPostCode.RecordId(), Enum::"AMC Int. Outbox Status"::ReadyToProcess);
+
+        // [WHEN] ResetValidation runs for the post code.
+        ValidationMgt.ResetValidation(PostCode);
+
+        // [THEN] The ReadyToProcess and Cancelled entries of this source are deleted.
+        this.Assert.IsFalse(Outbox.Get(ReadyEntryNo), 'The ReadyToProcess entry of the source should be deleted.');
+        this.Assert.IsFalse(Outbox.Get(CancelledEntryNo), 'The Cancelled entry of the source should be deleted.');
+
+        // [THEN] Entries in other statuses and entries of other sources are retained.
+        this.Assert.IsTrue(Outbox.Get(ProcessedEntryNo), 'The Processed entry should be retained.');
+        this.Assert.IsTrue(Outbox.Get(SendingEntryNo), 'The Sending entry should be retained.');
+        this.Assert.IsTrue(Outbox.Get(OtherReadyEntryNo), 'A ready entry of another source should be retained.');
+
+        // [THEN] The post code validation status is blanked.
+        this.Assert.AreEqual(PostCode."AMC Validation Status"::" ", PostCode."AMC Validation Status", 'ResetValidation should blank the validation status.');
+    end;
+
+    local procedure CreateOutboxEntry(SourceRecordId: RecordId; Status: Enum "AMC Int. Outbox Status"): Integer
+    var
+        Outbox: Record "AMC Int. Outbox Entry";
+    begin
+        this.TestLibrary.EnsureMessageSetup(Enum::"AMC Int. Message Type"::AMCPostalCodeValidation);
+        Outbox.Init();
+        Outbox.Validate("Message Type", Enum::"AMC Int. Message Type"::AMCPostalCodeValidation);
+        Outbox.Insert(true);
+        Outbox."Source Record ID" := SourceRecordId;
+        Outbox.Status := Status;
+        Outbox.Modify(true);
+        exit(Outbox."Entry No.");
+    end;
+
     local procedure CreatePostCode(): Record "Post Code"
     var
         PostCode: Record "Post Code";
-        Any: Codeunit "Any";
         PostCodeKey: Code[20];
         CityKey: Text[30];
     begin
-        // Any reseeds per test, so a prior test can leave a same-keyed row behind; delete it first
-        // (mirrors CreateAuthProfile) and re-Get after insert so the returned record is DB-clean.
-        PostCodeKey := CopyStr(Any.AlphabeticText(10), 1, MaxStrLen(PostCode.Code));
-        CityKey := CopyStr(Any.AlphabeticText(10), 1, MaxStrLen(PostCode.City));
+        // One shared Any (codeunit-level) advances its sequence across calls, so multiple post codes
+        // in one test get distinct keys. Any reseeds per test, so a prior test can leave a same-keyed
+        // row behind; delete it first (mirrors CreateAuthProfile) and re-Get so the record is DB-clean.
+        PostCodeKey := CopyStr(this.Any.AlphabeticText(10), 1, MaxStrLen(PostCode.Code));
+        CityKey := CopyStr(this.Any.AlphabeticText(10), 1, MaxStrLen(PostCode.City));
         if PostCode.Get(PostCodeKey, CityKey) then
             PostCode.Delete(true);
 
         PostCode.Init();
         PostCode.Code := PostCodeKey;
         PostCode.City := CityKey;
-        PostCode."Country/Region Code" := CopyStr(Any.AlphabeticText(5), 1, MaxStrLen(PostCode."Country/Region Code"));
-        PostCode.County := CopyStr(Any.AlphabeticText(10), 1, MaxStrLen(PostCode.County));
+        PostCode."Country/Region Code" := CopyStr(this.Any.AlphabeticText(5), 1, MaxStrLen(PostCode."Country/Region Code"));
+        PostCode.County := CopyStr(this.Any.AlphabeticText(10), 1, MaxStrLen(PostCode.County));
         PostCode.Insert();
 
         PostCode.Get(PostCodeKey, CityKey);
