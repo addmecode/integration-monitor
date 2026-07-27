@@ -261,6 +261,92 @@ codeunit 50149 "AMC Post Code Validation Tests"
         this.Assert.AreEqual(ExpectedUri, RequestUri, 'The request URI should trim the trailing slash and escape the where clause.');
     end;
 
+    [Test]
+    procedure WhenResponseMatches_ThenReturnsTrue()
+    var
+        PostCode: Record "Post Code";
+        MsgHdlr: Codeunit "AMC Post Code Valid Msg Hdlr";
+        Response: JsonObject;
+    begin
+        // [SCENARIO] ResponseMatchesPostCodeDetails matches a result that differs only by case and spacing.
+        // [GIVEN] A post code and a results array whose entry matches it after normalization.
+        PostCode.Init();
+        PostCode."Country/Region Code" := 'US';
+        PostCode.Code := '12345';
+        PostCode.County := 'NY';
+        PostCode.City := 'NEW YORK';
+        Response := this.BuildResponsePayload('us', '12345', ' ny ', 'New York', 'Somewhere Else');
+
+        // [THEN] The response is recognized as a match.
+        this.Assert.IsTrue(MsgHdlr.ResponseMatchesPostCodeDetails(Response, PostCode), 'A result matching after normalization should be a match.');
+    end;
+
+    [Test]
+    procedure WhenResponseDoesNotMatch_ThenReturnsFalse()
+    var
+        PostCode: Record "Post Code";
+        MsgHdlr: Codeunit "AMC Post Code Valid Msg Hdlr";
+        Response: JsonObject;
+    begin
+        // [SCENARIO] ResponseMatchesPostCodeDetails rejects a result whose postal code differs.
+        // [GIVEN] A post code and a results array whose entry has a different postal code.
+        PostCode.Init();
+        PostCode."Country/Region Code" := 'US';
+        PostCode.Code := '12345';
+        PostCode.County := 'NY';
+        PostCode.City := 'NEW YORK';
+        Response := this.BuildResponsePayload('US', '99999', 'NY', 'NEW YORK', 'NEW YORK');
+
+        // [THEN] The response is not a match.
+        this.Assert.IsFalse(MsgHdlr.ResponseMatchesPostCodeDetails(Response, PostCode), 'A result with a different postal code should not match.');
+    end;
+
+    [Test]
+    procedure WhenResultsEmpty_ThenReturnsFalse()
+    var
+        PostCode: Record "Post Code";
+        MsgHdlr: Codeunit "AMC Post Code Valid Msg Hdlr";
+        Response: JsonObject;
+        Results: JsonArray;
+    begin
+        // [SCENARIO] ResponseMatchesPostCodeDetails returns false for an empty results array.
+        // [GIVEN] A post code and a response with an empty results array.
+        PostCode.Init();
+        PostCode."Country/Region Code" := 'US';
+        PostCode.Code := '12345';
+        Response.Add('results', Results);
+
+        // [THEN] The response is not a match.
+        this.Assert.IsFalse(MsgHdlr.ResponseMatchesPostCodeDetails(Response, PostCode), 'An empty results array should not match.');
+    end;
+
+    [Test]
+    procedure WhenNormalizeValue_ThenUppercasesAndStripsSpaces()
+    var
+        MsgHdlr: Codeunit "AMC Post Code Valid Msg Hdlr";
+    begin
+        // [SCENARIO] NormalizeValue uppercases and strips spaces so ' ny ' matches 'NY'.
+        // [THEN] The normalized values are equal.
+        this.Assert.AreEqual('NY', MsgHdlr.NormalizeValue(' ny '), 'NormalizeValue should uppercase and strip spaces.');
+        this.Assert.AreEqual(MsgHdlr.NormalizeValue('NY'), MsgHdlr.NormalizeValue(' ny '), 'Normalization should make '' ny '' match ''NY''.');
+    end;
+
+    local procedure BuildResponsePayload(CountryCode: Text; PostalCode: Text; AdminCode: Text; PlaceName: Text; AdminName: Text): JsonObject
+    var
+        Response: JsonObject;
+        Results: JsonArray;
+        ResultEntry: JsonObject;
+    begin
+        ResultEntry.Add('country_code', CountryCode);
+        ResultEntry.Add('postal_code', PostalCode);
+        ResultEntry.Add('admin_code1', AdminCode);
+        ResultEntry.Add('place_name', PlaceName);
+        ResultEntry.Add('admin_name1', AdminName);
+        Results.Add(ResultEntry);
+        Response.Add('results', Results);
+        exit(Response);
+    end;
+
     local procedure CreateOutboxEntry(SourceRecordId: RecordId; Status: Enum "AMC Int. Outbox Status"): Integer
     var
         Outbox: Record "AMC Int. Outbox Entry";

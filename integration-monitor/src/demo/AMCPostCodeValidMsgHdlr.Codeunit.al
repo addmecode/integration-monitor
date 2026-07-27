@@ -82,7 +82,7 @@ codeunit 50111 "AMC Post Code Valid Msg Hdlr" implements "AMC IMessageHandler"
         PostCodeRef.SetTable(PostCode);
     end;
 
-    local procedure ResponseMatchesPostCodeDetails(ResponsePayload: JsonObject; PostCode: Record "Post Code"): Boolean
+    internal procedure ResponseMatchesPostCodeDetails(ResponsePayload: JsonObject; PostCode: Record "Post Code"): Boolean
     var
         Result: JsonObject;
         Results: JsonArray;
@@ -145,7 +145,7 @@ codeunit 50111 "AMC Post Code Valid Msg Hdlr" implements "AMC IMessageHandler"
         exit(this.NormalizeValue(this.GetPayloadText(Payload, PropertyName)) = this.NormalizeValue(PostCodeValue));
     end;
 
-    local procedure NormalizeValue(Value: Text): Text
+    internal procedure NormalizeValue(Value: Text): Text
     begin
         exit(UpperCase(DelChr(Value, '<>', ' ')));
     end;
