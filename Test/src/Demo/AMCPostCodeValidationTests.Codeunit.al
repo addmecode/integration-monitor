@@ -244,6 +244,23 @@ codeunit 50149 "AMC Post Code Validation Tests"
         this.Assert.AreEqual(CopyStr(UserId(), 1, MaxStrLen(PostCode."AMC Validated By")), PostCode."AMC Validated By", 'A non-blank status should stamp Validated By with the current user.');
     end;
 
+    [Test]
+    procedure WhenBuildRequestUri_ThenTrimsSlashAndEscapesWhereClause()
+    var
+        MsgHdlr: Codeunit "AMC Post Code Valid Msg Hdlr";
+        RequestUri: Text;
+        ExpectedUri: Text;
+    begin
+        // [SCENARIO] BuildRequestUri trims a trailing slash off the base URL and URI-escapes the where clause.
+        // [GIVEN] An endpoint URL with a trailing slash, a country code, and a postal code.
+        // [WHEN] The request URI is built.
+        RequestUri := MsgHdlr.BuildRequestUri('https://api.example.com/geo/', 'US', '12345');
+
+        // [THEN] The trailing slash is gone (no "/?") and the where value is escaped (quotes -> %22, spaces -> %20).
+        ExpectedUri := 'https://api.example.com/geo?where=country_code%3D%22US%22%20AND%20postal_code%3D%2212345%22&limit=10';
+        this.Assert.AreEqual(ExpectedUri, RequestUri, 'The request URI should trim the trailing slash and escape the where clause.');
+    end;
+
     local procedure CreateOutboxEntry(SourceRecordId: RecordId; Status: Enum "AMC Int. Outbox Status"): Integer
     var
         Outbox: Record "AMC Int. Outbox Entry";

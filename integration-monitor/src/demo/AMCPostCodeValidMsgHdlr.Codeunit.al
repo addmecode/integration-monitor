@@ -150,7 +150,7 @@ codeunit 50111 "AMC Post Code Valid Msg Hdlr" implements "AMC IMessageHandler"
         exit(UpperCase(DelChr(Value, '<>', ' ')));
     end;
 
-    local procedure BuildRequestUri(BaseUrl: Text; CountryRegionCode: Text; PostCode: Text): Text
+    internal procedure BuildRequestUri(BaseUrl: Text; CountryRegionCode: Text; PostCode: Text): Text
     var
         Uri: Codeunit Uri;
         WhereClause: Text;
