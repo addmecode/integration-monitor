@@ -155,6 +155,51 @@ codeunit 50149 "AMC Post Code Validation Tests"
         this.Assert.AreEqual(PostCode."AMC Validation Status"::" ", PostCode."AMC Validation Status", 'ResetValidation should blank the validation status.');
     end;
 
+    [Test]
+    procedure WhenStatusValid_ThenStyleFavorable()
+    var
+        PostCode: Record "Post Code";
+        ValidationMgt: Codeunit "AMC Post Code Validation Mgt";
+    begin
+        // [SCENARIO] GetValidationStyle maps a Valid status to the Favorable style.
+        // [GIVEN] A post code whose validation status is Valid.
+        PostCode.Init();
+        PostCode."AMC Validation Status" := PostCode."AMC Validation Status"::Valid;
+
+        // [THEN] The style is Favorable.
+        this.Assert.AreEqual('Favorable', ValidationMgt.GetValidationStyle(PostCode), 'A Valid status should map to the Favorable style.');
+    end;
+
+    [Test]
+    procedure WhenStatusInvalid_ThenStyleUnfavorable()
+    var
+        PostCode: Record "Post Code";
+        ValidationMgt: Codeunit "AMC Post Code Validation Mgt";
+    begin
+        // [SCENARIO] GetValidationStyle maps an Invalid status to the Unfavorable style.
+        // [GIVEN] A post code whose validation status is Invalid.
+        PostCode.Init();
+        PostCode."AMC Validation Status" := PostCode."AMC Validation Status"::Invalid;
+
+        // [THEN] The style is Unfavorable.
+        this.Assert.AreEqual('Unfavorable', ValidationMgt.GetValidationStyle(PostCode), 'An Invalid status should map to the Unfavorable style.');
+    end;
+
+    [Test]
+    procedure WhenStatusSent_ThenStyleEmpty()
+    var
+        PostCode: Record "Post Code";
+        ValidationMgt: Codeunit "AMC Post Code Validation Mgt";
+    begin
+        // [SCENARIO] GetValidationStyle maps any other status to an empty style.
+        // [GIVEN] A post code whose validation status is Sent (neither Valid nor Invalid).
+        PostCode.Init();
+        PostCode."AMC Validation Status" := PostCode."AMC Validation Status"::Sent;
+
+        // [THEN] The style is empty.
+        this.Assert.AreEqual('', ValidationMgt.GetValidationStyle(PostCode), 'A non-Valid/Invalid status should map to an empty style.');
+    end;
+
     local procedure CreateOutboxEntry(SourceRecordId: RecordId; Status: Enum "AMC Int. Outbox Status"): Integer
     var
         Outbox: Record "AMC Int. Outbox Entry";
