@@ -228,23 +228,28 @@ The demo source in `src/demo/` is a reference implementation showing how a real 
 
 ## Project Structure
 
+The repository contains two AL apps: the framework itself and a companion test app.
+
 ```
-src/
-  AssistedSetup/   Guided setup wizard and job queue management
-  Auth/            Auth profiles, Basic/Bearer, isolated storage
-  Helpers/         BLOB helper and generic payload viewer page
-  Inbox/           Inbox table, dispatcher, processor, failure handler, monitor page
-  Message/         IMessageHandler interface, message type enum, default handler
-  Outbox/          Outbox table, dispatcher, processor, failure handler, cleanup, monitor page
-  Setup/           Message setup table, validation, admin pages
-  Transport/       IHttpTransportHandler interface, HTTP/HTTPS default transport
-  demo/            Postal code validation — complete example consumer extension
+integration-monitor/          Main app — the framework
+  src/
+    AssistedSetup/   Guided setup wizard and job queue management
+    Auth/            Auth profiles, Basic/Bearer, isolated storage
+    Helpers/         BLOB helper and generic payload viewer page
+    Inbox/           Inbox table, dispatcher, processor, failure handler, monitor page
+    Message/         IMessageHandler interface, message type enum, default handler
+    Outbox/          Outbox table, dispatcher, processor, failure handler, cleanup, monitor page
+    Setup/           Message setup table, validation, admin pages
+    Transport/       IHttpTransportHandler interface, HTTP/HTTPS default transport
+    demo/            Postal code validation — complete example consumer extension
+
+Test/                         Test app — unit tests for the framework
+  src/
+    Auth/            Auth profile mgt, Basic/Bearer handlers, auth applier
+    Demo/            Postal code validation handler and mgt
+    Helpers/         BLOB helper tests, test data factory, mock transport, mock handler
+    Inbox/           Inbox entry mgt, failure handler, processor
+    Message/         Message mgt
+    Outbox/          Outbox entry mgt, failure handler, processor (incl. send path)
+    Setup/           Message setup validation
 ```
-
----
-
-## Status
-
-Early-stage, under active development. Core flows (outbox, inbox, auth, cleanup, assisted setup) are functional. Automated tests are not yet included.
-
-Contributions, issues, and feedback are welcome.
