@@ -253,3 +253,11 @@ Test/                         Test app — unit tests for the framework
     Outbox/          Outbox entry mgt, failure handler, processor (incl. send path)
     Setup/           Message setup validation
 ```
+
+---
+
+## License
+
+Released under the [MIT License](LICENSE) — free to use, modify, and distribute, including commercially, provided the copyright notice is retained.
+
+Copyright © 2026 Addmecode
