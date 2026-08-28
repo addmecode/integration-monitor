@@ -1,6 +1,6 @@
 namespace Addmecode.IntegrationMonitor.Auth;
 
-codeunit 50121 "AMC Int. Auth Applier"
+codeunit 50108 "AMC Int. Auth Applier"
 {
     [NonDebuggable]
     procedure ApplyAuth(var Request: HttpRequestMessage; AuthProfileCode: Code[20])

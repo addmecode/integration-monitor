@@ -1,6 +1,6 @@
 namespace Addmecode.IntegrationMonitor.Outbox;
 
-codeunit 50115 "AMC Outbox Dispatcher Job"
+codeunit 50102 "AMC Outbox Dispatcher Job"
 {
     trigger OnRun()
     begin

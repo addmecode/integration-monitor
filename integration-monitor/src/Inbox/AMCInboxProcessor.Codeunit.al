@@ -4,7 +4,7 @@ using Addmecode.IntegrationMonitor.Message;
 using Addmecode.IntegrationMonitor.Setup;
 using Addmecode.IntegrationMonitor.Transport;
 
-codeunit 50127 "AMC Inbox Processor"
+codeunit 50114 "AMC Inbox Processor"
 {
     TableNo = "AMC Int. Inbox Entry";
 
@@ -13,7 +13,7 @@ codeunit 50127 "AMC Inbox Processor"
         this.ProcessEntry(Rec);
     end;
 
-    local procedure ProcessEntry(var Inbox: Record "AMC Int. Inbox Entry")
+    internal procedure ProcessEntry(var Inbox: Record "AMC Int. Inbox Entry")
     var
         IntMessageSetup: Record "AMC Int. Message Setup";
         MissingMessageSetupErr: Label 'Integration message setup for message type %1 does not exist. Inbox entry %2 cannot be processed.', Comment = '%1 = message type, %2 = inbox entry number';
@@ -55,7 +55,7 @@ codeunit 50127 "AMC Inbox Processor"
         exit(true);
     end;
 
-    local procedure ClaimForProcessing(var Inbox: Record "AMC Int. Inbox Entry"): Boolean
+    internal procedure ClaimForProcessing(var Inbox: Record "AMC Int. Inbox Entry"): Boolean
     begin
         Inbox.LockTable();
         if not Inbox.Get(Inbox."Entry No.") then

@@ -7,7 +7,7 @@ using Addmecode.IntegrationMonitor.Setup;
 using Microsoft.Foundation.Address;
 using System.Utilities;
 
-codeunit 50124 "AMC Post Code Valid Msg Hdlr" implements "AMC IMessageHandler"
+codeunit 50111 "AMC Post Code Valid Msg Hdlr" implements "AMC IMessageHandler"
 {
     procedure BuildRequest(Outbox: Record "AMC Int. Outbox Entry"; var Request: HttpRequestMessage)
     var
@@ -82,7 +82,7 @@ codeunit 50124 "AMC Post Code Valid Msg Hdlr" implements "AMC IMessageHandler"
         PostCodeRef.SetTable(PostCode);
     end;
 
-    local procedure ResponseMatchesPostCodeDetails(ResponsePayload: JsonObject; PostCode: Record "Post Code"): Boolean
+    internal procedure ResponseMatchesPostCodeDetails(ResponsePayload: JsonObject; PostCode: Record "Post Code"): Boolean
     var
         Result: JsonObject;
         Results: JsonArray;
@@ -145,12 +145,12 @@ codeunit 50124 "AMC Post Code Valid Msg Hdlr" implements "AMC IMessageHandler"
         exit(this.NormalizeValue(this.GetPayloadText(Payload, PropertyName)) = this.NormalizeValue(PostCodeValue));
     end;
 
-    local procedure NormalizeValue(Value: Text): Text
+    internal procedure NormalizeValue(Value: Text): Text
     begin
         exit(UpperCase(DelChr(Value, '<>', ' ')));
     end;
 
-    local procedure BuildRequestUri(BaseUrl: Text; CountryRegionCode: Text; PostCode: Text): Text
+    internal procedure BuildRequestUri(BaseUrl: Text; CountryRegionCode: Text; PostCode: Text): Text
     var
         Uri: Codeunit Uri;
         WhereClause: Text;

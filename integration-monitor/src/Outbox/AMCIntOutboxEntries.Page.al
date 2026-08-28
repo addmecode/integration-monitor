@@ -1,7 +1,7 @@
 namespace Addmecode.IntegrationMonitor.Outbox;
 using Addmecode.IntegrationMonitor.Inbox;
 
-page 50113 "AMC Int. Outbox Entries"
+page 50100 "AMC Int. Outbox Entries"
 {
     PageType = List;
     SourceTable = "AMC Int. Outbox Entry";

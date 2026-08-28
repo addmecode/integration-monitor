@@ -1,6 +1,6 @@
 namespace Addmecode.IntegrationMonitor.Auth;
 
-table 50109 "AMC Int. Auth Profile"
+table 50103 "AMC Int. Auth Profile"
 {
     DataClassification = CustomerContent;
     Caption = 'Integration Auth Profile';

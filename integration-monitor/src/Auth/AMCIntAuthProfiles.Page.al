@@ -1,6 +1,6 @@
 namespace Addmecode.IntegrationMonitor.Auth;
 
-page 50118 "AMC Int. Auth Profiles"
+page 50105 "AMC Int. Auth Profiles"
 {
     PageType = List;
     SourceTable = "AMC Int. Auth Profile";

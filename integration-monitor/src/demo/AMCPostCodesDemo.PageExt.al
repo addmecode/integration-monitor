@@ -1,7 +1,7 @@
 namespace Addmecode.IntegrationMonitor.Demo;
 using Microsoft.Foundation.Address;
 
-pageextension 50123 "AMC Post Codes Demo" extends "Post Codes"
+pageextension 50100 "AMC Post Codes Demo" extends "Post Codes"
 {
     layout
     {

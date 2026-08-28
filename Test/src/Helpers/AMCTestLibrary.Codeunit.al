@@ -11,7 +11,7 @@ using System.TestLibraries.Utilities;
 /// Deterministic setup factory for Integration Monitor tests. Keeps tests DRY:
 /// every helper inserts a valid record using <c>Any</c> for values that do not matter.
 /// </summary>
-codeunit 50142 "AMC Test Library"
+codeunit 50134 "AMC Test Library"
 {
     /// <summary>
     /// Creates (or replaces) a Message Setup for the given type. Enabled is assigned
@@ -74,9 +74,17 @@ codeunit 50142 "AMC Test Library"
     var
         Profile: Record "AMC Int. Auth Profile";
         Any: Codeunit "Any";
+        ProfileCode: Code[20];
     begin
+        // Storing a secret writes to IsolatedStorage, which commits — so a profile from an earlier
+        // test can survive rollback. Any reuses the same seeded Code per test, so delete any leftover
+        // first (mirrors CreateMessageSetup) to keep the insert collision-free and the test isolated.
+        ProfileCode := CopyStr(Any.AlphabeticText(10), 1, MaxStrLen(Profile.Code));
+        if Profile.Get(ProfileCode) then
+            Profile.Delete(true);
+
         Profile.Init();
-        Profile.Code := CopyStr(Any.AlphabeticText(10), 1, MaxStrLen(Profile.Code));
+        Profile.Code := ProfileCode;
         Profile."Auth Type" := AuthType;
         Profile.Username := CopyStr(Any.AlphabeticText(10), 1, MaxStrLen(Profile.Username));
         Profile.Insert(true);
@@ -103,5 +111,44 @@ codeunit 50142 "AMC Test Library"
         Assert.IsTrue(
             (ActualDateTime >= LowerBound) and (ActualDateTime <= UpperBound),
             StrSubstNo(DateTimeOutOfRangeErr, FieldCaption));
+    end;
+
+    /// <summary>
+    /// Asserts a DateTime is ≈ now: within [LowerBound, UpperBound] widened by a small tolerance
+    /// that absorbs SQL <c>datetime</c> rounding (~3.33 ms) and Windows clock granularity (~15 ms),
+    /// so bracketed "just happened" checks stay deterministic. Use this for every "≈ now" assertion.
+    /// </summary>
+    procedure AssertDateTimeIsRecent(ActualDateTime: DateTime; LowerBound: DateTime; UpperBound: DateTime; FieldCaption: Text)
+    var
+        Tolerance: Duration;
+    begin
+        Tolerance := 1000;
+        this.AssertDateTimeWithinRange(ActualDateTime, LowerBound - Tolerance, UpperBound + Tolerance, FieldCaption);
+    end;
+
+    /// <summary>
+    /// Populates the platform last-error context (GetLastErrorText/GetLastErrorCallStack) the way a
+    /// failed processor Run would, so failure-handler tests can drive the handler through Codeunit.Run.
+    /// It fails a TryFunction, which rolls back only its own scope — the caller's staged records
+    /// survive (a bare asserterror would roll back to the last commit and wipe them). Returns the
+    /// simulated error text so callers can assert on the stored Last Error blob.
+    /// </summary>
+    procedure SimulateLastError(): Text
+    begin
+        if this.ThrowSimulatedError() then;
+        exit(this.SimulatedErrorLbl());
+    end;
+
+    [TryFunction]
+    local procedure ThrowSimulatedError()
+    begin
+        Error(this.SimulatedErrorLbl());
+    end;
+
+    local procedure SimulatedErrorLbl(): Text
+    var
+        SimulatedErrorTxt: Label 'Simulated processing failure.', Locked = true;
+    begin
+        exit(SimulatedErrorTxt);
     end;
 }

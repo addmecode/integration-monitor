@@ -1,6 +1,6 @@
 namespace Addmecode.IntegrationMonitor.Auth;
 
-codeunit 50135 "AMC Int. Bearer Auth Handler" implements "AMC IAuthHandler"
+codeunit 50122 "AMC Int. Bearer Auth Handler" implements "AMC IAuthHandler"
 {
     [NonDebuggable]
     procedure ApplyAuth(var Request: HttpRequestMessage; AuthProfile: Record "AMC Int. Auth Profile")

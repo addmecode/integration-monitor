@@ -1,6 +1,6 @@
 namespace Addmecode.IntegrationMonitor.Auth;
 
-enum 50105 "AMC Int. Auth Type" implements "AMC IAuthHandler"
+enum 50103 "AMC Int. Auth Type" implements "AMC IAuthHandler"
 {
     Extensible = true;
 

@@ -3,7 +3,7 @@ using Addmecode.IntegrationMonitor.Auth;
 using Addmecode.IntegrationMonitor.Setup;
 using System.Integration;
 
-codeunit 50117 "AMC Http Transport Default" implements "AMC IHttpTransportHandler"
+codeunit 50104 "AMC Http Transport Default" implements "AMC IHttpTransportHandler"
 {
     procedure ValidateSetup(Setup: Record "AMC Int. Message Setup")
     var

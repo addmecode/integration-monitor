@@ -4,7 +4,7 @@ using Addmecode.IntegrationMonitor.Inbox;
 using Addmecode.IntegrationMonitor.Outbox;
 using System.Threading;
 
-page 50120 "AMC Int. Job Queue Setup"
+page 50107 "AMC Int. Job Queue Setup"
 {
     PageType = NavigatePage;
     ApplicationArea = All;

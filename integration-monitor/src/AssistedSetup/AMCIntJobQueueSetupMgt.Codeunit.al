@@ -5,7 +5,7 @@ using Addmecode.IntegrationMonitor.Outbox;
 using System.Environment.Configuration;
 using System.Threading;
 
-codeunit 50136 "AMC Int. Job Queue Setup Mgt."
+codeunit 50123 "AMC Int. Job Queue Setup Mgt."
 {
     Permissions = tabledata "Job Queue Entry" = rimd;
 

@@ -1,7 +1,7 @@
 namespace Addmecode.IntegrationMonitor.Test;
 using System.TestLibraries.Utilities;
 
-codeunit 50141 "AMC Smoke Test"
+codeunit 50133 "AMC Smoke Test"
 {
     Subtype = Test;
     TestPermissions = Disabled;

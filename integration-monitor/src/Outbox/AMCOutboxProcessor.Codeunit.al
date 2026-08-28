@@ -4,7 +4,7 @@ using Addmecode.IntegrationMonitor.Message;
 using Addmecode.IntegrationMonitor.Setup;
 using Addmecode.IntegrationMonitor.Transport;
 
-codeunit 50116 "AMC Outbox Processor"
+codeunit 50103 "AMC Outbox Processor"
 {
     TableNo = "AMC Int. Outbox Entry";
 
@@ -13,7 +13,7 @@ codeunit 50116 "AMC Outbox Processor"
         this.ProcessEntry(Rec);
     end;
 
-    local procedure ProcessEntry(var Outbox: Record "AMC Int. Outbox Entry")
+    internal procedure ProcessEntry(var Outbox: Record "AMC Int. Outbox Entry")
     var
         IntMessageSetup: Record "AMC Int. Message Setup";
         MissingMessageSetupErr: Label 'Integration message setup for message type %1 does not exist. Outbox entry %2 cannot be processed.', Comment = '%1 = message type, %2 = outbox entry number';
@@ -79,7 +79,7 @@ codeunit 50116 "AMC Outbox Processor"
         this.MarkOutboxAsProcessed(Outbox);
     end;
 
-    local procedure ClaimForSending(var Outbox: Record "AMC Int. Outbox Entry"): Boolean
+    internal procedure ClaimForSending(var Outbox: Record "AMC Int. Outbox Entry"): Boolean
     begin
         Outbox.LockTable();
         if not Outbox.Get(Outbox."Entry No.") then

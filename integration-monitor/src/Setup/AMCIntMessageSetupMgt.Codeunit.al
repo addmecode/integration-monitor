@@ -3,7 +3,7 @@ namespace Addmecode.IntegrationMonitor.Setup;
 using Addmecode.IntegrationMonitor.Auth;
 using Addmecode.IntegrationMonitor.Transport;
 
-codeunit 50122 "AMC Int. Message Setup Mgt."
+codeunit 50109 "AMC Int. Message Setup Mgt."
 {
     internal procedure TestRequiredFieldsForEnabled(IntMessageSetup: Record "AMC Int. Message Setup")
     var
